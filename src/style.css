@@ -119,7 +119,7 @@
 .modal-backdrop{overflow-y:auto;align-items:center;justify-items:center}
 .modal{max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;min-width:0}
 .modal label{min-width:0}
-.modal textarea{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;resize:vertical;min-height:88px;max-height:220px;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere}
+.modal textarea{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;resize:none;min-height:88px;max-height:220px;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere}
 .modal input:not([type="file"]){min-width:0;max-width:100%}
 .modal .suggestion-box{min-width:0}
 @media(max-height:720px){.modal-backdrop{align-items:start}.modal{margin:auto 0}}
