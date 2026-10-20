@@ -105,6 +105,7 @@ function App(){
     await new Promise(resolve=>setTimeout(resolve,1000));
     const statusResponse=await fetch('/api/analyse/jobs/'+initial.id);
     const job=await statusResponse.json();if(!statusResponse.ok)throw Error(job.detail||'Could not load analysis progress');
+    if(analysisJobRef.current!==initial.id)break;
     setAnalysisJob(job);setMatches(job.matches||[]);
     if(['completed','cancelled','failed'].includes(job.status)){
      if(job.status==='failed')setAiError(job.error||'AI analysis failed');
@@ -121,7 +122,10 @@ function App(){
   try{
    const response=await fetch('/api/analyse/jobs/'+analysisJobRef.current+'/cancel',{method:'POST'});
    if(!response.ok)throw Error('Unable to stop analysis');
-   setAnalysisJob(job=>job?{...job,message:'Stopping after current API request...'}:job);
+   analysisJobRef.current=null;
+   setAnalysisJob(null);
+   setCacheMessage('Analysis cancelled. Existing completed highlights remain available; an in-flight API request may still incur tokens.');
+   fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{});
   }catch(e){setAiError(e.message)}
  };
  const inspect=async m=>{const request=++passageRequestRef.current;sourceRequestRef.current++;clearNativeSelection();setSourceFocus(null);setFocusedHighlight(highlightKey({...m,paperId}));setRelationship('Unclassified');setSelected({...m,source:project.papers.find(p=>p.id===paperId)?.name+' · page '+m.page,analysis:'',paperId});setEditing('');setAiDetails(null);setPageNumber(m.page);setAssistant(true);setAssistantTab('analysis');setBusy(true);setAiError('');try{const r=await fetch('/api/passage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,block_id:m.id,question:project.question,theme:m.theme})});const d=await r.json();if(request!==passageRequestRef.current)return;if(!r.ok)throw Error(d.detail);setAiDetails(d);setEditing(d.interpretation);setCacheMessage(d.cache_hit?'Passage analysis loaded from cache (0 new tokens)':'New passage analysis generated');fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})}catch(e){if(request===passageRequestRef.current)setAiError(e.message)}finally{if(request===passageRequestRef.current)setBusy(false)}};
