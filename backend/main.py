@@ -118,10 +118,62 @@ def paper_sha(paper_id):
         row=c.execute('SELECT sha256 FROM papers WHERE id=?',(paper_id,)).fetchone()
     if not row: raise HTTPException(404,'Paper not found')
     return row['sha256']
+
+def mock_mode():
+    return os.getenv('AI_MOCK_MODE','false').strip().lower() in ('1','true','yes','on')
+
+def active_model():
+    return 'mock-deterministic-v1' if mock_mode() else os.getenv('QWEN_MODEL','qwen-plus')
+
+def _mock_response(messages,task_type):
+    """Deterministic contract-compatible responses; never call a remote model."""
+    try:
+        payload=json.loads(next((m['content'] for m in reversed(messages) if m.get('role')=='user'),'{}'))
+    except (ValueError,TypeError):
+        payload={}
+    if task_type=='highlight':
+        themes=payload.get('themes') or [payload.get('theme','Research Theme')]
+        matches=[]
+        for block in payload.get('pdf_blocks',[]):
+            content=' '.join(str(block.get('text','')).split())
+            if len(content)<35:continue
+            # Choose an exact substring with no model hallucination.
+            words=content.split()
+            quote=' '.join(words[:min(18,len(words))])
+            if len(quote)<18:continue
+            matches.append({'block_id':block['id'],'quote':quote,'theme':themes[len(matches)%len(themes)],
+                            'reason':'Mock candidate for testing source verification; not a research finding.'})
+            if len(matches)>=min(6,max(2,len(themes)*2)):break
+        return {'matches':matches}
+    if task_type=='passage':
+        passage=str(payload.get('original_passage',''))
+        return {'interpretation':'[MOCK] Review this original passage before drawing a conclusion: '+passage[:170],
+                'relevance':'[MOCK] Relevance is not evaluated. Compare the source with your research question.',
+                'limitations':'[MOCK] Synthetic response for UX testing; not a scientific assessment.'}
+    if task_type=='theme_suggestion':
+        topics=[str(x).strip() for x in payload.get('user_topics',[]) if str(x).strip()]
+        themes=list(dict.fromkeys(topics+['Research Context','Evidence Quality','Research Limitations']))[:6]
+        return {'themes':[{'name':t,'basis':'[MOCK] Illustrative theme for testing selection and editing.',
+                           'source_block_ids':[]} for t in themes]}
+    if task_type=='network':
+        evidence=payload.get('evidence',[])
+        if len(evidence)<2:return {'links':[]}
+        return {'links':[{'source_id':evidence[0]['id'],'target_id':evidence[1]['id'],
+                          'relationship':'Related','rationale':'[MOCK] Example relationship for review-flow testing only; no academic claim is implied.'}]}
+    if task_type=='synthesis':
+        evidence=payload.get('verified_evidence',[])
+        ids=[e['id'] for e in evidence if e.get('id')]
+        return {'insights':[{'text':'[MOCK] Example insight for interface testing, not a research conclusion.',
+                             'evidence_ids':ids[:2]}],
+                'gaps':[{'text':'[MOCK] Example gap in the current library; not a field-wide research gap.',
+                         'evidence_ids':ids[:1]}]}
+    return {}
+
 def ask(messages,task_type='other',paper_id=None):
+    if mock_mode():return _mock_response(messages,task_type)
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
-    model=os.getenv('QWEN_MODEL','qwen-plus')
+    model=active_model()
     client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(os.getenv('QWEN_TIMEOUT_SECONDS','120')),max_retries=0)
     usage=(None,None,None);status='success';error=None
     try:
@@ -141,7 +193,41 @@ def usage_stats():
         rows=[dict(r) for r in c.execute('SELECT task_type, COUNT(*) AS requests, SUM(COALESCE(input_tokens,0)) AS input_tokens, SUM(COALESCE(output_tokens,0)) AS output_tokens, SUM(COALESCE(total_tokens,0)) AS total_tokens, SUM(CASE WHEN status="error" THEN 1 ELSE 0 END) AS errors FROM ai_usage GROUP BY task_type ORDER BY task_type')]
     return {'by_task':rows,'total_tokens':sum(r['total_tokens'] for r in rows),'requests':sum(r['requests'] for r in rows),'note':'Counts actual model responses only; cache hits use zero new tokens.'}
 @app.get('/api/health')
-def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY'))}
+def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY')) or mock_mode(),'mock_mode':mock_mode()}
+
+def extract_paper_metadata(doc):
+    """Conservative PDF metadata: no guessed journal, author, or publication year."""
+    raw=doc.metadata or {}
+    first=(doc[0].get_text('text')[:3500] if len(doc) else '')
+    title=str(raw.get('title') or '').strip()
+    author=str(raw.get('author') or '').strip()
+    if title.lower() in ('untitled','microsoft word','document','none') or title.lower().endswith('.pdf'):
+        title=''
+    doi_match=re.search(r'\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b',first,re.I)
+    doi=doi_match.group(0).rstrip('.,;)') if doi_match else ''
+    return {'title':title,'authors':author,'year':'','venue':'','doi':doi,'url':'https://doi.org/'+doi if doi else '',
+            'metadata_status':'unverified'}
+
+@app.get('/api/papers/{paper_id}/metadata')
+def paper_metadata(paper_id:str):
+    with get_doc(paper_id) as doc:
+        return extract_paper_metadata(doc)
+
+class LocateRequest(BaseModel):
+    page:int
+    quote:str
+    block_rect:list[float]|None=None
+
+@app.post('/api/papers/{paper_id}/locate')
+def locate_quote(paper_id:str,req:LocateRequest):
+    with get_doc(paper_id) as doc:
+        if req.page<1 or req.page>len(doc):raise HTTPException(404,'Page not found')
+        page=doc[req.page-1]
+        rects=exact_quote_rectangles(page,req.quote,req.block_rect or list(page.rect))
+        if not rects:
+            return {'found':False,'page':req.page,'rects':[],'message':'Exact quotation not located; showing source page only.'}
+        return {'found':True,'page':req.page,'rects':rects}
+
 @app.post('/api/papers')
 async def upload(file:UploadFile=File(...)):
     if not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
@@ -151,7 +237,7 @@ async def upload(file:UploadFile=File(...)):
     with db() as c:
         existing=c.execute('SELECT * FROM papers WHERE sha256=?',(sha,)).fetchone()
     if existing and (STORE/(existing['id']+'.pdf')).exists():
-        return {'id':existing['id'],'name':existing['filename'],'pages':existing['pages'],'duplicate':True}
+        return {'id':existing['id'],'name':existing['filename'],'pages':existing['pages'],'duplicate':True,**paper_metadata(existing['id'])}
     pid=str(uuid.uuid4()); path=STORE/(pid+'.pdf')
     path.write_bytes(data)
     try:
@@ -160,11 +246,12 @@ async def upload(file:UploadFile=File(...)):
             blocks=blocks_for(doc)
             if not blocks: raise ValueError('No extractable text. Scanned PDFs require OCR.')
             pages=len(doc)
+            metadata=extract_paper_metadata(doc)
     except Exception as e:
         path.unlink(missing_ok=True);raise HTTPException(422,str(e))
     with db() as c:
         c.execute('INSERT INTO papers VALUES(?,?,?,?,?)',(pid,file.filename,sha,pages,time.time()))
-    return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False}
+    return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False,**metadata}
 @app.get('/api/papers/{paper_id}/blocks')
 def blocks(paper_id:str):
     with get_doc(paper_id) as doc:
@@ -202,7 +289,7 @@ def analyse(req:AnalysisRequest):
     themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
     if not themes: raise HTTPException(422,'Add or confirm research themes first.')
     by_id={b['id']:b for b in blocks}
-    sha=paper_sha(req.paper_id);model=os.getenv('QWEN_MODEL','qwen-plus')
+    sha=paper_sha(req.paper_id);model=active_model()
     matches=[];cached_themes=[];analysed_themes=[]
     for theme in themes:
         key=fingerprint('precise-highlight',PROMPT_VERSION,sha,req.question.strip(),theme,model)
@@ -251,7 +338,7 @@ def _analyse_job(job, req):
             blocks=blocks_for(doc)
         themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
         sha=paper_sha(req.paper_id)
-        model=os.getenv('QWEN_MODEL','qwen-plus')
+        model=active_model()
         # A short PDF is analysed in one call, regardless of theme count.
         # Longer documents use a few bounded batches to avoid huge prompts.
         batch_size=36 if len(blocks)<=36 else 30
@@ -314,7 +401,7 @@ def start_analysis(req:AnalysisRequest):
     if not themes:raise HTTPException(422,'Add research themes first')
     if not req.question.strip():raise HTTPException(422,'Research question required')
     sha=paper_sha(req.paper_id)
-    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,os.getenv('QWEN_MODEL','qwen-plus'))
+    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,active_model())
     with analysis_lock:
         for job in analysis_jobs.values():
             if job['cache_key']==identity and job['status'] in ('queued','running'):
@@ -350,13 +437,88 @@ def passage(req:PassageRequest):
     with get_doc(req.paper_id) as doc:blocks=blocks_for(doc)
     block=next((b for b in blocks if b['id']==req.block_id),None)
     if not block:raise HTTPException(404,'Original source block not found')
-    key=fingerprint('passage',PROMPT_VERSION,paper_sha(req.paper_id),req.block_id,block['text'],req.question.strip(),req.theme,os.getenv('QWEN_MODEL','qwen-plus'))
+    key=fingerprint('passage',PROMPT_VERSION,paper_sha(req.paper_id),req.block_id,block['text'],req.question.strip(),req.theme,active_model())
     cached=cache_get('passage_cache',key)
     if cached is not None:return {**cached,'cache_hit':True}
     data=ask([{'role':'system','content':'Analyse the provided original academic passage cautiously. Do not invent results, statistics, authors or related papers. Return JSON object with fields interpretation, relevance, limitations. Keep each concise.'},{'role':'user','content':json.dumps({'question':req.question,'theme':req.theme,'original_passage':block['text']})}],task_type='passage',paper_id=req.paper_id)
     result={'source':block,'interpretation':str(data.get('interpretation','')),'relevance':str(data.get('relevance','')),'limitations':str(data.get('limitations',''))}
     cache_put('passage_cache',key,result,req.paper_id)
     return {**result,'cache_hit':False}
+
+
+class NetworkProposalRequest(BaseModel):
+    question:str
+    evidence:list[dict]
+
+@app.post('/api/network/propose')
+def propose_evidence_links(req:NetworkProposalRequest):
+    records=[]
+    for e in req.evidence[:60]:
+        if not e.get('id') or not (e.get('quote') or e.get('text')):continue
+        records.append({'id':str(e['id']),'theme':str(e.get('theme',''))[:100],
+          'quote':str(e.get('quote') or e.get('text'))[:500],
+          'interpretation':str(e.get('analysis',''))[:400],
+          'source':str(e.get('source',''))[:200]})
+    if len(records)<2:raise HTTPException(422,'At least two verified evidence records are required')
+    key=fingerprint('network-proposal-v1',req.question,records,active_model())
+    cached=cache_get('theme_cache',key)
+    if cached is not None:return {**cached,'cache_hit':True}
+    result=ask([
+      {'role':'system','content':(
+        'You propose evidence-to-evidence relationships for HUMAN REVIEW. '
+        'Return only JSON {"links":[{"source_id":"exact id","target_id":"exact id",'
+        '"relationship":"Supporting|Contradictory|Related","rationale":"specific grounded explanation"}]}. '
+        'Propose at most 12 relationships. Supporting means compatible claims, '
+        'Contradictory means actual disagreement on a comparable claim, Related means '
+        'topically or methodologically connected but neither supported nor contradicted. '
+        'Shared theme alone is insufficient for an edge. Be conservative; zero links is valid. '
+        'Use only supplied evidence and exact IDs; do not invent claims or sources.'
+      )},
+      {'role':'user','content':json.dumps({'research_question':req.question,'evidence':records},ensure_ascii=False)}
+    ],task_type='network')
+    allowed={x['id'] for x in records}
+    links=[];seen=set()
+    for edge in result.get('links',[])[:24]:
+        if not isinstance(edge,dict):continue
+        a,b=str(edge.get('source_id','')),str(edge.get('target_id',''))
+        kind=str(edge.get('relationship',''))
+        why=str(edge.get('rationale','')).strip()[:500]
+        if a not in allowed or b not in allowed or a==b or kind not in ('Supporting','Contradictory','Related') or len(why)<15:continue
+        pair=tuple(sorted((a,b)))
+        if pair in seen:continue
+        seen.add(pair)
+        links.append({'id':fingerprint(pair,kind)[:20],'source_id':a,'target_id':b,'relationship':kind,'rationale':why,'status':'suggested'})
+        if len(links)>=12:break
+    payload={'links':links}
+    cache_put('theme_cache',key,payload)
+    return {**payload,'cache_hit':False}
+
+class SynthesisRequest(BaseModel):
+    question: str
+    evidence: list[dict]
+
+@app.post('/api/synthesis')
+def synthesize(req:SynthesisRequest):
+    # Never synthesize unverified, user-unsupplied evidence. The frontend sends
+    # verified records only. Return traceable record IDs and library-scoped gaps.
+    records=[{'id':str(e.get('id','')),'theme':str(e.get('theme','')),'quote':str(e.get('quote',''))[:700],
+              'interpretation':str(e.get('interpretation',''))[:700],'relationship':str(e.get('relationship','Unclassified')),
+              'source':str(e.get('source',''))[:300]} for e in req.evidence[:150] if e.get('id') and e.get('quote')]
+    if not records:raise HTTPException(422,'No verified evidence available for synthesis')
+    cache_key=fingerprint('verified-synthesis-v1',req.question,records,active_model())
+    cached=cache_get('theme_cache',cache_key)
+    if cached is not None:return {**cached,'cache_hit':True}
+    data=ask([
+      {'role':'system','content':'You are a careful research synthesis assistant. Use ONLY supplied verified evidence. Return JSON {"insights":[{"text":"specific cross-evidence insight","evidence_ids":["id"]}],"gaps":[{"text":"gap in this uploaded evidence library, not a claim about the whole field","evidence_ids":["id"]}]}. At most 4 insights and 4 gaps. Every cited ID must be supplied. Distinguish synthetic documents, limitations, and hypotheses from empirical evidence. Never fabricate references or claim universal research gaps.'},
+      {'role':'user','content':json.dumps({'research_question':req.question,'verified_evidence':records},ensure_ascii=False)}
+    ],task_type='synthesis')
+    allowed={e['id'] for e in records}
+    result={}
+    for field in ('insights','gaps'):
+        result[field]=[{'text':str(x.get('text',''))[:600],'evidence_ids':[i for i in x.get('evidence_ids',[]) if i in allowed]} for x in data.get(field,[])[:4] if isinstance(x,dict) and x.get('text')]
+    cache_put('theme_cache',cache_key,result)
+    return {**result,'cache_hit':False}
+
 @app.post('/api/themes/suggest')
 def suggest_themes(req:ThemeRequest):
     excerpts=[]

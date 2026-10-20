@@ -31,3 +31,35 @@
 .overview-footer{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-top:14px;font-size:11px;color:#8a849c}
 .evidence-modal{width:min(640px,94vw)}.source-quote{font-size:13px;line-height:1.7;border-left:3px solid #a08ee8;background:#f8f6ff;padding:14px;border-radius:7px;max-height:160px;overflow:auto}
 @media(max-width:1100px){.library-layout,.library-layout.library-collapsed{grid-template-columns:minmax(0,1fr)}.paper-list{display:block!important}.assistant{position:static;max-height:none}.pdf-scroll{max-height:70vh}}
+
+/* v0.7 evidence workflow */
+.map-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0 22px}
+.map-toolbar .tabs{min-width:300px;flex:1}
+.map-toolbar input{min-width:230px;flex:2;border:1px solid #dedbf0;border-radius:10px;padding:12px;background:white}
+.map-toolbar select{border:1px solid #dedbf0;border-radius:10px;padding:12px;background:white}
+.suggestion-box{padding:14px;border:1px solid #e5dff8;border-radius:12px;margin:12px 0}
+.suggestion-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.selected-chip{border-color:#7561d9!important;background:#eeeaff!important}
+.focus-toggle{display:inline-flex;align-items:center;gap:6px;margin-right:10px;font-size:13px}
+.synthesis-item{padding:14px;margin:8px 0;background:#f8f7fd;border-radius:10px;line-height:1.5}
+.synthesis-item small{display:block;margin-top:8px;color:#77728e;overflow-wrap:anywhere}
+.network-view{margin:18px 0;padding:16px;border:1px solid #e4dff1;border-radius:12px}
+.network-node{display:inline-block;vertical-align:top;text-align:left;border:2px solid #aaa;background:white;border-radius:12px;padding:14px;margin:8px;max-width:230px;cursor:pointer}
+.pdf-highlight{transition:background .18s ease,outline .18s ease}
+
+/* Exact original-source focus and metadata editor */
+.source-focus-rect{position:absolute;pointer-events:none;box-sizing:border-box;border:2px solid #4f46e5;background:rgba(99,102,241,.13);z-index:7;box-shadow:0 0 0 3px rgba(99,102,241,.15);animation:source-focus-pulse 1.1s ease-in-out 2}
+@keyframes source-focus-pulse{0%,100%{box-shadow:0 0 0 3px rgba(99,102,241,.15)}50%{box-shadow:0 0 0 9px rgba(99,102,241,.09)}}
+.paper-item .icon-btn{flex-shrink:0}
+
+/* Evidence network */
+.network-canvas{overflow-x:auto}
+.network-node-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 20px}
+.network-node-actions button{max-width:300px;white-space:normal;text-align:left;font-size:12px}
+.network-edges{border-top:1px solid #e9e6f1;padding-top:16px}
+.network-edge-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px;border:1px solid #e7e3f1;background:white;border-radius:10px;margin:8px 0;cursor:pointer}
+.network-edge-row span:nth-of-type(2){flex:1}
+.network-review{border-top:1px solid #e6e2f0;margin-top:22px;padding-top:18px}
+.network-proposal,.network-detail{border:1px solid #e1ddef;background:#faf9ff;border-radius:12px;padding:16px;margin:12px 0}
+.network-pair{display:grid;gap:8px;margin:10px 0}
+.network-pair button{white-space:normal;text-align:left;line-height:1.5}

@@ -74,3 +74,15 @@ PDF matching is deliberately conservative. It can miss valid quotes when a PDF h
 3. Zoom to 150%, scroll the page, and open the original PDF in a new tab.
 4. Edit an Evidence Map card, cancel, then save a revised interpretation; verify the change persists after reload.
 5. Verify Overview shows only three recent records, not an endlessly growing list.
+
+## Offline AI Mock Mode (v0.7 development)
+
+To test the UI without a Qwen API key or token charges, set `AI_MOCK_MODE=true` in your **local** `backend/.env` and restart FastAPI. The app header displays **MOCK AI · NO TOKENS**. You can upload a text-based PDF and exercise theme suggestions, AI Highlight PDF, Passage Analysis, Reject/Restore, Evidence Map, Network proposals, and AI Overview synthesis.
+
+Mock responses are deterministic **test fixtures**, not genuine research findings. The backend does not create an OpenAI client or record token usage in this mode. Highlight quotes are taken directly from the uploaded PDF blocks and still must pass source-coordinate verification. Some PDF layouts may yield no highlight matches.
+
+Mock and real analysis caches use different model identities, so mock output should not be reused as real AI output. Do not verify mock evidence as actual research evidence. For a clean test, create a disposable project.
+
+To return to real Qwen calls, change the local setting to `AI_MOCK_MODE=false`, restart FastAPI, and check the header says **AI READY**. Never commit `backend/.env` or an API key.
+
+Automated regression checks run in GitHub Actions, but visual browser interaction and live Qwen performance still need manual validation.
