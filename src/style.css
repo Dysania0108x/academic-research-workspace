@@ -357,3 +357,18 @@
 .v11-duplicate-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.v11-duplicate-heading h3{margin:0}.v11-duplicate-heading button{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
 
 .v7-manage-menu button:disabled{color:#a9a4b5;opacity:.55;cursor:not-allowed;background:transparent}
+
+/* Evidence Network: selectable labeled links and focused connection details */
+.v10-edge-hit,.v10-edge-label{cursor:pointer}
+.v10-edge-label text{pointer-events:none}
+.v10-edge-label:hover rect{stroke-width:2.5}
+.v10-connection-detail{margin-top:18px;padding:20px;border:1px solid #e7e2f1;border-radius:12px;background:#fff}
+.v10-detail-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.v10-detail-head h3{margin:0}
+.v10-connection-detail>p{line-height:1.6}
+.v10-linked-evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}
+.v10-linked-evidence>div{padding:13px;background:#f8f7fc;border-radius:9px;min-width:0}
+.v10-linked-evidence small{font-weight:700;color:#807995}
+.v10-linked-evidence p{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.network-manual>button.secondary{margin:12px 0}
+@media(max-width:680px){.v10-linked-evidence{grid-template-columns:1fr}}

@@ -570,6 +570,43 @@ def propose_evidence_links(req:NetworkProposalRequest):
     cache_put('theme_cache',key,payload)
     return {**payload,'cache_hit':False}
 
+class PairRelationshipRequest(BaseModel):
+    question: str
+    source: dict
+    target: dict
+
+@app.post('/api/network/suggest-pair')
+def suggest_pair_relationship(req:PairRelationshipRequest):
+    def clean(e):
+        return {'id':str(e.get('id',''))[:100],'quote':str(e.get('quote') or e.get('text') or '')[:1200],
+                'interpretation':str(e.get('analysis') or e.get('interpretation') or '')[:800],
+                'source':str(e.get('source') or '')[:250]}
+    source,target=clean(req.source),clean(req.target)
+    if not source['id'] or not target['id'] or source['id']==target['id'] or not source['quote'] or not target['quote']:
+        raise HTTPException(422,'Choose two different evidence records with original quotes')
+    key=fingerprint('network-pair-v1',req.question,source,target,active_model())
+    cached=cache_get('theme_cache',key)
+    if cached is not None:return {**cached,'cache_hit':True}
+    result=ask([
+        {'role':'system','content':(
+            'Assess the relationship between two research evidence claims for HUMAN REVIEW. '
+            'Return only JSON {"relationship":"Supporting|Contradictory|Related","rationale":"1-3 precise sentences",'
+            '"caveat":"one short limitation"}. Supporting requires one claim to directly reinforce the other; '
+            'Contradictory requires an actual disagreement about comparable claims; Related means connected '
+            'without direct support or contradiction. Do not infer causal efficacy from a design suggestion. '
+            'Use ONLY the supplied original quotes and interpretations. Be conservative and note uncertainty.'
+        )},
+        {'role':'user','content':json.dumps({'research_question':req.question,'source':source,'target':target},ensure_ascii=False)}
+    ],task_type='network')
+    kind=str(result.get('relationship',''))
+    rationale=str(result.get('rationale','')).strip()[:700]
+    caveat=str(result.get('caveat','')).strip()[:350]
+    if kind not in ('Supporting','Contradictory','Related') or len(rationale)<15:
+        raise HTTPException(502,'AI did not return a usable evidence relationship; please review manually')
+    payload={'relationship':kind,'rationale':rationale,'caveat':caveat}
+    cache_put('theme_cache',key,payload)
+    return {**payload,'cache_hit':False}
+
 class SynthesisRequest(BaseModel):
     question: str
     evidence: list[dict]
