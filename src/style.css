@@ -140,3 +140,5 @@
 .paper-job-status.status-completed{background:#ddf4e7;color:#206849}
 .paper-job-status.status-failed{background:#fbe2e4;color:#a12d3e}
 .paper-job-status.status-cancelled{background:#f1f0f3;color:#706b79}
+
+.paper-job-status.status-partial{background:#fff0d8;color:#956113}
