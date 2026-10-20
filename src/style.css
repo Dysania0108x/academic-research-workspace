@@ -250,3 +250,30 @@
 /* Prevent native text selection during evidence network dragging. */
 .v5-network-scroll,.v5-network-scroll svg,.v5-network-node,.v5-network-node *{-webkit-user-select:none;user-select:none}
 .v5-network-scroll svg{display:block;max-width:none}
+
+/* Unified verified-evidence search */
+.v6-search-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.v6-search-input{display:flex;align-items:center;gap:10px;flex:1 1 320px;border:1px solid #e3dfef;border-radius:11px;padding:5px 10px;background:#fff}
+.v6-search-input input{flex:1;min-width:100px;border:0;box-shadow:none;outline:0}
+.v6-search-input svg{flex-shrink:0;color:#8d86a2}
+.v6-filter-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));align-items:end;gap:14px;padding:18px;border:1px solid #e6e2f0;background:#faf9fd;border-radius:12px;margin-bottom:18px}
+.v6-filter-panel>label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600;color:#5f5a73;min-width:0}
+.v6-filter-panel select,.v6-filter-panel input{width:100%;min-width:0}
+.v6-theme-filter{display:flex;flex-direction:column;gap:6px;max-height:145px;overflow:auto}
+.v6-theme-filter label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400}
+.v6-theme-filter input{width:auto}
+.v6-results-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0}
+.v6-results-toolbar>div:first-child{font-size:13px;color:#58516d}
+.v6-results-toolbar>div:first-child span{color:#8c859d}
+.v6-results-toolbar .tabs{flex:1;max-width:510px;display:flex}
+.v6-results-toolbar .tabs button{flex:1}
+.v6-results-toolbar>select{max-width:120px}
+.v6-search-list{display:flex;flex-direction:column;gap:12px}
+.v6-result-card{border:1px solid #e5e0ef;background:#fff;border-radius:12px;padding:19px 22px}
+.v6-result-meta,.v6-result-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.v6-result-meta{font-size:12px;color:#665c80}
+.v6-result-meta span{background:#f1eefb;border-radius:6px;padding:4px 8px}
+.v6-result-card p{line-height:1.65;margin:13px 0}
+.v6-result-card small{color:#807a90}
+.v6-result-actions{justify-content:flex-start;margin-top:15px}
+@media(max-width:700px){.v6-results-toolbar .tabs{flex-basis:100%;order:2}.v6-filter-panel{grid-template-columns:1fr 1fr}}
