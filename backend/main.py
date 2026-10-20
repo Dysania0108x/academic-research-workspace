@@ -357,6 +357,33 @@ def passage(req:PassageRequest):
     result={'source':block,'interpretation':str(data.get('interpretation','')),'relevance':str(data.get('relevance','')),'limitations':str(data.get('limitations',''))}
     cache_put('passage_cache',key,result,req.paper_id)
     return {**result,'cache_hit':False}
+
+class SynthesisRequest(BaseModel):
+    question: str
+    evidence: list[dict]
+
+@app.post('/api/synthesis')
+def synthesize(req:SynthesisRequest):
+    # Never synthesize unverified, user-unsupplied evidence. The frontend sends
+    # verified records only. Return traceable record IDs and library-scoped gaps.
+    records=[{'id':str(e.get('id','')),'theme':str(e.get('theme','')),'quote':str(e.get('quote',''))[:700],
+              'interpretation':str(e.get('interpretation',''))[:700],'relationship':str(e.get('relationship','Unclassified')),
+              'source':str(e.get('source',''))[:300]} for e in req.evidence[:150] if e.get('id') and e.get('quote')]
+    if not records:raise HTTPException(422,'No verified evidence available for synthesis')
+    cache_key=fingerprint('verified-synthesis-v1',req.question,records,os.getenv('QWEN_MODEL','qwen-plus'))
+    cached=cache_get('theme_cache',cache_key)
+    if cached is not None:return {**cached,'cache_hit':True}
+    data=ask([
+      {'role':'system','content':'You are a careful research synthesis assistant. Use ONLY supplied verified evidence. Return JSON {"insights":[{"text":"specific cross-evidence insight","evidence_ids":["id"]}],"gaps":[{"text":"gap in this uploaded evidence library, not a claim about the whole field","evidence_ids":["id"]}]}. At most 4 insights and 4 gaps. Every cited ID must be supplied. Distinguish synthetic documents, limitations, and hypotheses from empirical evidence. Never fabricate references or claim universal research gaps.'},
+      {'role':'user','content':json.dumps({'research_question':req.question,'verified_evidence':records},ensure_ascii=False)}
+    ],task_type='synthesis')
+    allowed={e['id'] for e in records}
+    result={}
+    for field in ('insights','gaps'):
+        result[field]=[{'text':str(x.get('text',''))[:600],'evidence_ids':[i for i in x.get('evidence_ids',[]) if i in allowed]} for x in data.get(field,[])[:4] if isinstance(x,dict) and x.get('text')]
+    cache_put('theme_cache',cache_key,result)
+    return {**result,'cache_hit':False}
+
 @app.post('/api/themes/suggest')
 def suggest_themes(req:ThemeRequest):
     excerpts=[]
