@@ -85,3 +85,7 @@
 .settings>h2:not(:first-child){margin-top:28px;padding-top:20px;border-top:1px solid #e7e3f0}
 .settings>.usage-row+.settings>h2{margin-top:28px}
 .highlight-summary .cache-indicator{flex:0 1 auto}
+
+.evidence-search-quote{margin:10px 0;padding:10px;background:#faf9ff;border-radius:8px;border:1px solid #eee9f8}
+.evidence-search-quote small{display:block;color:#77728e;margin-bottom:5px}
+.evidence-search-quote p{margin:0;line-height:1.5;font-size:12px}
