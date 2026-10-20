@@ -1,5 +1,6 @@
-import os, uuid, json, re, sqlite3, hashlib, time
+import os, uuid, json, re, sqlite3, hashlib, time, threading, math
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -20,6 +21,7 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS papers (id TEXT PRIMARY KEY, filename TEXT NOT NULL, sha256 TEXT NOT NULL, pages INTEGER NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS analysis_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, theme TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
+        c.execute('CREATE TABLE IF NOT EXISTS multi_highlight_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS passage_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS theme_cache (cache_key TEXT PRIMARY KEY, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, task_type TEXT NOT NULL, paper_id TEXT, model TEXT, input_tokens INTEGER, output_tokens INTEGER, total_tokens INTEGER, status TEXT NOT NULL, error TEXT)')
@@ -53,6 +55,7 @@ def delete_paper(paper_id:str):
     with db() as c:
         c.execute('DELETE FROM papers WHERE id=?',(paper_id,))
         c.execute('DELETE FROM analysis_cache WHERE paper_id=?',(paper_id,))
+        c.execute('DELETE FROM multi_highlight_cache WHERE paper_id=?',(paper_id,))
         c.execute('DELETE FROM passage_cache WHERE paper_id=?',(paper_id,))
     (STORE/(paper_id+'.pdf')).unlink(missing_ok=True)
     return {'ok':True}
@@ -104,6 +107,8 @@ def cache_put(table,key,result,paper_id=None,theme=None):
     with db() as c:
         if table=='analysis_cache':
             c.execute('INSERT OR REPLACE INTO analysis_cache VALUES(?,?,?,?,?)',(key,paper_id,theme,json.dumps(result,ensure_ascii=False),time.time()))
+        elif table=='multi_highlight_cache':
+            c.execute('INSERT OR REPLACE INTO multi_highlight_cache VALUES(?,?,?,?)',(key,paper_id,json.dumps(result,ensure_ascii=False),time.time()))
         elif table=='passage_cache':
             c.execute('INSERT OR REPLACE INTO passage_cache VALUES(?,?,?,?)',(key,paper_id,json.dumps(result,ensure_ascii=False),time.time()))
         else:
@@ -117,7 +122,7 @@ def ask(messages,task_type='other',paper_id=None):
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
     model=os.getenv('QWEN_MODEL','qwen-plus')
-    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=75)
+    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(os.getenv('QWEN_TIMEOUT_SECONDS','120')),max_retries=0)
     usage=(None,None,None);status='success';error=None
     try:
         res=client.chat.completions.create(model=model,messages=messages,temperature=0.1,response_format={'type':'json_object'})
@@ -226,6 +231,120 @@ def analyse(req:AnalysisRequest):
         cache_put('analysis_cache',key,selected,req.paper_id,theme)
         matches.extend(selected);analysed_themes.append(theme)
     return {'matches':matches,'analysed_blocks':len(blocks),'cached_themes':cached_themes,'analysed_themes':analysed_themes,'cache_hit':not analysed_themes,'precision_mode':'exact_quote','batches_per_theme':(len(blocks)+29)//30}
+
+# Fast multi-theme analysis jobs. Jobs live in memory; completed batches persist in SQLite.
+HIGHLIGHT_ENGINE_VERSION='multitheme-v1'
+analysis_pool=ThreadPoolExecutor(max_workers=2)
+analysis_jobs={}
+analysis_lock=threading.Lock()
+
+def _job_snapshot(job):
+    return {k:v for k,v in job.items() if k not in ('cancel_event','cache_key','request')}
+
+def _set_job(job, **changes):
+    with analysis_lock:
+        job.update(changes)
+
+def _analyse_job(job, req):
+    try:
+        with get_doc(req.paper_id) as doc:
+            blocks=blocks_for(doc)
+        themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
+        sha=paper_sha(req.paper_id)
+        model=os.getenv('QWEN_MODEL','qwen-plus')
+        # A short PDF is analysed in one call, regardless of theme count.
+        # Longer documents use a few bounded batches to avoid huge prompts.
+        batch_size=36 if len(blocks)<=36 else 30
+        total=max(1,math.ceil(len(blocks)/batch_size))
+        _set_job(job,total_batches=total,status='running',message='Analysing PDF for all themes together')
+        all_matches=[]
+        for index,start in enumerate(range(0,len(blocks),batch_size)):
+            if job['cancel_event'].is_set():
+                _set_job(job,status='cancelled',message='Analysis stopped; completed batches are cached')
+                return
+            batch=blocks[start:start+batch_size]
+            compact=[{'id':b['id'],'page':b['page'],'text':b['text'][:1200]} for b in batch]
+            batch_key=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,model,index,compact)
+            result=cache_get('multi_highlight_cache',batch_key)
+            if result is None:
+                _set_job(job,message=f'Analysing batch {index+1} of {total}')
+                data=ask([
+                    {'role':'system','content':(
+                        'You are a precise, selective academic evidence highlighter. '
+                        'Return only JSON {"matches":[{"block_id":"0:1","quote":"verbatim contiguous phrase","theme":"one exact supplied theme","reason":"brief reason"}]}. '
+                        'Analyse ALL supplied themes in this ONE response. Choose at most 8 important quotes across ALL themes per batch. '
+                        'Quotes must be copied exactly from the supplied text, between 18 and 180 characters. '
+                        'Prefer concrete findings and limitations, not headings, general background or hypotheses presented as results. '
+                        'Never invent or paraphrase quotes. Returning zero matches is valid.'
+                    )},
+                    {'role':'user','content':json.dumps({'research_question':req.question,'themes':themes,'pdf_blocks':compact},ensure_ascii=False)}
+                ],task_type='highlight',paper_id=req.paper_id)
+                result=[]
+                allowed_ids={b['id'] for b in batch}
+                seen=set()
+                with get_doc(req.paper_id) as doc:
+                    for item in data.get('matches',[])[:12]:
+                        if not isinstance(item,dict):continue
+                        bid=item.get('block_id')
+                        theme=item.get('theme')
+                        quote=str(item.get('quote','')).strip()
+                        if bid not in allowed_ids or theme not in themes or not 18<=len(quote)<=220:continue
+                        block=next(b for b in batch if b['id']==bid)
+                        if ' '.join(quote.split()).casefold() not in block['text'].casefold():continue
+                        duplicate=(block['page'],quote.casefold())
+                        if duplicate in seen:continue
+                        rects=exact_quote_rectangles(doc[block['page']-1],quote,block['rect'])
+                        if not rects:continue
+                        seen.add(duplicate)
+                        result.append({'id':bid,'page':block['page'],'text':quote,'quote':quote,'theme':theme,'reason':str(item.get('reason',''))[:300],'rects':rects,'rect':block['rect']})
+                # Save every successful batch, including empty valid results.
+                cache_put('multi_highlight_cache',batch_key,result,req.paper_id)
+            all_matches.extend(result)
+            _set_job(job,completed_batches=index+1,matches=list(all_matches),message=f'{index+1} of {total} batches completed')
+        if job['cancel_event'].is_set():
+            _set_job(job,status='cancelled',message='Analysis stopped; completed batches are cached')
+        else:
+            _set_job(job,status='completed',message='Highlighting complete',matches=all_matches)
+    except Exception as exc:
+        _set_job(job,status='failed',error=str(getattr(exc,'detail',exc))[:400],message='Analysis failed; completed batches remain cached')
+
+@app.post('/api/analyse/start')
+def start_analysis(req:AnalysisRequest):
+    themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
+    if not themes:raise HTTPException(422,'Add research themes first')
+    if not req.question.strip():raise HTTPException(422,'Research question required')
+    sha=paper_sha(req.paper_id)
+    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,os.getenv('QWEN_MODEL','qwen-plus'))
+    with analysis_lock:
+        for job in analysis_jobs.values():
+            if job['cache_key']==identity and job['status'] in ('queued','running'):
+                return _job_snapshot(job)
+        # Limit in-memory job history.
+        for old_id in list(analysis_jobs)[:-40]:
+            if analysis_jobs[old_id]['status'] not in ('queued','running'):
+                analysis_jobs.pop(old_id,None)
+        job={'id':str(uuid.uuid4()),'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'error':None,'cancel_event':threading.Event()}
+        analysis_jobs[job['id']]=job
+    analysis_pool.submit(_analyse_job,job,req)
+    return _job_snapshot(job)
+
+@app.get('/api/analyse/jobs/{job_id}')
+def get_analysis_job(job_id:str):
+    with analysis_lock:
+        job=analysis_jobs.get(job_id)
+        if job is None:raise HTTPException(404,'Analysis job not found')
+        return _job_snapshot(job)
+
+@app.post('/api/analyse/jobs/{job_id}/cancel')
+def cancel_analysis_job(job_id:str):
+    with analysis_lock:
+        job=analysis_jobs.get(job_id)
+        if job is None:raise HTTPException(404,'Analysis job not found')
+        if job['status'] in ('queued','running'):
+            job['cancel_event'].set()
+            job['message']='Stopping after current API request'
+        return _job_snapshot(job)
+
 @app.post('/api/passage')
 def passage(req:PassageRequest):
     with get_doc(req.paper_id) as doc:blocks=blocks_for(doc)
