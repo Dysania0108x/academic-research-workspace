@@ -419,6 +419,20 @@ def start_analysis(req:AnalysisRequest):
     analysis_pool.submit(_analyse_job,job,req)
     return _job_snapshot(job)
 
+@app.post('/api/analyse/lookup')
+def lookup_analysis_job(req:AnalysisRequest):
+    """Recover an existing job by its paper, research question, themes and model."""
+    themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
+    if not themes or not req.question.strip():
+        return {'job':None}
+    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,paper_sha(req.paper_id),req.question.strip(),themes,active_model())
+    with analysis_lock:
+        jobs=[j for j in analysis_jobs.values() if j['cache_key']==identity]
+        if not jobs:
+            return {'job':None}
+        active=[j for j in jobs if j['status'] in ('queued','running')]
+        return {'job':_job_snapshot((active or jobs)[-1])}
+
 @app.get('/api/analyse/jobs/{job_id}')
 def get_analysis_job(job_id:str):
     with analysis_lock:
