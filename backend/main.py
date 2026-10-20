@@ -40,7 +40,21 @@ def list_projects():
 @app.put('/api/projects/{project_id}')
 def save_project(project_id:str, payload:dict):
     if payload.get('id')!=project_id: raise HTTPException(400,'Project ID mismatch')
+    def evidence_key(item):
+        quote=' '.join(str(item.get('quote') or item.get('text') or '').split()).casefold()
+        return (str(item.get('paperId') or ''),str(item.get('page') or ''),quote)
     with db() as c:
+        previous=c.execute('SELECT data FROM projects WHERE id=?',(project_id,)).fetchone()
+        previous_records=json.loads(previous['data']).get('evidence',[]) if previous else []
+        old_ids={str(e.get('id')) for e in previous_records if isinstance(e,dict)}
+        seen=set()
+        for record in payload.get('evidence',[]):
+            if not isinstance(record,dict):raise HTTPException(422,'Invalid evidence record')
+            key=evidence_key(record)
+            if not key[0] or not key[2]:continue
+            if key in seen and str(record.get('id')) not in old_ids:
+                raise HTTPException(409,'Evidence already saved for this PDF passage')
+            seen.add(key)
         c.execute('INSERT INTO projects(id,data,updated_at) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at',(project_id,json.dumps(payload),time.time()))
     return {'ok':True}
 
