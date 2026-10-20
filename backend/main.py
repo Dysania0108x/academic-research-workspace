@@ -142,6 +142,40 @@ def usage_stats():
     return {'by_task':rows,'total_tokens':sum(r['total_tokens'] for r in rows),'requests':sum(r['requests'] for r in rows),'note':'Counts actual model responses only; cache hits use zero new tokens.'}
 @app.get('/api/health')
 def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY'))}
+
+def extract_paper_metadata(doc):
+    """Conservative PDF metadata: no guessed journal, author, or publication year."""
+    raw=doc.metadata or {}
+    first=(doc[0].get_text('text')[:3500] if len(doc) else '')
+    title=str(raw.get('title') or '').strip()
+    author=str(raw.get('author') or '').strip()
+    if title.lower() in ('untitled','microsoft word','document','none') or title.lower().endswith('.pdf'):
+        title=''
+    doi_match=re.search(r'\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b',first,re.I)
+    doi=doi_match.group(0).rstrip('.,;)') if doi_match else ''
+    return {'title':title,'authors':author,'year':'','venue':'','doi':doi,'url':'https://doi.org/'+doi if doi else '',
+            'metadata_status':'unverified'}
+
+@app.get('/api/papers/{paper_id}/metadata')
+def paper_metadata(paper_id:str):
+    with get_doc(paper_id) as doc:
+        return extract_paper_metadata(doc)
+
+class LocateRequest(BaseModel):
+    page:int
+    quote:str
+    block_rect:list[float]|None=None
+
+@app.post('/api/papers/{paper_id}/locate')
+def locate_quote(paper_id:str,req:LocateRequest):
+    with get_doc(paper_id) as doc:
+        if req.page<1 or req.page>len(doc):raise HTTPException(404,'Page not found')
+        page=doc[req.page-1]
+        rects=exact_quote_rectangles(page,req.quote,req.block_rect or list(page.rect))
+        if not rects:
+            return {'found':False,'page':req.page,'rects':[],'message':'Exact quotation not located; showing source page only.'}
+        return {'found':True,'page':req.page,'rects':rects}
+
 @app.post('/api/papers')
 async def upload(file:UploadFile=File(...)):
     if not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
@@ -151,7 +185,7 @@ async def upload(file:UploadFile=File(...)):
     with db() as c:
         existing=c.execute('SELECT * FROM papers WHERE sha256=?',(sha,)).fetchone()
     if existing and (STORE/(existing['id']+'.pdf')).exists():
-        return {'id':existing['id'],'name':existing['filename'],'pages':existing['pages'],'duplicate':True}
+        return {'id':existing['id'],'name':existing['filename'],'pages':existing['pages'],'duplicate':True,**paper_metadata(existing['id'])}
     pid=str(uuid.uuid4()); path=STORE/(pid+'.pdf')
     path.write_bytes(data)
     try:
@@ -160,11 +194,12 @@ async def upload(file:UploadFile=File(...)):
             blocks=blocks_for(doc)
             if not blocks: raise ValueError('No extractable text. Scanned PDFs require OCR.')
             pages=len(doc)
+            metadata=extract_paper_metadata(doc)
     except Exception as e:
         path.unlink(missing_ok=True);raise HTTPException(422,str(e))
     with db() as c:
         c.execute('INSERT INTO papers VALUES(?,?,?,?,?)',(pid,file.filename,sha,pages,time.time()))
-    return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False}
+    return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False,**metadata}
 @app.get('/api/papers/{paper_id}/blocks')
 def blocks(paper_id:str):
     with get_doc(paper_id) as doc:
