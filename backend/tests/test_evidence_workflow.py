@@ -71,5 +71,34 @@ class EvidenceWorkflowTests(unittest.TestCase):
 
 
 
+    def test_mock_mode_never_calls_openai_or_logs_tokens(self):
+        from unittest.mock import patch
+        import os
+        with patch.dict(os.environ, {"AI_MOCK_MODE": "true"}, clear=False):
+            with patch.object(main, "OpenAI", side_effect=AssertionError("Network model must not be called")):
+                with patch.object(main, "db", side_effect=AssertionError("Mock calls must not log tokens")):
+                    self.assertTrue(main.mock_mode())
+                    self.assertEqual(main.active_model(), "mock-deterministic-v1")
+                    self.assertTrue(main.health()["ai_configured"])
+                    self.assertTrue(main.health()["mock_mode"])
+                    data = main.ask([{"role": "user", "content": '{"themes":["UV","Risk"],"pdf_blocks":[{"id":"0:0","page":1,"text":"Cumulative UV exposure increases during outdoor activity because people spend longer periods exposed to solar radiation while hiking."}]}'}], task_type="highlight")
+                    self.assertEqual(data["matches"][0]["theme"], "UV")
+                    self.assertIn(data["matches"][0]["quote"], "Cumulative UV exposure increases during outdoor activity because people spend longer periods exposed to solar radiation while hiking.")
+                    passage = main.ask([{"role": "user", "content": '{"original_passage":"A test source quote."}'}], task_type="passage")
+                    self.assertIn("[MOCK]", passage["interpretation"])
+
+    def test_mock_network_and_synthesis_reference_real_supplied_ids(self):
+        from unittest.mock import patch
+        import os
+        with patch.dict(os.environ, {"AI_MOCK_MODE": "true"}, clear=False):
+            network = main.ask([{"role":"user","content": '{"evidence":[{"id":"e1"},{"id":"e2"}]}'}],task_type="network")
+            self.assertEqual((network["links"][0]["source_id"], network["links"][0]["target_id"]), ("e1","e2"))
+            summary = main.ask([{"role":"user","content": '{"verified_evidence":[{"id":"e1"}]}'}],task_type="synthesis")
+            self.assertEqual(summary["insights"][0]["evidence_ids"], ["e1"])
+            themes = main.ask([{"role":"user","content": '{"question":"How does UV exposure vary?","user_topics":["UV Awareness"]}'}],task_type="theme_suggestion")
+            self.assertIn("UV Awareness", [t["name"] for t in themes["themes"]])
+
+
+
 if __name__ == "__main__":
     unittest.main()
