@@ -1,0 +1,8 @@
+node_modules/
+dist/
+backend/.env
+backend/.venv/
+backend/uploads/
+__pycache__/
+backend/research.db
+backend/research.db-*
