@@ -289,7 +289,7 @@ def analyse(req:AnalysisRequest):
     themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
     if not themes: raise HTTPException(422,'Add or confirm research themes first.')
     by_id={b['id']:b for b in blocks}
-    sha=paper_sha(req.paper_id);model=os.getenv('QWEN_MODEL','qwen-plus')
+    sha=paper_sha(req.paper_id);model=active_model()
     matches=[];cached_themes=[];analysed_themes=[]
     for theme in themes:
         key=fingerprint('precise-highlight',PROMPT_VERSION,sha,req.question.strip(),theme,model)
@@ -338,7 +338,7 @@ def _analyse_job(job, req):
             blocks=blocks_for(doc)
         themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
         sha=paper_sha(req.paper_id)
-        model=os.getenv('QWEN_MODEL','qwen-plus')
+        model=active_model()
         # A short PDF is analysed in one call, regardless of theme count.
         # Longer documents use a few bounded batches to avoid huge prompts.
         batch_size=36 if len(blocks)<=36 else 30
@@ -401,7 +401,7 @@ def start_analysis(req:AnalysisRequest):
     if not themes:raise HTTPException(422,'Add research themes first')
     if not req.question.strip():raise HTTPException(422,'Research question required')
     sha=paper_sha(req.paper_id)
-    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,os.getenv('QWEN_MODEL','qwen-plus'))
+    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,active_model())
     with analysis_lock:
         for job in analysis_jobs.values():
             if job['cache_key']==identity and job['status'] in ('queued','running'):
@@ -437,7 +437,7 @@ def passage(req:PassageRequest):
     with get_doc(req.paper_id) as doc:blocks=blocks_for(doc)
     block=next((b for b in blocks if b['id']==req.block_id),None)
     if not block:raise HTTPException(404,'Original source block not found')
-    key=fingerprint('passage',PROMPT_VERSION,paper_sha(req.paper_id),req.block_id,block['text'],req.question.strip(),req.theme,os.getenv('QWEN_MODEL','qwen-plus'))
+    key=fingerprint('passage',PROMPT_VERSION,paper_sha(req.paper_id),req.block_id,block['text'],req.question.strip(),req.theme,active_model())
     cached=cache_get('passage_cache',key)
     if cached is not None:return {**cached,'cache_hit':True}
     data=ask([{'role':'system','content':'Analyse the provided original academic passage cautiously. Do not invent results, statistics, authors or related papers. Return JSON object with fields interpretation, relevance, limitations. Keep each concise.'},{'role':'user','content':json.dumps({'question':req.question,'theme':req.theme,'original_passage':block['text']})}],task_type='passage',paper_id=req.paper_id)
@@ -460,7 +460,7 @@ def propose_evidence_links(req:NetworkProposalRequest):
           'interpretation':str(e.get('analysis',''))[:400],
           'source':str(e.get('source',''))[:200]})
     if len(records)<2:raise HTTPException(422,'At least two verified evidence records are required')
-    key=fingerprint('network-proposal-v1',req.question,records,os.getenv('QWEN_MODEL','qwen-plus'))
+    key=fingerprint('network-proposal-v1',req.question,records,active_model())
     cached=cache_get('theme_cache',key)
     if cached is not None:return {**cached,'cache_hit':True}
     result=ask([
@@ -505,7 +505,7 @@ def synthesize(req:SynthesisRequest):
               'interpretation':str(e.get('interpretation',''))[:700],'relationship':str(e.get('relationship','Unclassified')),
               'source':str(e.get('source',''))[:300]} for e in req.evidence[:150] if e.get('id') and e.get('quote')]
     if not records:raise HTTPException(422,'No verified evidence available for synthesis')
-    cache_key=fingerprint('verified-synthesis-v1',req.question,records,os.getenv('QWEN_MODEL','qwen-plus'))
+    cache_key=fingerprint('verified-synthesis-v1',req.question,records,active_model())
     cached=cache_get('theme_cache',cache_key)
     if cached is not None:return {**cached,'cache_hit':True}
     data=ask([
