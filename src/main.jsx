@@ -154,6 +154,7 @@ function App(){
  const [networkNotice,setNetworkNotice]=useState('');
  const [pairSuggestBusy,setPairSuggestBusy]=useState(false);
  const [pairCaveat,setPairCaveat]=useState('');
+ useEffect(()=>{if(!manualSource||!manualTarget||page!=='map'||mapView!=='network')return;document.getElementById('network-connection-review')?.scrollIntoView({behavior:'smooth',block:'center'})},[manualSource,manualTarget,page,mapView]);
  const [paperEditor,setPaperEditor]=useState(null);
  const [sourceFocus,setSourceFocus]=useState(null);
  const [focusedHighlight,setFocusedHighlight]=useState(null);
