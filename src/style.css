@@ -46,3 +46,8 @@
 .network-view{margin:18px 0;padding:16px;border:1px solid #e4dff1;border-radius:12px}
 .network-node{display:inline-block;vertical-align:top;text-align:left;border:2px solid #aaa;background:white;border-radius:12px;padding:14px;margin:8px;max-width:230px;cursor:pointer}
 .pdf-highlight{transition:background .18s ease,outline .18s ease}
+
+/* Exact original-source focus and metadata editor */
+.source-focus-rect{position:absolute;pointer-events:none;box-sizing:border-box;border:2px solid #4f46e5;background:rgba(99,102,241,.13);z-index:7;box-shadow:0 0 0 3px rgba(99,102,241,.15);animation:source-focus-pulse 1.1s ease-in-out 2}
+@keyframes source-focus-pulse{0%,100%{box-shadow:0 0 0 3px rgba(99,102,241,.15)}50%{box-shadow:0 0 0 9px rgba(99,102,241,.09)}}
+.paper-item .icon-btn{flex-shrink:0}
