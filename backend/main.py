@@ -393,6 +393,54 @@ def passage(req:PassageRequest):
     cache_put('passage_cache',key,result,req.paper_id)
     return {**result,'cache_hit':False}
 
+
+class NetworkProposalRequest(BaseModel):
+    question:str
+    evidence:list[dict]
+
+@app.post('/api/network/propose')
+def propose_evidence_links(req:NetworkProposalRequest):
+    records=[]
+    for e in req.evidence[:60]:
+        if not e.get('id') or not (e.get('quote') or e.get('text')):continue
+        records.append({'id':str(e['id']),'theme':str(e.get('theme',''))[:100],
+          'quote':str(e.get('quote') or e.get('text'))[:500],
+          'interpretation':str(e.get('analysis',''))[:400],
+          'source':str(e.get('source',''))[:200]})
+    if len(records)<2:raise HTTPException(422,'At least two verified evidence records are required')
+    key=fingerprint('network-proposal-v1',req.question,records,os.getenv('QWEN_MODEL','qwen-plus'))
+    cached=cache_get('theme_cache',key)
+    if cached is not None:return {**cached,'cache_hit':True}
+    result=ask([
+      {'role':'system','content':(
+        'You propose evidence-to-evidence relationships for HUMAN REVIEW. '
+        'Return only JSON {"links":[{"source_id":"exact id","target_id":"exact id",'
+        '"relationship":"Supporting|Contradictory|Related","rationale":"specific grounded explanation"}]}. '
+        'Propose at most 12 relationships. Supporting means compatible claims, '
+        'Contradictory means actual disagreement on a comparable claim, Related means '
+        'topically or methodologically connected but neither supported nor contradicted. '
+        'Shared theme alone is insufficient for an edge. Be conservative; zero links is valid. '
+        'Use only supplied evidence and exact IDs; do not invent claims or sources.'
+      )},
+      {'role':'user','content':json.dumps({'research_question':req.question,'evidence':records},ensure_ascii=False)}
+    ],task_type='network')
+    allowed={x['id'] for x in records}
+    links=[];seen=set()
+    for edge in result.get('links',[])[:24]:
+        if not isinstance(edge,dict):continue
+        a,b=str(edge.get('source_id','')),str(edge.get('target_id',''))
+        kind=str(edge.get('relationship',''))
+        why=str(edge.get('rationale','')).strip()[:500]
+        if a not in allowed or b not in allowed or a==b or kind not in ('Supporting','Contradictory','Related') or len(why)<15:continue
+        pair=tuple(sorted((a,b)))
+        if pair in seen:continue
+        seen.add(pair)
+        links.append({'id':fingerprint(pair,kind)[:20],'source_id':a,'target_id':b,'relationship':kind,'rationale':why,'status':'suggested'})
+        if len(links)>=12:break
+    payload={'links':links}
+    cache_put('theme_cache',key,payload)
+    return {**payload,'cache_hit':False}
+
 class SynthesisRequest(BaseModel):
     question: str
     evidence: list[dict]
