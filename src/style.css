@@ -372,3 +372,5 @@
 .v10-linked-evidence p{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .network-manual>button.secondary{margin:12px 0}
 @media(max-width:680px){.v10-linked-evidence{grid-template-columns:1fr}}
+
+.v12-network-hint{margin:10px 0;padding:10px 13px;background:#f5f1ff;color:#5949a1;border-radius:9px;font-size:13px}.v5-connection-handle{cursor:crosshair;touch-action:none}.v5-network-node{cursor:grab}.v5-network-node:active{cursor:grabbing}
