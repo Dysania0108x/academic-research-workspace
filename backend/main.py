@@ -330,6 +330,8 @@ def _job_snapshot(job):
 
 def _set_job(job, **changes):
     with analysis_lock:
+        if job['cancel_event'].is_set() and changes.get('status') != 'cancelled':
+            return
         job.update(changes)
 
 def _analyse_job(job, req):
@@ -384,8 +386,10 @@ def _analyse_job(job, req):
                         if not rects:continue
                         seen.add(duplicate)
                         result.append({'id':bid,'page':block['page'],'text':quote,'quote':quote,'theme':theme,'reason':str(item.get('reason',''))[:300],'rects':rects,'rect':block['rect']})
-                # Save every successful batch, including empty valid results.
+                # Never cache an API response that arrived after cancellation.
+                if job['cancel_event'].is_set():return
                 cache_put('multi_highlight_cache',batch_key,result,req.paper_id)
+            if job['cancel_event'].is_set():return
             all_matches.extend(result)
             _set_job(job,completed_batches=index+1,matches=list(all_matches),message=f'{index+1} of {total} batches completed')
         if job['cancel_event'].is_set():
@@ -429,7 +433,8 @@ def cancel_analysis_job(job_id:str):
         if job is None:raise HTTPException(404,'Analysis job not found')
         if job['status'] in ('queued','running'):
             job['cancel_event'].set()
-            job['message']='Stopping after current API request'
+            job['status']='cancelled'
+            job['message']='Cancelled. In-flight provider request may continue until timeout.'
         return _job_snapshot(job)
 
 @app.post('/api/passage')
