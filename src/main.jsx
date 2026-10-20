@@ -51,6 +51,16 @@ function App(){
  const [matches,setMatches]=useState([]);
  const [busy,setBusy]=useState(false);
  const [analysisJob,setAnalysisJob]=useState(null);
+ const [paperJobs,setPaperJobs]=useState({});
+ const paperJobsRef=useRef({});
+ const analysisPendingRef=useRef(new Set());
+ const activeContextRef=useRef(null);
+ activeContextRef.current={paperId,projectId};
+ const jobStorageKey='arw-analysis-jobs-v1';
+ const persistJobs=next=>{paperJobsRef.current=next;setPaperJobs(next);try{sessionStorage.setItem(jobStorageKey,JSON.stringify(Object.fromEntries(Object.entries(next).map(([key,job])=>[key,job.id]))))}catch{}};
+ const jobKey=(pid,pidPaper)=>pid+'::'+pidPaper;
+ const recordJob=(pid,pidPaper,job)=>{const key=jobKey(pid,pidPaper);persistJobs({...paperJobsRef.current,[key]:job});if(activeContextRef.current?.paperId===pidPaper&&activeContextRef.current?.projectId===pid)setAnalysisJob(['queued','running'].includes(job.status)?job:null)};
+ const clearJob=(pid,pidPaper)=>{const key=jobKey(pid,pidPaper);const next={...paperJobsRef.current};delete next[key];persistJobs(next);if(activeContextRef.current?.paperId===pidPaper&&activeContextRef.current?.projectId===pid)setAnalysisJob(null)};
  const analysisJobRef=useRef(null);
  const analysisPaperRef=useRef(null);
  const currentPaperRef=useRef(null);
@@ -97,51 +107,95 @@ function App(){
  const passageRequestRef=useRef(0);
  const sourceRequestRef=useRef(0);
  useEffect(()=>{fetch('/api/health').then(r=>r.json()).then(setHealth).catch(()=>setHealth(null));fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})},[]);
- useEffect(()=>{if(analysisPaperRef.current&&analysisPaperRef.current!==paperId){analysisJobRef.current=null;analysisPaperRef.current=null;setAnalysisJob(null);setCacheMessage('');}const navigation=sourceNavigationRef.current;const isSourceNavigation=navigation?.paperId===paperId;setMatches([]);setBlocks([]);setPageSizes([]);if(!isSourceNavigation){setPageNumber(1);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null)}else{setPageNumber(navigation.page);sourceNavigationRef.current=null}if(!paperId)return;fetch('/api/papers/'+paperId+'/blocks').then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.detail);setBlocks(d.blocks);setPageSizes(d.pages)}).catch(e=>setAiError(e.message))},[paperId]);
+ useEffect(()=>{
+   const navigation=sourceNavigationRef.current;
+   const isSourceNavigation=navigation?.paperId===paperId;
+   setMatches([]);setBlocks([]);setPageSizes([]);setAnalysisJob(null);setCacheMessage('');
+   if(!isSourceNavigation){setPageNumber(1);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null)}
+   else{setPageNumber(navigation.page);sourceNavigationRef.current=null}
+   if(!paperId)return;
+   let live=true;
+   fetch('/api/papers/'+paperId+'/blocks').then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.detail);if(live){setBlocks(d.blocks);setPageSizes(d.pages)}}).catch(e=>{if(live)setAiError(e.message)});
+   return ()=>{live=false};
+ },[paperId]);
+ useEffect(()=>{
+   if(!projectId||!paperId||!project?.papers.some(p=>p.id===paperId))return;
+   const pid=projectId,pidPaper=paperId,question=project.question,themes=[...project.topics];
+   let live=true;
+   const key=jobKey(pid,pidPaper);
+   const existing=paperJobsRef.current[key];
+   if(existing&&['queued','running'].includes(existing.status))setAnalysisJob(existing);
+   const refresh=async()=>{
+     try{
+       const response=await fetch('/api/analyse/lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:pidPaper,question,themes})});
+       if(!response.ok)throw Error('Could not reconnect to analysis job');
+       const data=await response.json();
+       if(!live)return;
+       if(data.job){
+         recordJob(pid,pidPaper,data.job);
+         if(data.job.status==='completed'){setMatches(data.job.matches||[]);setCacheMessage('Analysis complete. Results restored from the previous job.')}
+         if(data.job.status==='failed')setAiError(data.job.error||'Analysis failed');
+         if(data.job.status==='cancelled')setCacheMessage('Analysis cancelled.');
+       }else if(existing&&['queued','running'].includes(existing.status)){clearJob(pid,pidPaper);setCacheMessage('Previous analysis job is no longer available; restart analysis if needed.')}
+     }catch(e){if(live)setAiError(e.message)}
+   };
+   refresh();
+   return ()=>{live=false};
+ },[projectId,paperId,project?.question,JSON.stringify(project?.topics||[])]);
+ useEffect(()=>{
+   let disposed=false;
+   const poll=async()=>{
+     const entries=Object.entries(paperJobsRef.current).filter(([,j])=>j&&['queued','running'].includes(j.status));
+     await Promise.all(entries.map(async([key,job])=>{
+       try{
+         const response=await fetch('/api/analyse/jobs/'+job.id);
+         if(!response.ok){if(response.status===404){const [pid,pidPaper]=key.split('::');clearJob(pid,pidPaper)}return}
+         const next=await response.json();
+         if(disposed||paperJobsRef.current[key]?.id!==job.id)return;
+         const [pid,pidPaper]=key.split('::');
+         recordJob(pid,pidPaper,next);
+         if(activeContextRef.current?.paperId===pidPaper&&activeContextRef.current?.projectId===pid){
+           setMatches(next.matches||[]);
+           if(next.status==='completed')setCacheMessage('Analysis complete. Successful batches cached.');
+           if(next.status==='cancelled')setCacheMessage('Analysis cancelled.');
+           if(next.status==='failed')setAiError(next.error||'AI analysis failed');
+         }
+       }catch{}
+     }));
+   };
+   const timer=setInterval(poll,1200);
+   poll();
+   return ()=>{disposed=true;clearInterval(timer)};
+ },[]);
  const runAnalysis=async()=>{
-  if(!paperId||analysisJobRef.current)return;
-  const targetPaper=paperId;
-  analysisPaperRef.current=targetPaper;
-  setAiError('');setCacheMessage('');setMatches([]);
-  try{
-   const response=await fetch('/api/analyse/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,question:project.question,themes:project.topics})});
-   const initial=await response.json();if(!response.ok)throw Error(initial.detail||'Could not start analysis');
-   if(currentPaperRef.current!==targetPaper)return;
-   analysisJobRef.current=initial.id;setAnalysisJob(initial);
-   while(analysisJobRef.current===initial.id){
-    await new Promise(resolve=>setTimeout(resolve,1000));
-    const statusResponse=await fetch('/api/analyse/jobs/'+initial.id);
-    const job=await statusResponse.json();if(!statusResponse.ok)throw Error(job.detail||'Could not load analysis progress');
-    if(analysisJobRef.current!==initial.id||currentPaperRef.current!==targetPaper)break;
-    setAnalysisJob(job);setMatches(job.matches||[]);
-    if(['completed','cancelled','failed'].includes(job.status)){
-     if(job.status==='failed')setAiError(job.error||'AI analysis failed');
-     else if(job.status==='cancelled')setCacheMessage('Analysis stopped. Completed batches were saved.');
-     else {setCacheMessage('Analysis complete. Successful batches cached.');toast((job.matches||[]).length+' source-verified highlights ready.')}
-     fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{});
-     analysisJobRef.current=null;analysisPaperRef.current=null;setAnalysisJob(null);break;
-    }
-   }
-  }catch(e){if(currentPaperRef.current===targetPaper){analysisJobRef.current=null;analysisPaperRef.current=null;setAnalysisJob(null);setAiError(e.message)}}
+   if(!paperId||!project||analysisPendingRef.current.has(jobKey(projectId,paperId)))return;
+   const pid=projectId,pidPaper=paperId,key=jobKey(pid,pidPaper);
+   if(['queued','running'].includes(paperJobsRef.current[key]?.status))return;
+   analysisPendingRef.current.add(key);
+   setAiError('');setCacheMessage('');
+   try{
+     const response=await fetch('/api/analyse/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:pidPaper,question:project.question,themes:project.topics})});
+     const job=await response.json();if(!response.ok)throw Error(job.detail||'Could not start analysis');
+     recordJob(pid,pidPaper,job);
+   }catch(e){if(activeContextRef.current?.paperId===pidPaper)setAiError(e.message)}
+   finally{analysisPendingRef.current.delete(key)}
  };
  const cancelAnalysis=async()=>{
-  if(!analysisJobRef.current)return;
-  try{
-   const response=await fetch('/api/analyse/jobs/'+analysisJobRef.current+'/cancel',{method:'POST'});
-   if(!response.ok)throw Error('Unable to stop analysis');
-   analysisJobRef.current=null;
-   analysisPaperRef.current=null;
-   setAnalysisJob(null);
-   setCacheMessage('Analysis cancelled. Existing completed highlights remain available; an in-flight API request may still incur tokens.');
-   fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{});
-  }catch(e){setAiError(e.message)}
+   const pid=projectId,pidPaper=paperId,job=paperJobsRef.current[jobKey(pid,pidPaper)];
+   if(!job||!['queued','running'].includes(job.status))return;
+   try{
+     const response=await fetch('/api/analyse/jobs/'+job.id+'/cancel',{method:'POST'});
+     if(!response.ok)throw Error('Unable to stop analysis');
+     const cancelled=await response.json();recordJob(pid,pidPaper,cancelled);
+     if(activeContextRef.current?.paperId===pidPaper){setCacheMessage('Analysis cancelled. Provider requests already sent may still incur tokens.');setAnalysisJob(null)}
+   }catch(e){setAiError(e.message)}
  };
  const inspect=async m=>{const request=++passageRequestRef.current;sourceRequestRef.current++;clearNativeSelection();setSourceFocus(null);setFocusedHighlight(highlightKey({...m,paperId}));setRelationship('Unclassified');setSelected({...m,source:project.papers.find(p=>p.id===paperId)?.name+' · page '+m.page,analysis:'',paperId});setEditing('');setAiDetails(null);setPageNumber(m.page);setAssistant(true);setAssistantTab('analysis');setBusy(true);setAiError('');try{const r=await fetch('/api/passage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,block_id:m.id,question:project.question,theme:m.theme})});const d=await r.json();if(request!==passageRequestRef.current)return;if(!r.ok)throw Error(d.detail);setAiDetails(d);setEditing(d.interpretation);setCacheMessage(d.cache_hit?'Passage analysis loaded from cache (0 new tokens)':'New passage analysis generated');fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})}catch(e){if(request===passageRequestRef.current)setAiError(e.message)}finally{if(request===passageRequestRef.current)setBusy(false)}};
  useEffect(()=>{fetch('/api/projects').then(r=>r.json()).then(d=>{if(d.projects?.length)setProjects(normalizeSeedPapers(d.projects));setSyncReady(true)}).catch(()=>setSyncReady(true))},[]);
  useEffect(()=>{if(!syncReady)return;localStorage.setItem('arw-v01',JSON.stringify(projects));projects.forEach(p=>fetch('/api/projects/'+encodeURIComponent(p.id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(()=>{}))},[projects,syncReady]);
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
  const project=projects.find(p=>p.id===projectId);
- const resetReader=()=>{analysisJobRef.current=null;analysisPaperRef.current=null;passageRequestRef.current++;sourceRequestRef.current++;sourceNavigationRef.current=null;setPaperId(null);setBlocks([]);setPageSizes([]);setMatches([]);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setAnalysisJob(null);setCacheMessage('');setAiError('');setPageNumber(1);setEditing('');setBusy(false);setAssistantTab('highlights')};
+ const resetReader=()=>{passageRequestRef.current++;sourceRequestRef.current++;sourceNavigationRef.current=null;setPaperId(null);setBlocks([]);setPageSizes([]);setMatches([]);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setAnalysisJob(null);setCacheMessage('');setAiError('');setPageNumber(1);setEditing('');setBusy(false);setAssistantTab('highlights')};
  const enterProject=(id)=>{resetReader();setProjectId(id);setPage('overview')};
  const update=(fn)=>setProjects(prev=>prev.map(p=>p.id===projectId?fn(p):p));
  const toast=(s)=>{setMessage(s);setTimeout(()=>setMessage(''),3200)};
