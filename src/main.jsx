@@ -33,13 +33,43 @@ function EvidenceNetwork({evidence,links,themes,storedPositions,onPosition,onNod
  const nodes=Object.fromEntries(evidence.map((e,i)=>[e.id,position(e,i)]));
  const active=links.filter(l=>nodes[l.source_id]&&nodes[l.target_id]);
  const connectRef=useRef(null);
- const move=event=>{if(connectRef.current){const p=point(event);if(p){connectRef.current={...connectRef.current,to:p};setConnecting(connectRef.current)}return;}if(!dragging)return;const p=point(event);if(!p)return;dragMoved.current=true;setPositions(old=>({...old,[dragging.id]:{x:Math.max(110,Math.min(width-110,p.x-dragging.dx)),y:Math.max(65,Math.min(height-65,p.y-dragging.dy))}}))};
- const stop=event=>{if(connectRef.current){const current=connectRef.current;const end=event?point(event):current.to;const target=evidence.find(e=>e.id!==current.id&&end&&Math.abs(nodes[e.id].x-end.x)<=110&&Math.abs(nodes[e.id].y-end.y)<=60);connectRef.current=null;setConnecting(null);if(target)onConnect(current.id,target.id);return;}if(!dragging)return;const p=positions[dragging.id]||nodes[dragging.id];if(dragMoved.current&&p)onPosition(dragging.id,p);setDragging(null)};
- const cancel=()=>{connectRef.current=null;setConnecting(null);setDragging(null)};
- return <div className="network-canvas v5-network"><div className="v5-network-tools"><span>Drag nodes to organise · Drag the small circle on a node to another node to connect</span><button className="secondary" onClick={()=>setZoom(z=>Math.max(.6,+(z-.2).toFixed(1)))}>−</button><strong>{Math.round(zoom*100)}%</strong><button className="secondary" onClick={()=>setZoom(z=>Math.min(1.8,+(z+.2).toFixed(1)))}>+</button><button className="secondary" onClick={()=>setZoom(1)}>Reset zoom</button></div><div className="v5-network-scroll"><svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Interactive evidence relationship graph" style={{width:(zoom*100)+'%',minWidth:700,height:'auto',touchAction:'none',userSelect:'none',WebkitUserSelect:'none'}} onDragStart={event=>event.preventDefault()} onPointerMove={move} onPointerUp={stop} onPointerCancel={cancel}>
+ const dragRef=useRef(null);
+ const [hoverTarget,setHoverTarget]=useState(null);
+ const [networkHint,setNetworkHint]=useState('');
+ const releaseCapture=event=>{try{if(svgRef.current?.hasPointerCapture(event.pointerId))svgRef.current.releasePointerCapture(event.pointerId)}catch{}};
+ const findTarget=(p,source)=>evidence.find(e=>e.id!==source&&p&&Math.abs(nodes[e.id].x-p.x)<=104&&Math.abs(nodes[e.id].y-p.y)<=51);
+ const move=event=>{
+  const p=point(event);if(!p)return;
+  if(connectRef.current){const next={...connectRef.current,to:p};connectRef.current=next;setConnecting(next);setHoverTarget(findTarget(p,next.id)?.id||null);return}
+  if(!dragRef.current)return;
+  const drag=dragRef.current;
+  if(Math.hypot(p.x-drag.startX,p.y-drag.startY)>4)dragMoved.current=true;
+  if(!dragMoved.current)return;
+  const next={x:Math.max(110,Math.min(width-110,p.x-drag.dx)),y:Math.max(65,Math.min(height-65,p.y-drag.dy))};
+  setPositions(old=>({...old,[drag.id]:next}));
+ };
+ const stop=event=>{
+  const p=point(event);
+  if(connectRef.current){
+   const source=connectRef.current.id,target=findTarget(p,source);
+   connectRef.current=null;setConnecting(null);setHoverTarget(null);releaseCapture(event);
+   if(target){setNetworkHint('');onConnect(source,target.id)}
+   else setNetworkHint('Drop the purple handle onto another Evidence card to connect.');
+   return;
+  }
+  if(dragRef.current){
+   const drag=dragRef.current;dragRef.current=null;setDragging(null);releaseCapture(event);
+   if(dragMoved.current){
+    if(p)onPosition(drag.id,{x:Math.max(110,Math.min(width-110,p.x-drag.dx)),y:Math.max(65,Math.min(height-65,p.y-drag.dy))});
+   }else{const item=evidence.find(e=>e.id===drag.id);if(item)onNode(item)}
+  }
+ };
+ const cancel=event=>{connectRef.current=null;dragRef.current=null;setConnecting(null);setDragging(null);setHoverTarget(null);releaseCapture(event)};
+ return <div className="network-canvas v5-network"><div className="v5-network-tools"><span>Drag nodes to organise · Drag the small circle on a node to another node to connect</span><button className="secondary" onClick={()=>setZoom(z=>Math.max(.6,+(z-.2).toFixed(1)))}>−</button><strong>{Math.round(zoom*100)}%</strong><button className="secondary" onClick={()=>setZoom(z=>Math.min(1.8,+(z+.2).toFixed(1)))}>+</button><button className="secondary" onClick={()=>setZoom(1)}>Reset zoom</button></div><div className="v5-network-scroll"><svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Interactive evidence relationship graph" style={{width:(zoom*100)+'%',minWidth:700,height:'auto',touchAction:'none',userSelect:'none',WebkitUserSelect:'none'}} onDragStart={event=>event.preventDefault()} onPointerMove={move} onPointerUp={stop} onPointerCancel={cancel} onLostPointerCapture={event=>{if(connectRef.current||dragRef.current)cancel(event)}}>
  {active.map(l=>{const a=nodes[l.source_id],b=nodes[l.target_id],color=edgeColors[l.relationship]||'#77839D',selected=selectedLink===l.id,dim=selectedLink&&selectedLink!==l.id,mx=(a.x+b.x)/2,my=(a.y+b.y)/2,label=l.relationship||'Related',labelWidth=label.length*6.1+20;return <g key={l.id} className="v10-edge" opacity={dim?.25:1}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="22" className="v10-edge-hit" onClick={event=>{event.stopPropagation();chooseLink(l)}}/><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={selected?4:2.4} strokeDasharray={l.relationship==='Related'?'7 5':undefined} pointerEvents="none"/><g transform={`translate(${mx},${my})`} onClick={event=>{event.stopPropagation();chooseLink(l)}} className="v10-edge-label"><rect x={-labelWidth/2} y="-13" width={labelWidth} height="26" rx="11" fill={selected?color:'#fff'} stroke={color} strokeWidth="1.5"/><text textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="700" fill={selected?'#fff':color}>{label}</text></g></g>})}
  {connecting&&<line x1={nodes[connecting.id]?.x||0} y1={nodes[connecting.id]?.y||0} x2={connecting.to.x} y2={connecting.to.y} stroke="#7362d5" strokeWidth="3" strokeDasharray="6 5" pointerEvents="none"/>}
- {evidence.map((e,i)=>{const p=nodes[e.id],summary=(e.analysis||e.quote||e.text||'No summary').trim();return <g key={e.id} className="v5-network-node" onPointerDown={event=>{event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);const pt=point(event);if(!pt)return;dragMoved.current=false;setDragging({id:e.id,dx:pt.x-p.x,dy:pt.y-p.y})}} onPointerUp={event=>{if(dragMoved.current){event.stopPropagation();stop()}else{setDragging(null);onNode(e)}}}><rect x={p.x-104} y={p.y-51} width="208" height="102" rx="12" fill="#fff" stroke="#DCD8E8" strokeWidth="1.5"/><rect x={p.x-91} y={p.y-37} width="5" height="13" rx="2" fill={themeColor(themes,e.theme)}/><text x={p.x-80} y={p.y-29} fontSize="11" fontWeight="bold" fill="#302b45">{String(e.theme||'Uncategorised').slice(0,27)}</text><text x={p.x-90} y={p.y-8} fontSize="10" fill="#4f4b63">{summary.slice(0,32)}</text><text x={p.x-90} y={p.y+7} fontSize="10" fill="#4f4b63">{summary.slice(32,64)}</text><text x={p.x-90} y={p.y+30} fontSize="10" fill={edgeColors[e.relationship]||'#77728E'}>{e.relationship||'Unclassified'} · View source ↗</text><circle cx={p.x+99} cy={p.y+1} r="9" fill="#7561d9" stroke="#fff" strokeWidth="2" className="v5-connection-handle" onPointerDown={event=>{event.preventDefault();event.stopPropagation();svgRef.current?.setPointerCapture(event.pointerId);const initial={id:e.id,to:{x:p.x+99,y:p.y+1}};connectRef.current=initial;setConnecting(initial)}} onPointerUp={event=>event.stopPropagation()}/></g>})}</svg></div>
+ {evidence.map((e,i)=>{const p=nodes[e.id],summary=(e.analysis||e.quote||e.text||'No summary').trim();return <g key={e.id} className="v5-network-node" onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();const pt=point(event);if(!pt)return;svgRef.current?.setPointerCapture(event.pointerId);dragMoved.current=false;const next={id:e.id,dx:pt.x-p.x,dy:pt.y-p.y,startX:pt.x,startY:pt.y};dragRef.current=next;setDragging(next)}}><rect x={p.x-104} y={p.y-51} width="208" height="102" rx="12" fill="#fff" stroke={hoverTarget===e.id?"#7561d9":"#DCD8E8"} strokeWidth={hoverTarget===e.id?3:1.5}/><rect x={p.x-91} y={p.y-37} width="5" height="13" rx="2" fill={themeColor(themes,e.theme)}/><text x={p.x-80} y={p.y-29} fontSize="11" fontWeight="bold" fill="#302b45">{String(e.theme||'Uncategorised').slice(0,27)}</text><text x={p.x-90} y={p.y-8} fontSize="10" fill="#4f4b63">{summary.slice(0,32)}</text><text x={p.x-90} y={p.y+7} fontSize="10" fill="#4f4b63">{summary.slice(32,64)}</text><text x={p.x-90} y={p.y+30} fontSize="10" fill={edgeColors[e.relationship]||'#77728E'}>{e.relationship||'Unclassified'} · View source ↗</text><circle cx={p.x+99} cy={p.y+1} r="9" fill="#7561d9" stroke="#fff" strokeWidth="2" className="v5-connection-handle" onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();event.stopPropagation();dragRef.current=null;svgRef.current?.setPointerCapture(event.pointerId);const initial={id:e.id,to:{x:p.x+99,y:p.y+1}};connectRef.current=initial;setConnecting(initial)}} /></g>})}</svg></div>
+ {networkHint&&<p className="v12-network-hint" role="status">{networkHint}</p>}
  <div className="network-edges v10-connection-detail">{selectedLink&&active.some(l=>l.id===selectedLink)?(()=>{const link=active.find(l=>l.id===selectedLink);const source=evidence.find(e=>e.id===link.source_id),target=evidence.find(e=>e.id===link.target_id);return <><div className="v10-detail-head"><h3>Connection Details</h3><button className="secondary" onClick={()=>{setSelectedLink(null);onEdge(null)}}>Close</button></div><strong style={{color:edgeColors[link.relationship]}}>{link.relationship}</strong><p>{link.rationale}</p><div className="v10-linked-evidence"><div><small>Source Evidence</small><p>{(source?.quote||source?.text||source?.analysis||'Source unavailable').slice(0,240)}</p></div><div><small>Target Evidence</small><p>{(target?.quote||target?.text||target?.analysis||'Target unavailable').slice(0,240)}</p></div></div></>})():<p className="hint">{active.length} verified connection{active.length===1?'':'s'}. Click a line or label to inspect it. Drag a purple handle to create a connection.</p>}</div>
  </div>
 }
@@ -124,6 +154,7 @@ function App(){
  const [networkNotice,setNetworkNotice]=useState('');
  const [pairSuggestBusy,setPairSuggestBusy]=useState(false);
  const [pairCaveat,setPairCaveat]=useState('');
+ useEffect(()=>{if(!manualSource||!manualTarget||page!=='map'||mapView!=='network')return;document.getElementById('network-connection-review')?.scrollIntoView({behavior:'smooth',block:'center'})},[manualSource,manualTarget,page,mapView]);
  const [paperEditor,setPaperEditor]=useState(null);
  const [sourceFocus,setSourceFocus]=useState(null);
  const [focusedHighlight,setFocusedHighlight]=useState(null);
