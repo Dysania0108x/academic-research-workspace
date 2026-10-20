@@ -169,12 +169,12 @@ def _mock_response(messages,task_type):
                          'evidence_ids':ids[:1]}]}
     return {}
 
-def ask(messages,task_type='other',paper_id=None):
+def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
     if mock_mode():return _mock_response(messages,task_type)
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
     model=active_model()
-    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(os.getenv('QWEN_TIMEOUT_SECONDS','120')),max_retries=0)
+    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(timeout_seconds or os.getenv('QWEN_TIMEOUT_SECONDS','120')),max_retries=0)
     usage=(None,None,None);status='success';error=None
     try:
         res=client.chat.completions.create(model=model,messages=messages,temperature=0.1,response_format={'type':'json_object'})
@@ -341,12 +341,12 @@ def _analyse_job(job, req):
         themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
         sha=paper_sha(req.paper_id)
         model=active_model()
-        # A short PDF is analysed in one call, regardless of theme count.
-        # Longer documents use a few bounded batches to avoid huge prompts.
-        batch_size=36 if len(blocks)<=36 else 30
+        # Smaller calls bound latency; the cache fingerprint includes the batch content.
+        batch_size=max(5,min(36,int(os.getenv('HIGHLIGHT_BATCH_BLOCKS','12'))))
         total=max(1,math.ceil(len(blocks)/batch_size))
         _set_job(job,total_batches=total,status='running',message='Analysing PDF for all themes together')
         all_matches=[]
+        failed_batches=[]
         for index,start in enumerate(range(0,len(blocks),batch_size)):
             if job['cancel_event'].is_set():
                 _set_job(job,status='cancelled',message='Analysis stopped; completed batches are cached')
@@ -356,8 +356,10 @@ def _analyse_job(job, req):
             batch_key=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,model,index,compact)
             result=cache_get('multi_highlight_cache',batch_key)
             if result is None:
-                _set_job(job,message=f'Analysing batch {index+1} of {total}')
-                data=ask([
+                started_at=time.monotonic()
+                _set_job(job,message=f'Analysing batch {index+1} of {total}',batch_started_at=time.time())
+                try:
+                    data=ask([
                     {'role':'system','content':(
                         'You are a precise, selective academic evidence highlighter. '
                         'Return only JSON {"matches":[{"block_id":"0:1","quote":"verbatim contiguous phrase","theme":"one exact supplied theme","reason":"brief reason"}]}. '
@@ -367,7 +369,12 @@ def _analyse_job(job, req):
                         'Never invent or paraphrase quotes. Returning zero matches is valid.'
                     )},
                     {'role':'user','content':json.dumps({'research_question':req.question,'themes':themes,'pdf_blocks':compact},ensure_ascii=False)}
-                ],task_type='highlight',paper_id=req.paper_id)
+                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')))
+                except HTTPException as exc:
+                    if job['cancel_event'].is_set():return
+                    failed_batches.append(index+1)
+                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed after {int(time.monotonic()-started_at)}s; continuing',failed_batches=list(failed_batches),batch_started_at=None)
+                    continue
                 result=[]
                 allowed_ids={b['id'] for b in batch}
                 seen=set()
@@ -391,11 +398,11 @@ def _analyse_job(job, req):
                 cache_put('multi_highlight_cache',batch_key,result,req.paper_id)
             if job['cancel_event'].is_set():return
             all_matches.extend(result)
-            _set_job(job,completed_batches=index+1,matches=list(all_matches),message=f'{index+1} of {total} batches completed')
+            _set_job(job,completed_batches=index+1,matches=list(all_matches),batch_started_at=None,failed_batches=list(failed_batches),message=f'{index+1} of {total} batches completed')
         if job['cancel_event'].is_set():
             _set_job(job,status='cancelled',message='Analysis stopped; completed batches are cached')
         else:
-            _set_job(job,status='completed',message='Highlighting complete',matches=all_matches)
+            _set_job(job,status='completed' if not failed_batches else 'partial',message='Highlighting complete' if not failed_batches else f'Partial results: {len(failed_batches)} batches failed. Run analysis again to retry uncached batches.',matches=all_matches,failed_batches=list(failed_batches),batch_started_at=None)
     except Exception as exc:
         _set_job(job,status='failed',error=str(getattr(exc,'detail',exc))[:400],message='Analysis failed; completed batches remain cached')
 
@@ -414,7 +421,7 @@ def start_analysis(req:AnalysisRequest):
         for old_id in list(analysis_jobs)[:-40]:
             if analysis_jobs[old_id]['status'] not in ('queued','running'):
                 analysis_jobs.pop(old_id,None)
-        job={'id':str(uuid.uuid4()),'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'error':None,'cancel_event':threading.Event()}
+        job={'id':str(uuid.uuid4()),'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'failed_batches':[],'batch_started_at':None,'error':None,'cancel_event':threading.Event()}
         analysis_jobs[job['id']]=job
     analysis_pool.submit(_analyse_job,job,req)
     return _job_snapshot(job)
