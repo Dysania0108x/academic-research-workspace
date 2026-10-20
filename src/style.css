@@ -63,3 +63,29 @@
 .network-proposal,.network-detail{border:1px solid #e1ddef;background:#faf9ff;border-radius:12px;padding:16px;margin:12px 0}
 .network-pair{display:grid;gap:8px;margin:10px 0}
 .network-pair button{white-space:normal;text-align:left;line-height:1.5}
+
+/* v0.7 UX regression fixes */
+.highlight-summary{display:flex!important;align-items:center;gap:10px 16px;flex-wrap:wrap;line-height:1.5;white-space:normal;min-height:48px;padding:14px 0}
+.highlight-summary .focus-toggle{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;margin:0;flex:0 0 auto}
+.highlight-summary .focus-toggle input{flex:0 0 auto;width:15px;height:15px}
+.theme-tinted{border-radius:7px;border-left:0!important}
+.source-quote.theme-tinted{border-left-width:4px!important}
+.map-card mark{background:#fff0a5;color:#252139;padding:0 2px;border-radius:2px}
+.suggestion-box{margin-top:16px}
+.suggestion-chips button{white-space:normal}
+.usage-row{display:flex;gap:16px;align-items:center;justify-content:space-between;line-height:1.5;padding:12px 0;border-bottom:1px solid #eae7f1}
+.usage-row span{min-width:0;overflow-wrap:anywhere}
+
+.network-manual{background:#fff;border:1px solid #e3deef;border-radius:12px;padding:16px;margin:14px 0 22px}
+.network-manual-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.network-manual-fields label{min-width:0}
+.network-manual select,.network-manual textarea{width:100%;min-width:0;max-width:100%}
+.network-manual .primary{margin-top:10px}
+@media(max-width:850px){.network-manual-fields{grid-template-columns:1fr}}
+.settings>h2:not(:first-child){margin-top:28px;padding-top:20px;border-top:1px solid #e7e3f0}
+.settings>.usage-row+.settings>h2{margin-top:28px}
+.highlight-summary .cache-indicator{flex:0 1 auto}
+
+.evidence-search-quote{margin:10px 0;padding:10px;background:#faf9ff;border-radius:8px;border:1px solid #eee9f8}
+.evidence-search-quote small{display:block;color:#77728e;margin-bottom:5px}
+.evidence-search-quote p{margin:0;line-height:1.5;font-size:12px}
