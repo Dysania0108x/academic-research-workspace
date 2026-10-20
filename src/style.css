@@ -132,3 +132,8 @@
 .paper-list .paper-item .seed-toggle{grid-column:2;max-width:100%;font-size:10px;white-space:nowrap}
 .paper-list .paper-item .icon-btn{flex-shrink:0}
 .paper-list .paper-item>button:first-child:hover span{text-decoration:underline}
+
+.paper-list .paper-job-status{grid-column:1 / -1;display:inline-flex;justify-self:start;max-width:100%;padding:4px 9px;border-radius:7px;font-size:11px;font-weight:600;background:#edf0fc;color:#514c91}
+.paper-list .paper-job-status.running,.paper-list .paper-job-status.queued{background:#f1eaff;color:#6553a7}
+.paper-list .paper-job-status.completed{background:#e5f6eb;color:#21794b}
+.paper-list .paper-job-status.cancelled,.paper-list .paper-job-status.failed{background:#f8e9e9;color:#a54444}
