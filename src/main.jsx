@@ -10,7 +10,8 @@ const highlightKey=m=>[m.paperId||'',m.page,(m.quote||m.text||'').trim().toLower
 const relationshipOptions=['Supporting','Contradictory','Related','Unclassified'];
 const defaultThemes=['Research Efficiency','Information Reliability','Research Workflow'];
 const initialProject={id:'demo',name:'AI in Literature Reviews',question:'How does generative AI influence students’ literature review processes?',topics:defaultThemes,papers:[],evidence:[]};
-function load(){try {return JSON.parse(localStorage.getItem('arw-v01'))||[initialProject]}catch{return [initialProject]}}
+const normalizeSeedPapers=projects=>(projects||[]).map(p=>{let found=false;return {...p,papers:(p.papers||[]).map(paper=>{const seed=!!paper.seed&&!found;if(seed)found=true;return {...paper,seed}})}});
+function load(){try{return normalizeSeedPapers(JSON.parse(localStorage.getItem('arw-v01'))||[initialProject])}catch{return [initialProject]}}
 function EvidenceNetwork({evidence,links,themes,onNode,onEdge}){
  const width=900,height=Math.max(400,Math.ceil(evidence.length/5)*155+80);
  const positions=Object.fromEntries(evidence.map((e,i)=>[e.id,{x:110+(i%5)*170,y:95+Math.floor(i/5)*155}]));
@@ -119,7 +120,7 @@ function App(){
   }catch(e){setAiError(e.message)}
  };
  const inspect=async m=>{setRelationship('Unclassified');setSelected({...m,source:project.papers.find(p=>p.id===paperId)?.name+' · page '+m.page,analysis:'',paperId});setEditing('');setAiDetails(null);setPageNumber(m.page);setAssistant(true);setAssistantTab('analysis');setBusy(true);setAiError('');try{const r=await fetch('/api/passage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,block_id:m.id,question:project.question,theme:m.theme})});const d=await r.json();if(!r.ok)throw Error(d.detail);setAiDetails(d);setEditing(d.interpretation);setCacheMessage(d.cache_hit?'Passage analysis loaded from cache (0 new tokens)':'New passage analysis generated');fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})}catch(e){setAiError(e.message)}finally{setBusy(false)}};
- useEffect(()=>{fetch('/api/projects').then(r=>r.json()).then(d=>{if(d.projects?.length)setProjects(d.projects);setSyncReady(true)}).catch(()=>setSyncReady(true))},[]);
+ useEffect(()=>{fetch('/api/projects').then(r=>r.json()).then(d=>{if(d.projects?.length)setProjects(normalizeSeedPapers(d.projects));setSyncReady(true)}).catch(()=>setSyncReady(true))},[]);
  useEffect(()=>{if(!syncReady)return;localStorage.setItem('arw-v01',JSON.stringify(projects));projects.forEach(p=>fetch('/api/projects/'+encodeURIComponent(p.id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(()=>{}))},[projects,syncReady]);
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
  const project=projects.find(p=>p.id===projectId);
