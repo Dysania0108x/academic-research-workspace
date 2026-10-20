@@ -89,3 +89,16 @@
 .evidence-search-quote{margin:10px 0;padding:10px;background:#faf9ff;border-radius:8px;border:1px solid #eee9f8}
 .evidence-search-quote small{display:block;color:#77728e;margin-bottom:5px}
 .evidence-search-quote p{margin:0;line-height:1.5;font-size:12px}
+
+/* PDF highlight focus and evidence relationship UI */
+.highlight-summary{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:12px 0!important;line-height:1.45!important}
+.highlight-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:38px}
+.highlight-controls .focus-toggle{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;margin:0}
+.highlight-controls .focus-toggle input{width:16px;height:16px;flex:0 0 auto}
+.highlight-controls .secondary{white-space:normal}
+.highlight-status{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:#77728e;overflow-wrap:anywhere}
+.highlight-status .cache-indicator{display:inline-block;flex:0 1 auto;white-space:normal}
+.relationship-select{border:1px solid transparent;border-radius:8px;padding:7px 10px;font-weight:700;font-size:12px;cursor:pointer;max-width:165px}
+.relationship-select:focus-visible{outline:2px solid #7561d9;outline-offset:2px}
+.source-focus-rect{background:rgba(99,102,241,.08);border:2px dashed #5b52ce;pointer-events:none}
+.pdf-highlight{user-select:none;-webkit-user-select:none}
