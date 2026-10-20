@@ -355,3 +355,5 @@
 @media(max-width:600px){.v9-modal-header{padding:20px 18px 16px}.v9-modal-scroll{padding:0 18px}.v9-modal-footer{padding:14px 18px}.v9-relationship-picker button{flex:1 1 40%}}
 
 .v11-duplicate-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.v11-duplicate-heading h3{margin:0}.v11-duplicate-heading button{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+
+.v7-manage-menu button:disabled{color:#a9a4b5;opacity:.55;cursor:not-allowed;background:transparent}
