@@ -31,3 +31,18 @@
 .overview-footer{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-top:14px;font-size:11px;color:#8a849c}
 .evidence-modal{width:min(640px,94vw)}.source-quote{font-size:13px;line-height:1.7;border-left:3px solid #a08ee8;background:#f8f6ff;padding:14px;border-radius:7px;max-height:160px;overflow:auto}
 @media(max-width:1100px){.library-layout,.library-layout.library-collapsed{grid-template-columns:minmax(0,1fr)}.paper-list{display:block!important}.assistant{position:static;max-height:none}.pdf-scroll{max-height:70vh}}
+
+/* v0.7 evidence workflow */
+.map-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0 22px}
+.map-toolbar .tabs{min-width:300px;flex:1}
+.map-toolbar input{min-width:230px;flex:2;border:1px solid #dedbf0;border-radius:10px;padding:12px;background:white}
+.map-toolbar select{border:1px solid #dedbf0;border-radius:10px;padding:12px;background:white}
+.suggestion-box{padding:14px;border:1px solid #e5dff8;border-radius:12px;margin:12px 0}
+.suggestion-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.selected-chip{border-color:#7561d9!important;background:#eeeaff!important}
+.focus-toggle{display:inline-flex;align-items:center;gap:6px;margin-right:10px;font-size:13px}
+.synthesis-item{padding:14px;margin:8px 0;background:#f8f7fd;border-radius:10px;line-height:1.5}
+.synthesis-item small{display:block;margin-top:8px;color:#77728e;overflow-wrap:anywhere}
+.network-view{margin:18px 0;padding:16px;border:1px solid #e4dff1;border-radius:12px}
+.network-node{display:inline-block;vertical-align:top;text-align:left;border:2px solid #aaa;background:white;border-radius:12px;padding:14px;margin:8px;max-width:230px;cursor:pointer}
+.pdf-highlight{transition:background .18s ease,outline .18s ease}
