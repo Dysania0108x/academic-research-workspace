@@ -181,11 +181,15 @@ function App(){
  const clearHighlightFocus=()=>{passageRequestRef.current++;sourceRequestRef.current++;setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setEditing('');setBusy(false);clearNativeSelection()};
  const rejectSelected=()=>{if(!selected)return;const key=highlightKey(selected);update(p=>({...p,rejected:[...new Set([...(p.rejected||[]),key])]}));clearHighlightFocus();toast('Highlight rejected and hidden. Restore it in Project Settings.');};
  const locateEvidence=async e=>{
-   passageRequestRef.current++;const sourceRequest=++sourceRequestRef.current;setBusy(false);setAiDetails(null);
+   // Locating the already selected passage must not cancel its pending
+   // analysis request or discard the interpretation loaded from cache.
+   const samePassage=selected&&highlightKey(selected)===highlightKey(e);
+   if(!samePassage){passageRequestRef.current++;setBusy(false);setAiDetails(null)}
+   const sourceRequest=++sourceRequestRef.current;
    clearNativeSelection();setFocusedHighlight(highlightKey(e));
    sourceNavigationRef.current={paperId:e.paperId,page:e.page};
    setPaperId(e.paperId);setPageNumber(e.page);setPage('papers');setAssistant(true);setAssistantTab('analysis');
-   setSelected(e);setEditing(e.analysis||'');setRelationship(e.relationship||'Unclassified');setFocusOnly(true);
+   setSelected(prev=>samePassage?prev:e);if(!samePassage)setEditing(e.analysis||'');setRelationship(e.relationship||'Unclassified');setFocusOnly(true);
    setSourceFocus(null);
    if(!e.paperId||!e.page||!(e.quote||e.text))return;
    try{
