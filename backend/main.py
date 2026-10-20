@@ -118,10 +118,62 @@ def paper_sha(paper_id):
         row=c.execute('SELECT sha256 FROM papers WHERE id=?',(paper_id,)).fetchone()
     if not row: raise HTTPException(404,'Paper not found')
     return row['sha256']
+
+def mock_mode():
+    return os.getenv('AI_MOCK_MODE','false').strip().lower() in ('1','true','yes','on')
+
+def active_model():
+    return 'mock-deterministic-v1' if mock_mode() else os.getenv('QWEN_MODEL','qwen-plus')
+
+def _mock_response(messages,task_type):
+    """Deterministic contract-compatible responses; never call a remote model."""
+    try:
+        payload=json.loads(next((m['content'] for m in reversed(messages) if m.get('role')=='user'),'{}'))
+    except (ValueError,TypeError):
+        payload={}
+    if task_type=='highlight':
+        themes=payload.get('themes') or [payload.get('theme','Research Theme')]
+        matches=[]
+        for block in payload.get('pdf_blocks',[]):
+            content=' '.join(str(block.get('text','')).split())
+            if len(content)<35:continue
+            # Choose an exact substring with no model hallucination.
+            words=content.split()
+            quote=' '.join(words[:min(18,len(words))])
+            if len(quote)<18:continue
+            matches.append({'block_id':block['id'],'quote':quote,'theme':themes[len(matches)%len(themes)],
+                            'reason':'Mock candidate for testing source verification; not a research finding.'})
+            if len(matches)>=min(6,max(2,len(themes)*2)):break
+        return {'matches':matches}
+    if task_type=='passage':
+        passage=str(payload.get('original_passage',''))
+        return {'interpretation':'[MOCK] Review this original passage before drawing a conclusion: '+passage[:170],
+                'relevance':'[MOCK] Relevance is not evaluated. Compare the source with your research question.',
+                'limitations':'[MOCK] Synthetic response for UX testing; not a scientific assessment.'}
+    if task_type=='theme_suggestion':
+        topics=[str(x).strip() for x in payload.get('user_topics',[]) if str(x).strip()]
+        themes=list(dict.fromkeys(topics+['Research Context','Evidence Quality','Research Limitations']))[:6]
+        return {'themes':[{'name':t,'basis':'[MOCK] Illustrative theme for testing selection and editing.',
+                           'source_block_ids':[]} for t in themes]}
+    if task_type=='network':
+        evidence=payload.get('evidence',[])
+        if len(evidence)<2:return {'links':[]}
+        return {'links':[{'source_id':evidence[0]['id'],'target_id':evidence[1]['id'],
+                          'relationship':'Related','rationale':'[MOCK] Example relationship for review-flow testing only; no academic claim is implied.'}]}
+    if task_type=='synthesis':
+        evidence=payload.get('verified_evidence',[])
+        ids=[e['id'] for e in evidence if e.get('id')]
+        return {'insights':[{'text':'[MOCK] Example insight for interface testing, not a research conclusion.',
+                             'evidence_ids':ids[:2]}],
+                'gaps':[{'text':'[MOCK] Example gap in the current library; not a field-wide research gap.',
+                         'evidence_ids':ids[:1]}]}
+    return {}
+
 def ask(messages,task_type='other',paper_id=None):
+    if mock_mode():return _mock_response(messages,task_type)
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
-    model=os.getenv('QWEN_MODEL','qwen-plus')
+    model=active_model()
     client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(os.getenv('QWEN_TIMEOUT_SECONDS','120')),max_retries=0)
     usage=(None,None,None);status='success';error=None
     try:
@@ -141,7 +193,7 @@ def usage_stats():
         rows=[dict(r) for r in c.execute('SELECT task_type, COUNT(*) AS requests, SUM(COALESCE(input_tokens,0)) AS input_tokens, SUM(COALESCE(output_tokens,0)) AS output_tokens, SUM(COALESCE(total_tokens,0)) AS total_tokens, SUM(CASE WHEN status="error" THEN 1 ELSE 0 END) AS errors FROM ai_usage GROUP BY task_type ORDER BY task_type')]
     return {'by_task':rows,'total_tokens':sum(r['total_tokens'] for r in rows),'requests':sum(r['requests'] for r in rows),'note':'Counts actual model responses only; cache hits use zero new tokens.'}
 @app.get('/api/health')
-def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY'))}
+def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY')) or mock_mode(),'mock_mode':mock_mode()}
 
 def extract_paper_metadata(doc):
     """Conservative PDF metadata: no guessed journal, author, or publication year."""
