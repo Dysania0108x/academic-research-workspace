@@ -90,6 +90,8 @@ function App(){
  const pdfScrollRef=useRef(null);
  const pdfCanvasRef=useRef(null);
  const sourceNavigationRef=useRef(null);
+ const passageRequestRef=useRef(0);
+ const sourceRequestRef=useRef(0);
  useEffect(()=>{fetch('/api/health').then(r=>r.json()).then(setHealth).catch(()=>setHealth(null));fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})},[]);
  useEffect(()=>{const navigation=sourceNavigationRef.current;const isSourceNavigation=navigation?.paperId===paperId;setMatches([]);setBlocks([]);setPageSizes([]);if(!isSourceNavigation){setPageNumber(1);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null)}else{setPageNumber(navigation.page);sourceNavigationRef.current=null}if(!paperId)return;fetch('/api/papers/'+paperId+'/blocks').then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.detail);setBlocks(d.blocks);setPageSizes(d.pages)}).catch(e=>setAiError(e.message))},[paperId]);
  const runAnalysis=async()=>{
@@ -122,7 +124,7 @@ function App(){
    setAnalysisJob(job=>job?{...job,message:'Stopping after current API request...'}:job);
   }catch(e){setAiError(e.message)}
  };
- const inspect=async m=>{clearNativeSelection();setSourceFocus(null);setFocusedHighlight(highlightKey({...m,paperId}));setRelationship('Unclassified');setSelected({...m,source:project.papers.find(p=>p.id===paperId)?.name+' · page '+m.page,analysis:'',paperId});setEditing('');setAiDetails(null);setPageNumber(m.page);setAssistant(true);setAssistantTab('analysis');setBusy(true);setAiError('');try{const r=await fetch('/api/passage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,block_id:m.id,question:project.question,theme:m.theme})});const d=await r.json();if(!r.ok)throw Error(d.detail);setAiDetails(d);setEditing(d.interpretation);setCacheMessage(d.cache_hit?'Passage analysis loaded from cache (0 new tokens)':'New passage analysis generated');fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})}catch(e){setAiError(e.message)}finally{setBusy(false)}};
+ const inspect=async m=>{const request=++passageRequestRef.current;sourceRequestRef.current++;clearNativeSelection();setSourceFocus(null);setFocusedHighlight(highlightKey({...m,paperId}));setRelationship('Unclassified');setSelected({...m,source:project.papers.find(p=>p.id===paperId)?.name+' · page '+m.page,analysis:'',paperId});setEditing('');setAiDetails(null);setPageNumber(m.page);setAssistant(true);setAssistantTab('analysis');setBusy(true);setAiError('');try{const r=await fetch('/api/passage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,block_id:m.id,question:project.question,theme:m.theme})});const d=await r.json();if(request!==passageRequestRef.current)return;if(!r.ok)throw Error(d.detail);setAiDetails(d);setEditing(d.interpretation);setCacheMessage(d.cache_hit?'Passage analysis loaded from cache (0 new tokens)':'New passage analysis generated');fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})}catch(e){if(request===passageRequestRef.current)setAiError(e.message)}finally{if(request===passageRequestRef.current)setBusy(false)}};
  useEffect(()=>{fetch('/api/projects').then(r=>r.json()).then(d=>{if(d.projects?.length)setProjects(d.projects);setSyncReady(true)}).catch(()=>setSyncReady(true))},[]);
  useEffect(()=>{if(!syncReady)return;localStorage.setItem('arw-v01',JSON.stringify(projects));projects.forEach(p=>fetch('/api/projects/'+encodeURIComponent(p.id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(()=>{}))},[projects,syncReady]);
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
@@ -150,9 +152,10 @@ function App(){
  const rejected=project?.rejected||[];
  const visibleMatches=matches.filter(m=>visibleThemes.includes(m.theme)&&!rejected.includes(highlightKey({...m,paperId})));
  const displayMatches=Object.values(visibleMatches.reduce((acc,m)=>{const key=m.page+'|'+(m.quote||m.text||'').trim().toLowerCase();if(!acc[key])acc[key]={...m,themeNames:[m.theme]};else if(!acc[key].themeNames.includes(m.theme))acc[key].themeNames.push(m.theme);return acc},{})).map(m=>({...m,theme:[...m.themeNames].sort((a,b)=>project.topics.indexOf(a)-project.topics.indexOf(b))[0]}));
- const clearHighlightFocus=()=>{setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setEditing('');clearNativeSelection()};
+ const clearHighlightFocus=()=>{passageRequestRef.current++;sourceRequestRef.current++;setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setEditing('');setBusy(false);clearNativeSelection()};
  const rejectSelected=()=>{if(!selected)return;const key=highlightKey(selected);update(p=>({...p,rejected:[...new Set([...(p.rejected||[]),key])]}));clearHighlightFocus();toast('Highlight rejected and hidden. Restore it in Project Settings.');};
  const locateEvidence=async e=>{
+   passageRequestRef.current++;const sourceRequest=++sourceRequestRef.current;setBusy(false);setAiDetails(null);
    clearNativeSelection();setFocusedHighlight(highlightKey(e));
    sourceNavigationRef.current={paperId:e.paperId,page:e.page};
    setPaperId(e.paperId);setPageNumber(e.page);setPage('papers');setAssistant(true);setAssistantTab('analysis');
@@ -162,9 +165,10 @@ function App(){
    try{
     const r=await fetch('/api/papers/'+e.paperId+'/locate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page:e.page,quote:e.quote||e.text,block_rect:e.rect||null})});
     const d=await r.json();if(!r.ok)throw Error(d.detail||'Cannot locate quote');
+    if(sourceRequest!==sourceRequestRef.current)return;
     setSourceFocus({paperId:e.paperId,page:e.page,rects:d.rects||[],found:d.found});
     if(!d.found)toast('Source page opened; exact quote could not be located.');
-   }catch(err){setAiError(err.message)}
+   }catch(err){if(sourceRequest===sourceRequestRef.current)setAiError(err.message)}
  };
  useEffect(()=>{
    if(!sourceFocus||sourceFocus.paperId!==paperId||sourceFocus.page!==pageNumber||!pageSizes[pageNumber-1])return;
