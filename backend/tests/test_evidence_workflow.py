@@ -58,5 +58,18 @@ class EvidenceWorkflowTests(unittest.TestCase):
         self.assertEqual(result["links"][0]["relationship"], "Related")
 
 
+    def test_synthesis_only_returns_known_evidence_ids(self):
+        req = main.SynthesisRequest(question="How does UV exposure vary?", evidence=[
+            {"id": "e1", "theme": "UV", "quote": "Cumulative UV exposure increased with outdoor duration.", "interpretation": "Duration matters."}
+        ])
+        generated = {"insights": [{"text": "Longer exposure is associated with more accumulated UV dose.", "evidence_ids": ["e1", "invented"]}],
+                     "gaps": [{"text": "This library has no direct comparison across seasons.", "evidence_ids": ["invented"]}]}
+        with patch.object(main, "cache_get", return_value=None), patch.object(main, "ask", return_value=generated), patch.object(main, "cache_put"):
+            result = main.synthesize(req)
+        self.assertEqual(result["insights"][0]["evidence_ids"], ["e1"])
+        self.assertEqual(result["gaps"][0]["evidence_ids"], [])
+
+
+
 if __name__ == "__main__":
     unittest.main()
