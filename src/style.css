@@ -180,3 +180,12 @@
 .evidence-theme-overview{grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
 .evidence-theme-tile{background:#fff;min-height:92px}
 @media(max-width:800px){.v5-search{flex-wrap:wrap}.evidence-detail-list .map-card{display:flex;flex-direction:column}.evidence-detail-list .map-card>select{width:100%}}
+
+.v5-network{overflow:hidden}
+.v5-network-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:12px 0 16px}
+.v5-network-tools span{flex:1;min-width:210px;font-size:12px;color:#706b83}
+.v5-network-tools strong{font-size:12px;min-width:42px;text-align:center}
+.v5-network-scroll{overflow:auto;border:1px solid #e5e2f0;background:radial-gradient(#e9e6f3 1px,transparent 1px) 0 0/22px 22px;border-radius:12px;min-height:360px}
+.v5-network-node{cursor:grab}
+.v5-network-node:active{cursor:grabbing}
+.v5-network-node text{pointer-events:none;user-select:none}
