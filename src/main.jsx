@@ -51,6 +51,9 @@ function App(){
  const [busy,setBusy]=useState(false);
  const [analysisJob,setAnalysisJob]=useState(null);
  const analysisJobRef=useRef(null);
+ const analysisPaperRef=useRef(null);
+ const currentPaperRef=useRef(null);
+ currentPaperRef.current=paperId;
  const [aiError,setAiError]=useState('');
  const [aiDetails,setAiDetails]=useState(null);
  const [health,setHealth]=useState(null);
@@ -93,29 +96,32 @@ function App(){
  const passageRequestRef=useRef(0);
  const sourceRequestRef=useRef(0);
  useEffect(()=>{fetch('/api/health').then(r=>r.json()).then(setHealth).catch(()=>setHealth(null));fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})},[]);
- useEffect(()=>{const navigation=sourceNavigationRef.current;const isSourceNavigation=navigation?.paperId===paperId;setMatches([]);setBlocks([]);setPageSizes([]);if(!isSourceNavigation){setPageNumber(1);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null)}else{setPageNumber(navigation.page);sourceNavigationRef.current=null}if(!paperId)return;fetch('/api/papers/'+paperId+'/blocks').then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.detail);setBlocks(d.blocks);setPageSizes(d.pages)}).catch(e=>setAiError(e.message))},[paperId]);
+ useEffect(()=>{if(analysisPaperRef.current&&analysisPaperRef.current!==paperId){analysisJobRef.current=null;analysisPaperRef.current=null;setAnalysisJob(null);setCacheMessage('');}const navigation=sourceNavigationRef.current;const isSourceNavigation=navigation?.paperId===paperId;setMatches([]);setBlocks([]);setPageSizes([]);if(!isSourceNavigation){setPageNumber(1);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null)}else{setPageNumber(navigation.page);sourceNavigationRef.current=null}if(!paperId)return;fetch('/api/papers/'+paperId+'/blocks').then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.detail);setBlocks(d.blocks);setPageSizes(d.pages)}).catch(e=>setAiError(e.message))},[paperId]);
  const runAnalysis=async()=>{
   if(!paperId||analysisJobRef.current)return;
+  const targetPaper=paperId;
+  analysisPaperRef.current=targetPaper;
   setAiError('');setCacheMessage('');setMatches([]);
   try{
    const response=await fetch('/api/analyse/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,question:project.question,themes:project.topics})});
    const initial=await response.json();if(!response.ok)throw Error(initial.detail||'Could not start analysis');
+   if(currentPaperRef.current!==targetPaper)return;
    analysisJobRef.current=initial.id;setAnalysisJob(initial);
    while(analysisJobRef.current===initial.id){
     await new Promise(resolve=>setTimeout(resolve,1000));
     const statusResponse=await fetch('/api/analyse/jobs/'+initial.id);
     const job=await statusResponse.json();if(!statusResponse.ok)throw Error(job.detail||'Could not load analysis progress');
-    if(analysisJobRef.current!==initial.id)break;
+    if(analysisJobRef.current!==initial.id||currentPaperRef.current!==targetPaper)break;
     setAnalysisJob(job);setMatches(job.matches||[]);
     if(['completed','cancelled','failed'].includes(job.status)){
      if(job.status==='failed')setAiError(job.error||'AI analysis failed');
      else if(job.status==='cancelled')setCacheMessage('Analysis stopped. Completed batches were saved.');
      else {setCacheMessage('Analysis complete. Successful batches cached.');toast((job.matches||[]).length+' source-verified highlights ready.')}
      fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{});
-     analysisJobRef.current=null;setAnalysisJob(null);break;
+     analysisJobRef.current=null;analysisPaperRef.current=null;setAnalysisJob(null);break;
     }
    }
-  }catch(e){analysisJobRef.current=null;setAnalysisJob(null);setAiError(e.message)}
+  }catch(e){if(currentPaperRef.current===targetPaper){analysisJobRef.current=null;analysisPaperRef.current=null;setAnalysisJob(null);setAiError(e.message)}}
  };
  const cancelAnalysis=async()=>{
   if(!analysisJobRef.current)return;
@@ -123,6 +129,7 @@ function App(){
    const response=await fetch('/api/analyse/jobs/'+analysisJobRef.current+'/cancel',{method:'POST'});
    if(!response.ok)throw Error('Unable to stop analysis');
    analysisJobRef.current=null;
+   analysisPaperRef.current=null;
    setAnalysisJob(null);
    setCacheMessage('Analysis cancelled. Existing completed highlights remain available; an in-flight API request may still incur tokens.');
    fetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{});
