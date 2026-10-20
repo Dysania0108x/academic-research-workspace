@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookOpen, LayoutDashboard, Network, Settings, Plus, FolderOpen, FileText, Bot, Search, Check, X, Pencil, ArrowLeft, Trash2, Upload, Sparkles, ChevronRight, Eye, Info, FilePenLine, Highlighter, SlidersHorizontal } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Network, Settings, Plus, FolderOpen, FileText, Bot, Search, Check, X, Pencil, ArrowLeft, Trash2, Upload, Sparkles, ChevronRight, ChevronDown, Eye, Info, FilePenLine, Highlighter, SlidersHorizontal } from 'lucide-react';
 import './style.css';
 
 const themePalette=['#E8B844','#67A7E8','#A783E8','#47B99A','#E48C98','#7D89D9'];
