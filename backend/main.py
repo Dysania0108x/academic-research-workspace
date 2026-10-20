@@ -417,6 +417,10 @@ def start_analysis(req:AnalysisRequest):
         for job in analysis_jobs.values():
             if job['cache_key']==identity and job['status'] in ('queued','running'):
                 return _job_snapshot(job)
+        # Reuse finished jobs when all batches succeeded; a partial job may be retried.
+        for job in reversed(list(analysis_jobs.values())):
+            if job['cache_key']==identity and job['status']=='completed':
+                return _job_snapshot(job)
         # Limit in-memory job history.
         for old_id in list(analysis_jobs)[:-40]:
             if analysis_jobs[old_id]['status'] not in ('queued','running'):
