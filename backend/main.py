@@ -414,10 +414,29 @@ def start_analysis(req:AnalysisRequest):
         for old_id in list(analysis_jobs)[:-40]:
             if analysis_jobs[old_id]['status'] not in ('queued','running'):
                 analysis_jobs.pop(old_id,None)
-        job={'id':str(uuid.uuid4()),'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'error':None,'cancel_event':threading.Event()}
+        job={'id':str(uuid.uuid4()),'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'error':None,'cancel_event':threading.Event()}
         analysis_jobs[job['id']]=job
     analysis_pool.submit(_analyse_job,job,req)
     return _job_snapshot(job)
+
+@app.get('/api/analyse/papers/{paper_id}/job')
+def get_paper_analysis_job(paper_id:str, question:str, themes:str):
+    """Reconnect to the latest job for this exact paper and research context."""
+    sha=paper_sha(paper_id)
+    try:
+        theme_list=json.loads(themes)
+    except (ValueError,TypeError):
+        raise HTTPException(422,'Invalid themes parameter')
+    if not isinstance(theme_list,list):
+        raise HTTPException(422,'Themes must be an array')
+    normalized=list(dict.fromkeys(str(t).strip() for t in theme_list if str(t).strip()))
+    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,question.strip(),normalized,active_model())
+    with analysis_lock:
+        candidates=[j for j in analysis_jobs.values() if j.get('cache_key')==identity]
+        if not candidates:
+            return {'job':None}
+        # Most recently created job wins, including a completed or cancelled job.
+        return {'job':_job_snapshot(candidates[-1])}
 
 @app.get('/api/analyse/jobs/{job_id}')
 def get_analysis_job(job_id:str):
