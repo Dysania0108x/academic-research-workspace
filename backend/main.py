@@ -266,6 +266,34 @@ async def upload(file:UploadFile=File(...)):
     with db() as c:
         c.execute('INSERT INTO papers VALUES(?,?,?,?,?)',(pid,file.filename,sha,pages,time.time()))
     return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False,**metadata}
+@app.get('/api/projects/{project_id}/highlight-candidates')
+def highlight_candidates(project_id:str):
+    """Return cached AI candidates for the project's papers, including after backend restart.
+    Cache may contain previous research contexts; candidates are not automatically verified.
+    """
+    with db() as c:
+        row=c.execute('SELECT data FROM projects WHERE id=?',(project_id,)).fetchone()
+        if not row:raise HTTPException(404,'Project not found')
+        project=json.loads(row['data'])
+        papers={str(p['id']) for p in project.get('papers',[]) if p.get('id')}
+        candidates={}
+        if papers:
+            placeholders=','.join('?' for _ in papers)
+            rows=c.execute(f'SELECT paper_id,result,created_at FROM multi_highlight_cache WHERE paper_id IN ({placeholders}) ORDER BY created_at DESC',tuple(papers)).fetchall()
+            for cached in rows:
+                try:items=json.loads(cached['result'])
+                except (ValueError,TypeError):continue
+                if isinstance(items,dict):items=items.get('matches',[])
+                if not isinstance(items,list):continue
+                for item in items:
+                    if not isinstance(item,dict):continue
+                    quote=' '.join(str(item.get('quote') or item.get('text') or '').split())
+                    if not quote:continue
+                    key=(cached['paper_id'],str(item.get('page') or ''),quote.casefold())
+                    if key not in candidates:
+                        candidates[key]={**item,'paperId':cached['paper_id'],'quote':quote}
+        return {'candidates':list(candidates.values()),'cached_context_warning':'Cached candidates may reflect earlier research questions, themes, or models.'}
+
 @app.get('/api/papers/{paper_id}/blocks')
 def blocks(paper_id:str):
     with get_doc(paper_id) as doc:
