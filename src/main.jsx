@@ -6,7 +6,7 @@ import './style.css';
 const themePalette=['#E8B844','#67A7E8','#A783E8','#47B99A','#E48C98','#7D89D9'];
 const themeColor=(themes,name)=>{const names=[...new Set([...(themes||[]),name].filter(Boolean))].sort((a,b)=>a.localeCompare(b));const index=names.indexOf(name);return themePalette[index%themePalette.length]};
 const highlightText=(value,query)=>{const text=String(value||'');const q=String(query||'').trim();if(!q)return text;const lower=text.toLocaleLowerCase(),needle=q.toLocaleLowerCase();const pieces=[];let from=0,index=lower.indexOf(needle);while(index!==-1&&pieces.length<100){if(index>from)pieces.push(text.slice(from,index));pieces.push(<mark key={index}>{text.slice(index,index+q.length)}</mark>);from=index+q.length;index=lower.indexOf(needle,from)}pieces.push(text.slice(from));return pieces};
-const highlightKey=m=>[m.paperId||'',m.page,(m.quote||m.text||'').trim().replace(/\\s+/g,' ').toLowerCase()].join('|');
+const highlightKey=m=>[m.paperId||'',m.page,(m.quote||m.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
 const existingEvidence=(project,passage)=>project?.evidence?.find(e=>highlightKey(e)===highlightKey(passage));
 const relationshipOptions=['Supporting','Contradictory','Related','Unclassified'];
 const relationshipColors={Supporting:{bg:'#DCF5E8',fg:'#176A45'},Contradictory:{bg:'#FCE1E5',fg:'#A22D42'},Related:{bg:'#DFECFF',fg:'#285A9A'},Unclassified:{bg:'#F0EFF3',fg:'#666273'}};
