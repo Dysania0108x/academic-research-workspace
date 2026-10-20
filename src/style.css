@@ -246,3 +246,7 @@
 .v5-status.verified{background:#e0f5e9;color:#267249}
 .v5-status.rejected{background:#fce9ec;color:#a04c59}
 @media(max-width:800px){.v5-settings-layout{grid-template-columns:1fr}.v5-settings-nav{flex-direction:row;flex-wrap:wrap}.v5-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v5-settings-panel,.v5-highlight-manager{padding:16px}}
+
+/* Prevent native text selection during evidence network dragging. */
+.v5-network-scroll,.v5-network-scroll svg,.v5-network-node,.v5-network-node *{-webkit-user-select:none;user-select:none}
+.v5-network-scroll svg{display:block;max-width:none}
