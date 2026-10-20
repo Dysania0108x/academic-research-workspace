@@ -89,3 +89,15 @@
 .evidence-search-quote{margin:10px 0;padding:10px;background:#faf9ff;border-radius:8px;border:1px solid #eee9f8}
 .evidence-search-quote small{display:block;color:#77728e;margin-bottom:5px}
 .evidence-search-quote p{margin:0;line-height:1.5;font-size:12px}
+
+/* Primary Seed Paper */
+.paper-item .seed-toggle{white-space:nowrap;font-size:11px;padding:6px 9px;border:1px solid #ded9ee;border-radius:8px;background:#fff;color:#77728e}
+.paper-item .seed-toggle.seed-active{color:#7454b9;background:#eee8ff;border-color:#c9b6f5;font-weight:700}
+.paper-item .seed-toggle:hover{border-color:#7a61d7}
+.seed-settings{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e4def4;background:#faf8ff;border-radius:12px;padding:14px;margin:12px 0}
+.seed-settings strong{min-width:0;overflow-wrap:anywhere}
+.seed-settings span{color:#77728e;font-size:12px}
+.seed-suggestions{border:1px solid #e5e0f1;border-radius:12px;padding:12px;margin:12px 0}
+.seed-suggestion{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-bottom:1px solid #eeeaf5}
+.seed-suggestion:last-child{border-bottom:0}
+.seed-suggestion>div{min-width:0}
