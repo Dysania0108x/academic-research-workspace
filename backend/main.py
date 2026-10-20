@@ -535,4 +535,25 @@ def suggest_themes(req:ThemeRequest):
             excerpts.extend([{'paper_id':pid,'block_id':b['id'],'text':b['text'][:450]} for b in blocks[::step][:24]])
     data=ask([{'role':'system','content':'Suggest 3-6 research themes based ONLY on the research question, user topics and supplied PDF excerpts. Return JSON {"themes":[{"name":"...","basis":"...","source_block_ids":["0:1"]}]}. Do not claim comprehensive field coverage. If sources are insufficient, say so in basis.'},{'role':'user','content':json.dumps({'question':req.question,'user_topics':req.topics,'paper_excerpts':excerpts},ensure_ascii=False)}],task_type='theme_suggestion')
     valid_ids={e['block_id'] for e in excerpts}
-    return {'themes':[{'name':str(t.get('name','')).strip()[:80],'basis':str(t.get('basis',''))[:300],'source_block_ids':[x for x in t.get('source_block_ids',[]) if x in valid_ids]} for t in data.get('themes',[]) if str(t.get('name','')).strip()][:8]}
+    def clean_themes(payload):
+        raw=payload.get('themes',[]) if isinstance(payload,dict) else []
+        if isinstance(raw,dict):raw=[raw]
+        if not isinstance(raw,list):raw=[]
+        items=[]
+        for item in raw:
+            if isinstance(item,str):item={'name':item,'basis':'AI-suggested research topic.'}
+            if not isinstance(item,dict):continue
+            name=str(item.get('name') or item.get('theme') or item.get('topic') or '').strip()[:80]
+            if not name:continue
+            ids=item.get('source_block_ids') or []
+            if not isinstance(ids,list):ids=[]
+            items.append({'name':name,'basis':str(item.get('basis') or item.get('reason') or 'Suggested from the research question.')[:300],'source_block_ids':[x for x in ids if x in valid_ids]})
+        return list({t['name'].casefold():t for t in items}.values())[:8]
+    themes=clean_themes(data)
+    if not themes:
+        # A second attempt with an unambiguous JSON contract, never claim a successful empty result.
+        retry=ask([{'role':'system','content':'You are a research theme ideation assistant. Always return a JSON object with exactly one key, "themes", whose value is a list of 3 to 5 objects. Each object has string keys "name" and "basis" and a list key "source_block_ids". Derive themes from the question even if no PDF is provided. Never return an empty list.'},{'role':'user','content':json.dumps({'research_question':req.question,'initial_topics':req.topics},ensure_ascii=False)}],task_type='theme_suggestion')
+        themes=clean_themes(retry)
+    if not themes:
+        raise HTTPException(502,'The AI returned no usable research themes after two attempts. Please retry or enter themes manually.')
+    return {'themes':themes}
