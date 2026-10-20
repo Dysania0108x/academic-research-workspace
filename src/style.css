@@ -159,3 +159,24 @@
 .evidence-detail-list .map-card select{display:block;max-width:100%;min-width:0;width:100%;margin:10px 0;text-overflow:ellipsis}
 .evidence-detail-list .map-card .text-link{margin:6px 12px 6px 0}
 .saved-evidence-notice{display:flex;align-items:center;gap:8px;padding:12px;border:1px solid #b8dec8;background:#effaf3;border-radius:9px;color:#206b45;font-size:12px}
+
+/* V5 evidence search and readable detail workspace */
+.v5-search{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.v5-search input{flex:1;min-width:120px}
+.v5-search select{width:auto;max-width:145px}
+.v5-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:12px 0 22px;padding:14px;background:#f8f7fc;border:1px solid #e9e6f3;border-radius:12px}
+.v5-filters label{display:flex;flex-direction:column;gap:6px;flex:1 1 140px;min-width:125px;font-size:12px;font-weight:600;color:#605a76}
+.v5-filters label select,.v5-filters label input{width:100%;min-width:0;font-size:13px}
+.v5-filters button{align-self:end}
+.v5-result-count{font-size:12px;color:#6e6882;white-space:nowrap;padding:10px 2px}
+.evidence-detail-list{grid-template-columns:1fr;max-width:1100px}
+.evidence-detail-list .map-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,210px);gap:10px 22px;align-items:start;padding:20px;border-radius:12px}
+.evidence-detail-list .map-card .v5-evidence-summary{grid-column:1;line-height:1.65;font-size:14px}
+.evidence-detail-list .map-card>small{grid-column:1;font-size:11px;color:#858097}
+.evidence-detail-list .map-card>.relationship-select{grid-column:2;grid-row:1}
+.evidence-detail-list .map-card>select:not(.relationship-select){grid-column:2;grid-row:2}
+.evidence-detail-list .map-card>.text-link{justify-self:start}
+.evidence-detail-list .map-card .evidence-search-quote{grid-column:1/-1}
+.evidence-theme-overview{grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}
+.evidence-theme-tile{background:#fff;min-height:92px}
+@media(max-width:800px){.v5-search{flex-wrap:wrap}.evidence-detail-list .map-card{display:flex;flex-direction:column}.evidence-detail-list .map-card>select{width:100%}}
