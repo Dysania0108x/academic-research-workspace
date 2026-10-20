@@ -20,6 +20,7 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS papers (id TEXT PRIMARY KEY, filename TEXT NOT NULL, sha256 TEXT NOT NULL, pages INTEGER NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS analysis_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, theme TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
+        c.execute('CREATE TABLE IF NOT EXISTS analysis_batch_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS passage_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS theme_cache (cache_key TEXT PRIMARY KEY, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, task_type TEXT NOT NULL, paper_id TEXT, model TEXT, input_tokens INTEGER, output_tokens INTEGER, total_tokens INTEGER, status TEXT NOT NULL, error TEXT)')
@@ -53,6 +54,7 @@ def delete_paper(paper_id:str):
     with db() as c:
         c.execute('DELETE FROM papers WHERE id=?',(paper_id,))
         c.execute('DELETE FROM analysis_cache WHERE paper_id=?',(paper_id,))
+        c.execute('DELETE FROM analysis_batch_cache WHERE paper_id=?',(paper_id,))
         c.execute('DELETE FROM passage_cache WHERE paper_id=?',(paper_id,))
     (STORE/(paper_id+'.pdf')).unlink(missing_ok=True)
     return {'ok':True}
@@ -104,6 +106,8 @@ def cache_put(table,key,result,paper_id=None,theme=None):
     with db() as c:
         if table=='analysis_cache':
             c.execute('INSERT OR REPLACE INTO analysis_cache VALUES(?,?,?,?,?)',(key,paper_id,theme,json.dumps(result,ensure_ascii=False),time.time()))
+        elif table=='analysis_batch_cache':
+            c.execute('INSERT OR REPLACE INTO analysis_batch_cache VALUES(?,?,?,?)',(key,paper_id,json.dumps(result,ensure_ascii=False),time.time()))
         elif table=='passage_cache':
             c.execute('INSERT OR REPLACE INTO passage_cache VALUES(?,?,?,?)',(key,paper_id,json.dumps(result,ensure_ascii=False),time.time()))
         else:
@@ -117,7 +121,7 @@ def ask(messages,task_type='other',paper_id=None):
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
     model=os.getenv('QWEN_MODEL','qwen-plus')
-    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=75)
+    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(os.getenv('QWEN_TIMEOUT_SECONDS','180')),max_retries=0)
     usage=(None,None,None);status='success';error=None
     try:
         res=client.chat.completions.create(model=model,messages=messages,temperature=0.1,response_format={'type':'json_object'})
@@ -205,8 +209,17 @@ def analyse(req:AnalysisRequest):
         if cached is not None:
             matches.extend(cached);cached_themes.append(theme);continue
         selected=[];seen_quotes=set();page_counts={}
-        for start in range(0,len(blocks),30):
-            batch=blocks[start:start+30]
+        for start in range(0,len(blocks),15):
+            batch=blocks[start:start+15]
+            batch_key=fingerprint('precise-highlight-batch',PROMPT_VERSION,sha,req.question.strip(),theme,model,start,[(b['id'],b['text']) for b in batch])
+            batch_result=cache_get('analysis_batch_cache',batch_key)
+            if batch_result is not None:
+                selected.extend(batch_result)
+                for cached_item in batch_result:
+                    seen_quotes.add((cached_item['page'],cached_item['quote'].casefold()))
+                    page_counts[cached_item['page']]=page_counts.get(cached_item['page'],0)+1
+                continue
+            batch_selected=[]
             compact=[{'id':b['id'],'page':b['page'],'text':b['text'][:1200]} for b in batch]
             data=ask([{'role':'system','content':('You are a selective academic evidence highlighter. Return ONLY JSON {"matches":[{"block_id":"0:1","quote":"exact verbatim contiguous source phrase","reason":"short relevance reason"}]}. Select at most 4 key evidence quotes PER BATCH for the specified theme. Each quote MUST be copied exactly from one supplied block, 18-180 characters, ideally a single sentence or meaningful clause. Prioritise concrete findings, numbers and limitations. Exclude headings, hypotheses mistaken for results, general background, repeated points and speculative content. It is fine to return zero matches. Never paraphrase the quote.')},{'role':'user','content':json.dumps({'research_question':req.question,'theme':theme,'pdf_blocks':compact},ensure_ascii=False)}],task_type='highlight',paper_id=req.paper_id)
             for item in data.get('matches',[])[:6]:
@@ -222,10 +235,12 @@ def analyse(req:AnalysisRequest):
                     rects=exact_quote_rectangles(doc[block['page']-1],quote,block['rect'])
                 if not rects:continue
                 seen_quotes.add(qkey);page_counts[block['page']]=page_counts.get(block['page'],0)+1
-                selected.append({'id':bid,'page':block['page'],'text':quote,'quote':quote,'theme':theme,'reason':str(item.get('reason',''))[:300],'rects':rects,'rect':block['rect']})
+                batch_selected.append({'id':bid,'page':block['page'],'text':quote,'quote':quote,'theme':theme,'reason':str(item.get('reason',''))[:300],'rects':rects,'rect':block['rect']})
+            selected.extend(batch_selected)
+            cache_put('analysis_batch_cache',batch_key,batch_selected,req.paper_id)
         cache_put('analysis_cache',key,selected,req.paper_id,theme)
         matches.extend(selected);analysed_themes.append(theme)
-    return {'matches':matches,'analysed_blocks':len(blocks),'cached_themes':cached_themes,'analysed_themes':analysed_themes,'cache_hit':not analysed_themes,'precision_mode':'exact_quote','batches_per_theme':(len(blocks)+29)//30}
+    return {'matches':matches,'analysed_blocks':len(blocks),'cached_themes':cached_themes,'analysed_themes':analysed_themes,'cache_hit':not analysed_themes,'precision_mode':'exact_quote','batches_per_theme':(len(blocks)+14)//15}
 @app.post('/api/passage')
 def passage(req:PassageRequest):
     with get_doc(req.paper_id) as doc:blocks=blocks_for(doc)
