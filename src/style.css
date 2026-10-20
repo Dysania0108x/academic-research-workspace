@@ -312,3 +312,18 @@
 .v7-bulk-check input{width:auto}
 @media(max-width:800px){.v7-evidence-workspace{padding:16px}.v7-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr))}.v7-workspace-heading{align-items:center}}
 @media(max-width:520px){.v7-filter-panel{grid-template-columns:1fr}.v7-evidence-workspace .v6-results-toolbar .tabs{overflow:auto}}
+
+/* V5 visual consistency: compact theme details and relationship semantics */
+.v8-detail-list{display:flex!important;flex-direction:column;gap:0;max-width:none!important}
+.v8-evidence-row{padding:17px 4px;border-bottom:1px solid #e9e5f1;background:transparent;min-width:0}
+.v8-evidence-row:last-child{border-bottom:0}
+.v8-evidence-row-top,.v8-evidence-row-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.v8-row-check{display:flex;align-items:center;gap:7px;font-size:12px;color:#817a91}
+.v8-row-check input{width:auto;margin:0}
+.v8-relation-badge{display:inline-flex;align-items:center;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:700;white-space:nowrap}
+.v8-evidence-text{margin:10px 0;line-height:1.65;font-size:14px;max-width:1000px;color:#302b43}
+.v8-evidence-row-bottom small{color:#817b90}
+.v8-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.v8-row-actions button{font-size:12px;padding:7px 12px}
+.v7-evidence-workspace .v6-result-meta span{border-radius:7px;padding:5px 11px}
+.v7-evidence-workspace .evidence-detail-heading{margin-top:14px}
