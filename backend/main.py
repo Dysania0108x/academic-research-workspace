@@ -95,7 +95,7 @@ async def require_api_session(request, call_next):
             url, key = _configuration()
             with httpx.Client(timeout=8.0) as client:
                 resp = client.get(f"{url}/rest/v1/projects",
-                    params={"select":"data", "user_id":f"eq.{user_id}"},
+                    params={"select":"id,data", "user_id":f"eq.{user_id}"},
                     headers={"apikey":key,"Authorization":token})
             if resp.status_code != 200:
                 raise HTTPException(503, "Unable to verify paper ownership")
@@ -383,8 +383,11 @@ def locate_quote(paper_id:str,req:LocateRequest):
         return {'found':True,'page':req.page,'rects':rects}
 
 @app.post('/api/papers')
-async def upload(file:UploadFile=File(...)):
-    if not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
+async def upload(file:UploadFile=File(...), project_id: str | None = None, authorization: str | None = Header(default=None)):
+    from cloud_auth import require_project_owner
+    if not project_id: raise HTTPException(422,'Project ID required for PDF upload')
+    require_project_owner(project_id, authorization)
+    if not file.filename or not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
     data=await file.read(20*1024*1024+1)
     if len(data)>20*1024*1024: raise HTTPException(413,'PDF must be under 20MB')
     sha=hashlib.sha256(data).hexdigest()
