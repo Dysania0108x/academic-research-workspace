@@ -8,6 +8,7 @@ from pydantic import BaseModel
 import fitz
 from openai import OpenAI
 from dotenv import load_dotenv
+import cloud_jobs
 load_dotenv(Path(__file__).with_name('.env'))
 ROOT=Path(__file__).parent
 STORE=ROOT/'uploads'; STORE.mkdir(exist_ok=True)
@@ -508,11 +509,17 @@ def _job_snapshot(job):
 
 def _persist_job(job):
     snapshot=_job_snapshot(job)
+    if cloud_jobs.save(job,snapshot):return
     with db() as c:
         c.execute('INSERT INTO analysis_jobs_persisted(id,owner_id,paper_id,cache_key,snapshot,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET snapshot=excluded.snapshot,updated_at=excluded.updated_at',
                   (job['id'],job['owner_id'],job['paper_id'],job['cache_key'],json.dumps(snapshot,ensure_ascii=False),time.time()))
 
 def _load_job(job_id, owner_id):
+    if cloud_jobs.enabled():
+        snapshot=cloud_jobs.get(job_id,owner_id)
+        if snapshot and snapshot.get('status') in ('queued','running'):
+            snapshot.update(status='interrupted',message='Worker stopped; restart analysis to retry',batch_started_at=None)
+        return snapshot
     with db() as c:
         row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE id=? AND owner_id=?',(job_id,owner_id)).fetchone()
     if not row:return None
@@ -522,6 +529,11 @@ def _load_job(job_id, owner_id):
     return snapshot
 
 def _latest_persisted_job(owner_id, identity):
+    if cloud_jobs.enabled():
+        snapshot=cloud_jobs.latest(owner_id,identity)
+        if snapshot and snapshot.get('status') in ('queued','running'):
+            snapshot.update(status='interrupted',message='Worker stopped; restart analysis to retry',batch_started_at=None)
+        return snapshot
     with db() as c:
         row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE owner_id=? AND cache_key=? ORDER BY updated_at DESC LIMIT 1',(owner_id,identity)).fetchone()
     if not row:return None
