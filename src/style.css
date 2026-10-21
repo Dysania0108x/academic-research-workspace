@@ -484,3 +484,20 @@
 .v53-rq-return span{font-size:11px;color:#857a9c}
 .v53-rq-return>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:650px){.v53-rq-return{align-items:stretch;flex-direction:column}}
+
+/* V6.1 Supabase Authentication preview */
+.v61-auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background:linear-gradient(145deg,#f7f5fc,#eee9fa)}
+.v61-auth-card{width:min(420px,100%);box-sizing:border-box;padding:34px;border:1px solid #e5e0ef;background:#fff;border-radius:18px;box-shadow:0 20px 55px rgba(54,39,93,.08);display:flex;flex-direction:column;gap:16px}
+.v61-auth-brand{display:flex;align-items:center;gap:10px;color:#6654a2;font-size:14px}
+.v61-auth-card h1{font-size:26px;margin:9px 0 0}
+.v61-auth-card p{color:#80788d;font-size:13px;line-height:1.55;margin:0 0 7px}
+.v61-auth-card label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:700;color:#534b69}
+.v61-auth-card input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ddd7e9;border-radius:9px;font-size:14px}
+.v61-auth-card>button.primary{padding:12px}
+.v61-auth-switch{background:none;border:0;color:#6753aa;cursor:pointer;font-size:12px}
+.v61-auth-error{padding:10px 12px;border-radius:8px;background:#fff1f1;color:#a83747;font-size:12px}
+.v61-auth-notice{padding:10px 12px;border-radius:8px;background:#f0f8f3;color:#276f4d;font-size:12px}
+.v61-auth-loading{display:grid;place-items:center;min-height:100vh;color:#6b6180}
+.v61-session-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#faf8ff;border-bottom:1px solid #e9e3f1;padding:8px 20px;font-size:12px;color:#625b75}
+.v61-local-warning{padding:9px 20px;background:#fff5df;color:#765b1c;font-size:12px;line-height:1.45}
+@media(max-width:600px){.v61-auth-card{padding:22px}.v61-session-bar{flex-wrap:wrap}}
