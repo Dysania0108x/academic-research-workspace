@@ -31,3 +31,6 @@ The backend uses Supabase `analysis_jobs` for durable job snapshots when the ser
 - Revisit the global local-file cache, job queue and background execution model for multi-instance hosting.
 - Add hosted E2E tests and review all authenticated API routes, RLS policies, retention and rate limits.
 - Extension V7 uses the same Supabase project; it is not automatically deployed by Vercel.
+
+## Preview deployment trigger
+Vercel normally builds Preview deployments when new commits are pushed to this feature branch after Git integration is connected. Confirm the deployment's Source branch and the environment variables available to Preview before testing. A Preview does not replace the production `main` deployment.
