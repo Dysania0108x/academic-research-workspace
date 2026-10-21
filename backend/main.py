@@ -9,6 +9,7 @@ import fitz
 from openai import OpenAI
 from dotenv import load_dotenv
 import cloud_jobs
+import cloud_usage
 load_dotenv(Path(__file__).with_name('.env'))
 ROOT=Path(__file__).parent
 STORE=ROOT/'uploads'; STORE.mkdir(exist_ok=True)
@@ -328,7 +329,7 @@ def _mock_response(messages,task_type):
                          'evidence_ids':ids[:1]}]}
     return {}
 
-def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
+def ask(messages,task_type='other',paper_id=None,timeout_seconds=None,owner_id=None):
     if mock_mode():return _mock_response(messages,task_type)
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
@@ -356,6 +357,15 @@ def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
     finally:
         with db() as c:
             c.execute('INSERT INTO ai_usage(created_at,task_type,paper_id,model,input_tokens,output_tokens,total_tokens,status,error) VALUES(?,?,?,?,?,?,?,?,?)',(time.time(),task_type,paper_id,model,*usage,status,error))
+        if owner_id and cloud_usage.enabled():
+            try:
+                cloud_usage.record(owner_id=owner_id,paper_id=paper_id,task_type=task_type,
+                                   model=model,usage=usage,status=status)
+            except Exception:
+                # Do not fail a successful AI response because metering is unavailable.
+                import logging
+                logging.getLogger(__name__).exception('Durable AI usage write failed')
+
 @app.get('/api/usage')
 def usage_stats(project_id: str | None = None, authorization: str | None = Header(default=None)):
     if not project_id:
@@ -371,12 +381,27 @@ def usage_stats(project_id: str | None = None, authorization: str | None = Heade
         raise HTTPException(503,'Unable to read project usage scope')
     papers=(response.json()[0].get('data') or {}).get('papers',[])
     paper_ids=[str(p['id']) for p in papers if isinstance(p,dict) and p.get('id')]
-    if not paper_ids:
-        return {'by_task':[],'total_tokens':0,'requests':0,'note':'No papers in this project. Local-only usage is not durable across Render restarts.','scope':'project','durable':False}
-    placeholders=','.join('?' for _ in paper_ids)
-    with db() as c:
-        rows=[dict(r) for r in c.execute('SELECT task_type, COUNT(*) AS requests, SUM(COALESCE(input_tokens,0)) AS input_tokens, SUM(COALESCE(output_tokens,0)) AS output_tokens, SUM(COALESCE(total_tokens,0)) AS total_tokens, SUM(CASE WHEN status="error" THEN 1 ELSE 0 END) AS errors FROM ai_usage WHERE paper_id IN ('+placeholders+') GROUP BY task_type ORDER BY task_type',paper_ids)]
-    return {'by_task':rows,'total_tokens':sum(r['total_tokens'] for r in rows),'requests':sum(r['requests'] for r in rows),'note':'Project-scoped local records only; Render restarts may erase history. This is not the provider bill.','scope':'project','durable':False}
+    if not cloud_usage.enabled():
+        raise HTTPException(503,'Durable usage storage is not configured')
+    try:
+        events=cloud_usage.project_report(user_id,paper_ids)
+    except Exception:
+        raise HTTPException(503,'Durable usage storage unavailable; verify database migration')
+    grouped={}
+    for event in events:
+        task=event['task_type']
+        row=grouped.setdefault(task,{'task_type':task,'requests':0,'input_tokens':0,
+                                     'output_tokens':0,'total_tokens':0,'errors':0})
+        row['requests']+=1
+        for field in ('input_tokens','output_tokens','total_tokens'):
+            row[field]+=int(event.get(field) or 0)
+        row['errors']+=int(event.get('status')=='error')
+    rows=sorted(grouped.values(),key=lambda item:item['task_type'])
+    return {'by_task':rows,'total_tokens':sum(row['total_tokens'] for row in rows),
+            'requests':sum(row['requests'] for row in rows),
+            'note':'Durable events recorded after migration only; cached results use no new tokens.',
+            'scope':'project','durable':True}
+
 @app.get('/api/health')
 def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY')) or mock_mode(),'mock_mode':mock_mode()}
 
@@ -620,7 +645,7 @@ def _analyse_job(job, req):
                         'Never invent or paraphrase quotes. Returning zero matches is valid.'
                     )},
                     {'role':'user','content':json.dumps({'research_question':req.question,'themes':themes,'pdf_blocks':compact},ensure_ascii=False)}
-                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')))
+                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')),owner_id=job['owner_id'])
                 except HTTPException as exc:
                     if job['cancel_event'].is_set():return
                     failed_batches.append(index+1)
