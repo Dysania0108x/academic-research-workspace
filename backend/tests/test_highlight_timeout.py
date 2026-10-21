@@ -14,7 +14,7 @@ import main
 class HighlightTimeoutTests(unittest.TestCase):
     def test_batch_failure_yields_partial_result(self):
         blocks=[{'id':f'0:{i}','page':1,'text':'A grounded observation about exposure and outdoor conditions.','rect':[0,0,100,100]} for i in range(24)]
-        job={'id':'test','status':'queued','cancel_event':threading.Event(),'matches':[]}
+        job={'id':'test','owner_id':'fixture-owner','paper_id':'test','cache_key':'fixture-context','status':'queued','cancel_event':threading.Event(),'matches':[]}
         calls=[]
         def fake_ask(*args,**kwargs):
             calls.append(1)
@@ -30,8 +30,10 @@ class HighlightTimeoutTests(unittest.TestCase):
              patch.object(main,'active_model',return_value='mock'), \
              patch.object(main,'cache_get',return_value=None), \
              patch.object(main,'cache_put'), \
-             patch.object(main,'ask',side_effect=fake_ask):
+             patch.object(main,'ask',side_effect=fake_ask), \
+             patch.object(main,'_persist_job') as persist:
             main._analyse_job(job,main.AnalysisRequest(paper_id='test',question='How?',themes=['UV']))
+        self.assertGreaterEqual(persist.call_count,2)
         self.assertEqual(len(calls),2)
         self.assertEqual(job['status'],'partial')
         self.assertEqual(job['completed_batches'],2)
