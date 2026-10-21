@@ -13,7 +13,7 @@ function loadPdfjs(){
 export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,pageSize,highlights=[],sourceFocus,onHighlightClick,selectedQuote=''}){
   const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null),sourceRectRef=useRef(null);
   const [status,setStatus]=useState('Loading original PDF…'),[count,setCount]=useState(0);
-  const [zoom,setZoom]=useState(1.5);
+  const [zoom,setZoom]=useState(1);
   const [rotation,setRotation]=useState(0);
   const [renderedPage,setRenderedPage]=useState(null);
   const [renderedSize,setRenderedSize]=useState(null);
@@ -83,13 +83,13 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
   useEffect(()=>{if(canOverlay&&sourceFocus?.rects?.length)sourceRectRef.current?.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'})},[canOverlay,sourceFocus,page]);
   return <section className="pdfjs-preview">
     <div className="pdfjs-toolbar">
-      <strong>PDF.js Reader (Preview)</strong>
+      <strong>PDF Reader</strong>
       <button onClick={()=>onPageChange(Math.max(1,page-1))} disabled={page<=1}>Previous</button>
       <span>{page} / {count||'…'}</span>
       <button onClick={()=>onPageChange(Math.min(count,page+1))} disabled={page>=count}>Next</button>
       <button onClick={()=>setZoom(z=>Math.max(.7,z-.2))}>−</button>
       <button onClick={()=>setZoom(z=>Math.min(2.5,z+.2))}>+</button>
-      <button onClick={onClose}>Old Reader</button>
+
     </div>
     {status&&<p role="status">{status}</p>}
     {rotation!==0&&<p role="status">Highlight overlays are disabled for rotated pages until coordinate transforms are verified.</p>}
