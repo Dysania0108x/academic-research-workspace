@@ -337,23 +337,26 @@ function App({user}){
   }
  }catch(e){setCreateError(e.message)}finally{setCreatingBusy(false)}};
  const uploadFilesForProject=async(files,targetProjectId)=>{
+  // Persist each paper independently so a later failure does not lose earlier uploads.
   const added=[];
   for(const file of files){
     const fd=new FormData();fd.append('file',file);
     const r=await apiFetch('/api/papers?project_id='+encodeURIComponent(targetProjectId),{method:'POST',body:fd});
     const d=await r.json();if(!r.ok)throw Error(d.detail||'PDF upload failed');
     const storagePath=await storePrivatePdf(file,targetProjectId,d.id);
-    added.push({...d,seed:false,size:file.size,storagePath});
+    const paper={...d,seed:false,size:file.size,storagePath};
+    const {data:row,error:loadError}=await supabase.from('projects').select('data').eq('id',targetProjectId).eq('user_id',user.id).single();
+    if(loadError)throw Error('Cloud metadata read failed: '+loadError.message);
+    const papers=[...(row.data?.papers||[])];
+    if(!papers.some(p=>p.id===paper.id))papers.push(paper);
+    const next={...row.data,papers};
+    const {error:saveError}=await supabase.from('projects').update({data:next}).eq('id',targetProjectId).eq('user_id',user.id);
+    if(saveError)throw Error('Cloud metadata save failed: '+saveError.message);
+    added.push(paper);
+    setCloudProjects(prev=>prev.map(p=>p.id===targetProjectId?{...p,papers:[...(p.papers||[]).filter(x=>x.id!==paper.id),paper]}:p));
+    setPaperId(paper.id);
   }
-  if(added.length){
-    const {data:row,error:loadError}=await supabase.from('projects').select('data').eq('id',targetProjectId).single();
-    if(loadError)throw loadError;
-    const next={...row.data,papers:[...(row.data.papers||[]),...added]};
-    const {error:saveError}=await supabase.from('projects').update({data:next}).eq('id',targetProjectId);
-    if(saveError)throw saveError;
-    setCloudProjects(prev=>prev.map(p=>p.id===targetProjectId?next:p));
-    setPaperId(added[0].id);
-  }
+  return added;
  };
  const finishProject=()=>{setCreating(false);setDraftStep('details');setDraft({name:'',question:'',topics:''});setPage('papers')};
  const upload=async(files)=>{if(!files?.length)return;setBusy(true);setAiError('');try{await uploadFilesForProject(files,project.id);toast('PDF saved privately to cloud.')}catch(e){setAiError(e.message)}finally{setBusy(false)}};
