@@ -268,13 +268,18 @@ function App({user}){
  useEffect(()=>{
   setPageImageUrl(null);
   if(!paperId||!pageSizes.length)return;
+  // The default PDF.js reader downloads the original PDF from Supabase.
+  // Do not fetch a duplicate Render JPEG on every page turn.
+  const currentProject=projects.find(p=>p.id===projectId);
+  const hasCloudPdf=Boolean(currentProject?.papers?.some(p=>p.id===paperId&&p.storagePath));
+  if(hasCloudPdf&&!legacyReader)return;
   let active=true;let objectUrl=null;
   apiFetch('/api/papers/'+encodeURIComponent(paperId)+'/pages/'+pageNumber+'/image?scale=1.7')
    .then(async response=>{if(!response.ok)throw Error('PDF page could not be loaded');return response.blob()})
    .then(blob=>{objectUrl=URL.createObjectURL(blob);if(active)setPageImageUrl(objectUrl);else URL.revokeObjectURL(objectUrl)})
    .catch(error=>{if(active){setPageImageUrl(null);setAiError(error.message)}});
   return ()=>{active=false;if(objectUrl)URL.revokeObjectURL(objectUrl)};
- },[paperId,pageNumber,pageSizes]);
+ },[paperId,pageNumber,pageSizes,legacyReader,projectId,projects]);
 
  const project=projects.find(p=>p.id===projectId);
  const resetReader=()=>{passageRequestRef.current++;sourceRequestRef.current++;sourceNavigationRef.current=null;setPaperId(null);setBlocks([]);setPageSizes([]);setMatches([]);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setAnalysisJob(null);setCacheMessage('');setAiError('');setPageNumber(1);setEditing('');setBusy(false);setAssistantTab('highlights')};
