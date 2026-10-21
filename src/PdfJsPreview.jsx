@@ -12,7 +12,7 @@ function loadPdfjs(){
 export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose}){
   const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null);
   const [status,setStatus]=useState('Loading original PDF…'),[count,setCount]=useState(0);
-  const [zoom,setZoom]=useState(1.25);
+  const [zoom,setZoom]=useState(1.5);
   useEffect(()=>{
     let active=true,task;
     (async()=>{
@@ -41,7 +41,7 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
         const viewport=pdfPage.getViewport({scale:zoom});
         const surface=canvas.current;
         const context=surface.getContext('2d');
-        const ratio=Math.min(window.devicePixelRatio||1,2);
+        const ratio=Math.min(window.devicePixelRatio||1,2.5);
         surface.width=Math.ceil(viewport.width*ratio);surface.height=Math.ceil(viewport.height*ratio);
         surface.style.width=viewport.width+'px';surface.style.height=viewport.height+'px';
         const layer=textLayer.current;layer.replaceChildren();
@@ -50,26 +50,16 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
         await renderTask.promise;
         const content=await pdfPage.getTextContent();
         if(cancelled)return;
-        for(const item of content.items){
-          if(!item.str)continue;
-          const transform=viewport.transform;
-          const t=[transform[0]*item.transform[0]+transform[2]*item.transform[1],
-                   transform[1]*item.transform[0]+transform[3]*item.transform[1],
-                   transform[0]*item.transform[2]+transform[2]*item.transform[3],
-                   transform[1]*item.transform[2]+transform[3]*item.transform[3],
-                   transform[0]*item.transform[4]+transform[2]*item.transform[5]+transform[4],
-                   transform[1]*item.transform[4]+transform[3]*item.transform[5]+transform[5]];
-          const fontSize=Math.hypot(t[2],t[3]);
-          const span=document.createElement('span');
-          span.textContent=item.str;
-          span.style.cssText='position:absolute;white-space:pre;transform-origin:0 0;color:transparent;user-select:text;pointer-events:auto;';
-          span.style.left=t[4]+'px';span.style.top=(t[5]-fontSize)+'px';
-          span.style.fontSize=fontSize+'px';
-          span.style.fontFamily='sans-serif';
-          layer.append(span);
-          const actual=span.getBoundingClientRect().width;
-          if(actual>0&&item.width>0)span.style.transform='scaleX('+(item.width*zoom/actual)+')';
-        }
+        // Use PDF.js' own TextLayer for accurate text selection and glyph metrics.
+        // Hand-positioning spans does not correctly handle rotation or embedded fonts.
+        const lib=await loadPdfjs();
+        const textTask=new lib.TextLayer({
+          textContentSource:content,
+          container:layer,
+          viewport,
+        });
+        await textTask.render();
+        if(cancelled)layer.replaceChildren();
       }catch(error){if(!cancelled&&error?.name!=='RenderingCancelledException')setStatus('Page rendering failed: '+error.message)}
     })();
     return()=>{cancelled=true;renderTask?.cancel();textLayer.current?.replaceChildren()};
