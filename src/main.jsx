@@ -307,15 +307,39 @@ function App({user}){
   return path;
  };
  const addProject=async()=>{if(!draft.name.trim()||!draft.question.trim())return;setCreatingBusy(true);setCreateError('');try{
-   const uploaded=[];const id=crypto.randomUUID();
-   for(const file of draftFiles){const fd=new FormData();fd.append('file',file);const r=await apiFetch('/api/papers?project_id='+encodeURIComponent(id),{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw Error(d.detail||'Upload failed');if(!uploaded.some(p=>p.id===d.id)){const storagePath=await storePrivatePdf(file,id,d.id);uploaded.push({...d,seed:false,size:file.size,storagePath})}}
-   const topics=[...new Set([...draft.topics.split(',').map(s=>s.trim()).filter(Boolean),...draftSelected])];
-   setCloudProjects(prev=>[...prev,{id,name:draft.name.trim(),question:draft.question.trim(),topics,papers:uploaded,evidence:[]}]);resetReader();setProjectId(id);if(uploaded.length)setPaperId(uploaded[0].id);
-   setSuggestions([]);setDraftFiles([]);setCreating(false);setDraftStep('details');setDraft({name:'',question:'',topics:''});setDraftSuggestions([]);setDraftSelected([]);setPage('papers');
-
+  const id=crypto.randomUUID();
+  const topics=[...new Set([...draft.topics.split(',').map(s=>s.trim()).filter(Boolean),...draftSelected])];
+  const initial={id,name:draft.name.trim(),question:draft.question.trim(),topics,papers:[],evidence:[]};
+  const {error:projectError}=await supabase.from('projects').insert({
+    id,user_id:user.id,name:initial.name,research_question:initial.question,data:initial
+  });
+  if(projectError)throw Error('Could not create cloud project: '+projectError.message);
+  setCloudProjects(prev=>[...prev,initial]);resetReader();setProjectId(id);setPaperId(null);
+  setSuggestions([]);setCreating(false);setDraftStep('details');setPage('papers');
+  const pendingFiles=[...draftFiles];setDraftFiles([]);setDraft({name:'',question:'',topics:''});setDraftSuggestions([]);setDraftSelected([]);
+  if(pendingFiles.length)await uploadFilesForProject(pendingFiles,id);
  }catch(e){setCreateError(e.message)}finally{setCreatingBusy(false)}};
+ const uploadFilesForProject=async(files,targetProjectId)=>{
+  const added=[];
+  for(const file of files){
+    const fd=new FormData();fd.append('file',file);
+    const r=await apiFetch('/api/papers?project_id='+encodeURIComponent(targetProjectId),{method:'POST',body:fd});
+    const d=await r.json();if(!r.ok)throw Error(d.detail||'PDF upload failed');
+    const storagePath=await storePrivatePdf(file,targetProjectId,d.id);
+    added.push({...d,seed:false,size:file.size,storagePath});
+  }
+  if(added.length){
+    const {data:row,error:loadError}=await supabase.from('projects').select('data').eq('id',targetProjectId).single();
+    if(loadError)throw loadError;
+    const next={...row.data,papers:[...(row.data.papers||[]),...added]};
+    const {error:saveError}=await supabase.from('projects').update({data:next}).eq('id',targetProjectId);
+    if(saveError)throw saveError;
+    setCloudProjects(prev=>prev.map(p=>p.id===targetProjectId?next:p));
+    setPaperId(added[0].id);
+  }
+ };
  const finishProject=()=>{setCreating(false);setDraftStep('details');setDraft({name:'',question:'',topics:''});setPage('papers')};
- const upload=async(files)=>{if(!files?.length)return;setBusy(true);setAiError('');try{const added=[];for(const f of files){const fd=new FormData();fd.append('file',f);const r=await apiFetch('/api/papers?project_id='+encodeURIComponent(project.id),{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw Error(d.detail);if(!project.papers.some(p=>p.id===d.id)&&!added.some(p=>p.id===d.id)){const storagePath=await storePrivatePdf(f,project.id,d.id);added.push({...d,seed:false,size:f.size,storagePath})}else toast("Duplicate PDF already in library")}update(p=>({...p,papers:[...p.papers,...added]}));if(added.length)setPaperId(added[0].id);toast('PDF saved privately to cloud; analysis remains local on this device.')}catch(e){setAiError(e.message)}finally{setBusy(false)}};
+ const upload=async(files)=>{if(!files?.length)return;setBusy(true);setAiError('');try{await uploadFilesForProject(files,project.id);toast('PDF saved privately to cloud.')}catch(e){setAiError(e.message)}finally{setBusy(false)}};
  const deleteProject=async p=>{if(!window.confirm('Delete project "'+p.name+'" and its research records? This cannot be undone.'))return;cloudDeleted.current.add(p.id);cloudPending.current.delete(p.id);await cloudWrites.current.catch(()=>{});
  const paths=(p.papers||[]).map(paper=>paper.storagePath).filter(Boolean);
  if(paths.length){const {error:storageError}=await supabase.storage.from('research-pdfs').remove(paths);if(storageError){cloudDeleted.current.delete(p.id);setCloudError('Could not remove project PDFs: '+storageError.message);return}}
