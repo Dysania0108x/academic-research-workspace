@@ -14,8 +14,17 @@ async function apiFetch(input, init={}) {
   if(error||!session?.access_token) throw Error('Sign in again to access the research API');
   const headers=new Headers(init.headers||{});
   headers.set('Authorization','Bearer '+session.access_token);
-  const base=(import.meta.env.VITE_API_BASE_URL||'').replace(/\/$/,'');
-  return fetch(base+input,{...init,headers});
+  const configured=(import.meta.env.VITE_API_BASE_URL||'').trim();
+  const isHosted=typeof window!=='undefined' && window.location.hostname.endsWith('.vercel.app');
+  if(isHosted && !configured) throw Error('Deployment configuration missing: VITE_API_BASE_URL was not included in this Vercel build. Add it to the Preview environment and redeploy.');
+  const base=configured.replace(/\/$/,'');
+  let response;
+  try { response=await fetch(base+input,{...init,headers}); }
+  catch(error) {
+    if(error?.name==='AbortError')throw error;
+    throw Error('Cannot reach Render API ('+(base||'same origin')+'). Check Vercel Preview variables, Render deployment, and FRONTEND_ORIGINS. '+(error?.message||'Network error'));
+  }
+  return response;
 }
 
 
