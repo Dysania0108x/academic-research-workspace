@@ -505,3 +505,29 @@
 /* V6.1 cloud project sync status */
 .v61-cloud-status{margin:14px 14px 0;padding:9px 11px;border:1px solid #e7e1f1;border-radius:9px;background:#f8f6fd;color:#6a6080;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
 .v61-cloud-status .secondary{margin-top:7px;font-size:11px}
+
+/* V6.5 opt-in PDF.js preview: isolated from the legacy highlight reader. */
+.pdfjs-modal{position:fixed;inset:3vh 3vw;z-index:1000;background:#f8f8f7;border:1px solid #d9dce4;border-radius:14px;box-shadow:0 20px 80px #10182855;overflow:hidden}
+.pdfjs-preview{height:100%;display:flex;flex-direction:column;min-width:0}
+.pdfjs-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 18px;background:#fff;border-bottom:1px solid #dce0e8}
+.pdfjs-toolbar strong{margin-right:auto}
+.pdfjs-toolbar button{padding:7px 12px}
+.pdfjs-scroll{flex:1;min-height:0;overflow:auto;background:#e9ebef;text-align:center;padding:24px}
+.pdfjs-page{display:inline-block;position:relative;box-shadow:0 3px 18px #0002;background:white;text-align:left;line-height:1}
+.pdfjs-page canvas{display:block}
+.pdfjs-text-layer{position:absolute;inset:0;overflow:hidden;line-height:1}
+.pdfjs-text-layer span::selection{background:#a6bffb99;color:transparent}
+@media(max-width:680px){.pdfjs-modal{inset:0;border-radius:0}.pdfjs-toolbar{gap:5px;padding:8px}.pdfjs-scroll{padding:10px}}
+
+/* Required PDF.js text layer geometry. Preserve selection over the canvas. */
+.pdfjs-text-layer{--min-font-size:1;--text-scale-factor:calc(var(--scale-factor)*var(--min-font-size));text-align:initial;transform-origin:0 0}
+.pdfjs-text-layer span,.pdfjs-text-layer br{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%;user-select:text}
+.pdfjs-text-layer .markedContent{top:0;height:0}
+.pdfjs-text-layer ::selection{background:rgba(89,114,222,.3)}
+.pdfjs-page{isolation:isolate}
+
+/* V6.5 experimental source overlays: pointer events pass through empty regions. */
+.pdfjs-highlight-layer{position:absolute;inset:0;pointer-events:none;z-index:3}
+.pdfjs-highlight-rect{position:absolute;pointer-events:auto;border:0;padding:0;border-radius:2px;cursor:pointer;mix-blend-mode:multiply}
+.pdfjs-highlight-rect:hover,.pdfjs-highlight-rect:focus-visible{outline:2px solid #7059d5}
+.pdfjs-source-rect{position:absolute;pointer-events:none;outline:2px solid #7c58d6;background:#a48cff22}

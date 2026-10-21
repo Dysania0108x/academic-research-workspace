@@ -341,8 +341,19 @@ def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
         if u: usage=(u.prompt_tokens,u.completion_tokens,u.total_tokens)
         return json.loads(res.choices[0].message.content or '{}')
     except Exception as exc:
-        status='error';error=str(exc)[:500]
-        raise HTTPException(502,'AI request failed: '+error[:250])
+        # Never expose upstream response bodies or request details to clients.
+        # The upstream SDK can include echoed prompts and provider diagnostics.
+        upstream_status=getattr(exc,'status_code',None)
+        kind=type(exc).__name__.lower()
+        if upstream_status in (401,403): category='upstream_auth'
+        elif upstream_status==404: category='model_or_endpoint'
+        elif upstream_status==429: category='rate_limited_or_quota'
+        elif upstream_status==400: category='unsupported_request'
+        elif upstream_status in (408,504) or 'timeout' in kind: category='upstream_timeout'
+        elif isinstance(exc,json.JSONDecodeError): category='invalid_json'
+        else: category='upstream_error'
+        status='error';error=f'{category} (provider HTTP {upstream_status or "unknown"})'
+        raise HTTPException(502,'AI request failed: '+error) from None
     finally:
         with db() as c:
             c.execute('INSERT INTO ai_usage(created_at,task_type,paper_id,model,input_tokens,output_tokens,total_tokens,status,error) VALUES(?,?,?,?,?,?,?,?,?)',(time.time(),task_type,paper_id,model,*usage,status,error))
@@ -598,7 +609,27 @@ def _analyse_job(job, req):
                 except HTTPException as exc:
                     if job['cancel_event'].is_set():return
                     failed_batches.append(index+1)
-                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed after {int(time.monotonic()-started_at)}s; continuing',failed_batches=list(failed_batches),batch_started_at=None)
+                    # Persist a safe diagnostic category, never credentials or raw
+                    # upstream response bodies, which may contain sensitive data.
+                    detail=str(exc.detail).lower()
+                    if '429' in detail or 'rate limit' in detail or 'quota' in detail:
+                        reason='rate_limited_or_quota'
+                    elif '401' in detail or '403' in detail or 'invalid api key' in detail:
+                        reason='upstream_auth'
+                    elif '404' in detail or 'model not found' in detail:
+                        reason='model_or_endpoint'
+                    elif 'timeout' in detail or 'timed out' in detail:
+                        reason='upstream_timeout'
+                    elif '400' in detail or 'response_format' in detail or 'unsupported' in detail:
+                        reason='unsupported_request'
+                    elif 'json' in detail:
+                        reason='invalid_json'
+                    else:
+                        reason='upstream_error'
+                    failures=job.get('batch_errors',[])
+                    failures=[*failures,{'batch':index+1,'category':reason,'http_status':exc.status_code}]
+                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed ({reason}); continuing',
+                             failed_batches=list(failed_batches),batch_errors=failures,batch_started_at=None)
                     continue
                 result=[]
                 allowed_ids={b['id'] for b in batch}
