@@ -84,11 +84,41 @@ async def require_api_session(request, call_next):
                     headers={"apikey":key,"Authorization":token})
             if resp.status_code != 200:
                 raise HTTPException(503, "Unable to verify paper ownership")
-            owned = {str(p.get("id")) for row in resp.json()
+            owned = {str(p.get("id")): (str(row.get("id")), p)
+                     for row in resp.json()
                      for p in (row.get("data") or {}).get("papers", [])
                      if isinstance(p, dict)}
             if any(not isinstance(pid,str) or pid not in owned for pid in paper_ids):
                 raise HTTPException(404, "Paper not found")
+            # Restore absent local PDFs from the owner's private Supabase Storage.
+            # The bearer token is forwarded, preserving Storage RLS.
+            for pid in paper_ids:
+                target = STORE / (pid + ".pdf")
+                if target.exists(): continue
+                project_id, metadata = owned[pid]
+                from cloud_auth import private_pdf_path
+                expected = private_pdf_path(user_id, project_id, pid)
+                if metadata.get("storagePath") != expected:
+                    raise HTTPException(404, "Cloud PDF unavailable")
+                from urllib.parse import quote
+                with httpx.Client(timeout=30.0) as client:
+                    download = client.get(
+                        f"{url}/storage/v1/object/authenticated/research-pdfs/{quote(expected, safe='/')}",
+                        headers={"apikey":key,"Authorization":token})
+                if download.status_code != 200:
+                    raise HTTPException(404, "Unable to restore authorized cloud PDF")
+                content = download.content
+                if len(content) > 20*1024*1024 or not content.startswith(b"%PDF-"):
+                    raise HTTPException(422, "Invalid cloud PDF")
+                with fitz.open(stream=content, filetype="pdf") as doc:
+                    if doc.is_encrypted or not blocks_for(doc):
+                        raise HTTPException(422, "Cloud PDF has no readable text")
+                    pages = len(doc)
+                sha = hashlib.sha256(content).hexdigest()
+                target.write_bytes(content)
+                with db() as conn:
+                    conn.execute("INSERT OR REPLACE INTO papers VALUES(?,?,?,?,?)",
+                        (pid, metadata.get("name") or pid+".pdf", sha, pages, time.time()))
         # New uploads must be bound to an existing project; unaffiliated uploads
         # would otherwise create unowned local files.
         if path == "/api/papers" and request.method == "POST":
