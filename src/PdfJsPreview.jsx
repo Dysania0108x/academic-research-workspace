@@ -46,6 +46,7 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
         surface.style.width=viewport.width+'px';surface.style.height=viewport.height+'px';
         const layer=textLayer.current;layer.replaceChildren();
         layer.style.width=viewport.width+'px';layer.style.height=viewport.height+'px';
+        layer.style.setProperty('--scale-factor',String(viewport.scale));
         renderTask=pdfPage.render({canvasContext:context,viewport,transform:[ratio,0,0,ratio,0,0]});
         await renderTask.promise;
         const content=await pdfPage.getTextContent();
@@ -75,6 +76,6 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
       <button onClick={onClose}>Old Reader</button>
     </div>
     {status&&<p role="status">{status}</p>}
-    <div className="pdfjs-scroll"><div className="pdfjs-page"><canvas ref={canvas}/><div ref={textLayer} className="pdfjs-text-layer"/></div></div>
+    <div className="pdfjs-scroll"><div className="pdfjs-page"><canvas ref={canvas}/><div ref={textLayer} className="pdfjs-text-layer textLayer"/></div></div>
   </section>;
 }
