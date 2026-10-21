@@ -518,3 +518,10 @@
 .pdfjs-text-layer{position:absolute;inset:0;overflow:hidden;line-height:1}
 .pdfjs-text-layer span::selection{background:#a6bffb99;color:transparent}
 @media(max-width:680px){.pdfjs-modal{inset:0;border-radius:0}.pdfjs-toolbar{gap:5px;padding:8px}.pdfjs-scroll{padding:10px}}
+
+/* Required PDF.js text layer geometry. Preserve selection over the canvas. */
+.pdfjs-text-layer{--min-font-size:1;--text-scale-factor:calc(var(--scale-factor)*var(--min-font-size));text-align:initial;transform-origin:0 0}
+.pdfjs-text-layer span,.pdfjs-text-layer br{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%;user-select:text}
+.pdfjs-text-layer .markedContent{top:0;height:0}
+.pdfjs-text-layer ::selection{background:rgba(89,114,222,.3)}
+.pdfjs-page{isolation:isolate}
