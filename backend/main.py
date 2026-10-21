@@ -50,7 +50,9 @@ from cloud_auth import authenticated_user
 @app.middleware("http")
 async def require_api_session(request, call_next):
     """Authorize all project and paper endpoints before any local file access."""
-    if not request.url.path.startswith("/api/") or request.url.path == "/api/health":
+    # Browser CORS preflight has no bearer token. Let CORSMiddleware answer it;
+    # actual API requests still require authenticated ownership checks.
+    if request.method == "OPTIONS" or not request.url.path.startswith("/api/") or request.url.path == "/api/health":
         return await call_next(request)
     from fastapi.responses import JSONResponse
     from cloud_auth import require_project_owner
