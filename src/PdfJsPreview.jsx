@@ -10,8 +10,8 @@ function loadPdfjs(){
   if(!loader)loader=import(/* @vite-ignore */ LIB).then(lib=>{lib.GlobalWorkerOptions.workerSrc=WORKER;return lib});
   return loader;
 }
-export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,pageSize,highlights=[],sourceFocus,onHighlightClick}){
-  const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null);
+export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,pageSize,highlights=[],sourceFocus,onHighlightClick,selectedQuote=''}){
+  const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null),sourceRectRef=useRef(null);
   const [status,setStatus]=useState('Loading original PDF…'),[count,setCount]=useState(0);
   const [zoom,setZoom]=useState(1.5);
   const [rotation,setRotation]=useState(0);
@@ -80,6 +80,7 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
   // Rotated/cropped PDFs need explicit viewport transforms before overlay release.
   const canOverlay=rotation===0 && pageSize?.width>0 && pageSize?.height>0 && renderedPage===page && renderedSize;
   const rectStyle=rect=>mapPdfRect(rect,pageSize,renderedSize);
+  useEffect(()=>{if(canOverlay&&sourceFocus?.rects?.length)sourceRectRef.current?.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'})},[canOverlay,sourceFocus,page]);
   return <section className="pdfjs-preview">
     <div className="pdfjs-toolbar">
       <strong>PDF.js Reader (Preview)</strong>
@@ -97,13 +98,13 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
         {highlights.flatMap((highlight,index)=>(highlight.rects||[]).map((rect,rectIndex)=>{
           const style=rectStyle(rect);
           return style?<button type="button" key={'highlight-'+index+'-'+rectIndex}
-            className="pdfjs-highlight-rect" style={{...style,background:highlight.color||'#a783e855'}}
+            className={'pdfjs-highlight-rect'+((highlight.quote||highlight.text||'').trim()===selectedQuote.trim()?' is-selected':'')} style={{...style,background:highlight.color||'#a783e855'}}
             title={highlight.theme||'AI highlight'} aria-label={'View '+(highlight.theme||'highlight')}
             onClick={()=>onHighlightClick?.(highlight)}/>:null;
         }))}
         {sourceFocus?.page===page&&(sourceFocus.rects||[]).map((rect,index)=>{
           const style=rectStyle(rect);
-          return style?<div key={'source-'+index} className="pdfjs-source-rect" style={style}/>:null;
+          return style?<div key={'source-'+index} className="pdfjs-source-rect" ref={index===0?sourceRectRef:null} style={style}/>:null;
         })}
       </div>}</div></div>
   </section>;
