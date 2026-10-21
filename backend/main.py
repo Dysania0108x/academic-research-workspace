@@ -149,7 +149,9 @@ async def require_api_session(request, call_next):
         if job_match:
             with analysis_lock:
                 job = analysis_jobs.get(job_match.group(1))
-                if not job or job.get("owner_id") != user_id:
+                if job and job.get("owner_id") != user_id:
+                    raise HTTPException(404, "Analysis job not found")
+                if not job and not _load_job(job_match.group(1), user_id):
                     raise HTTPException(404, "Analysis job not found")
         return await call_next(request)
     except HTTPException as exc:
@@ -621,6 +623,7 @@ def start_analysis(req:AnalysisRequest, authorization: str | None = Header(defau
                 analysis_jobs.pop(old_id,None)
         job={'id':str(uuid.uuid4()),'owner_id':owner_id,'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'failed_batches':[],'batch_started_at':None,'error':None,'cancel_event':threading.Event()}
         analysis_jobs[job['id']]=job
+        _persist_job(job)
     analysis_pool.submit(_analyse_job,job,req)
     return _job_snapshot(job)
 
@@ -639,7 +642,7 @@ def get_paper_analysis_job(paper_id:str, question:str, themes:str, authorization
     with analysis_lock:
         candidates=[j for j in analysis_jobs.values() if j.get('cache_key')==identity]
         if not candidates:
-            return {'job':None}
+            return {'job':_latest_persisted_job(authenticated_user(authorization),identity)}
         # Most recently created job wins, including a completed or cancelled job.
         return {'job':_job_snapshot(candidates[-1])}
 
@@ -647,7 +650,10 @@ def get_paper_analysis_job(paper_id:str, question:str, themes:str, authorization
 def get_analysis_job(job_id:str):
     with analysis_lock:
         job=analysis_jobs.get(job_id)
-        if job is None:raise HTTPException(404,'Analysis job not found')
+        if job is None:
+            saved=_load_job(job_id,authenticated_user(authorization))
+            if saved is None:raise HTTPException(404,'Analysis job not found')
+            return saved
         return _job_snapshot(job)
 
 @app.post('/api/analyse/jobs/{job_id}/cancel')
@@ -659,6 +665,7 @@ def cancel_analysis_job(job_id:str):
             job['cancel_event'].set()
             job['status']='cancelled'
             job['message']='Cancelled. In-flight provider request may continue until timeout.'
+            _persist_job(job)
         return _job_snapshot(job)
 
 @app.post('/api/passage')
