@@ -356,10 +356,7 @@ async def upload(file:UploadFile=File(...)):
     data=await file.read(20*1024*1024+1)
     if len(data)>20*1024*1024: raise HTTPException(413,'PDF must be under 20MB')
     sha=hashlib.sha256(data).hexdigest()
-    with db() as c:
-        existing=c.execute('SELECT * FROM papers WHERE sha256=?',(sha,)).fetchone()
-    if existing and (STORE/(existing['id']+'.pdf')).exists():
-        return {'id':existing['id'],'name':existing['filename'],'pages':existing['pages'],'duplicate':True,**paper_metadata(existing['id'])}
+    # Never reuse a global paper ID across users/projects, even for identical bytes.
     pid=str(uuid.uuid4()); path=STORE/(pid+'.pdf')
     path.write_bytes(data)
     try:
