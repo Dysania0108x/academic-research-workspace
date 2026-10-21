@@ -35,13 +35,74 @@ from cloud_auth import authenticated_user
 
 @app.middleware("http")
 async def require_api_session(request, call_next):
-    if request.url.path.startswith("/api/") and request.url.path != "/api/health":
-        from fastapi.responses import JSONResponse
-        try:
-            authenticated_user(request.headers.get("authorization"))
-        except HTTPException as exc:
-            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    return await call_next(request)
+    """Authorize all project and paper endpoints before any local file access."""
+    if not request.url.path.startswith("/api/") or request.url.path == "/api/health":
+        return await call_next(request)
+    from fastapi.responses import JSONResponse
+    from cloud_auth import require_project_owner
+    try:
+        token = request.headers.get("authorization")
+        user_id = authenticated_user(token)
+        path = request.url.path
+        project_match = re.match(r"^/api/projects/([^/]+)", path)
+        if project_match:
+            require_project_owner(project_match.group(1), token)
+        paper_ids = []
+        paper_match = re.match(r"^/api/papers/([^/]+)", path)
+        if paper_match:
+            paper_ids.append(paper_match.group(1))
+        if path in ("/api/analyse", "/api/analyse/start", "/api/passage"):
+            payload = await request.body()
+            try:
+                paper_ids.append(json.loads(payload).get("paper_id"))
+            except (ValueError, TypeError):
+                raise HTTPException(422, "Invalid JSON payload")
+            # Replaying the request body requires restoring its ASGI receive channel.
+            async def receive():
+                return {"type": "http.request", "body": payload, "more_body": False}
+            request._receive = receive
+        if path == "/api/themes/suggest":
+            payload = await request.body()
+            try:
+                paper_ids.extend(json.loads(payload).get("paper_ids", []))
+            except (ValueError, TypeError):
+                raise HTTPException(422, "Invalid JSON payload")
+            async def receive():
+                return {"type": "http.request", "body": payload, "more_body": False}
+            request._receive = receive
+        if path == "/api/analyse/papers/" or path.startswith("/api/analyse/papers/"):
+            match = re.match(r"^/api/analyse/papers/([^/]+)/job", path)
+            if match: paper_ids.append(match.group(1))
+        if paper_ids:
+            # Use the caller's RLS-restricted project rows as the authorization source.
+            import httpx
+            from cloud_auth import _configuration
+            url, key = _configuration()
+            with httpx.Client(timeout=8.0) as client:
+                resp = client.get(f"{url}/rest/v1/projects",
+                    params={"select":"data", "user_id":f"eq.{user_id}"},
+                    headers={"apikey":key,"Authorization":token})
+            if resp.status_code != 200:
+                raise HTTPException(503, "Unable to verify paper ownership")
+            owned = {str(p.get("id")) for row in resp.json()
+                     for p in (row.get("data") or {}).get("papers", [])
+                     if isinstance(p, dict)}
+            if any(not isinstance(pid,str) or pid not in owned for pid in paper_ids):
+                raise HTTPException(404, "Paper not found")
+        # New uploads must be bound to an existing project; unaffiliated uploads
+        # would otherwise create unowned local files.
+        if path == "/api/papers" and request.method == "POST":
+            project_id = request.query_params.get("project_id")
+            if not project_id:
+                raise HTTPException(422, "project_id required for upload")
+            require_project_owner(project_id, token)
+        # Job IDs and shared local caches have no reliable ownership association.
+        # Fail closed until job owner IDs are persisted and checked.
+        if re.match(r"^/api/analyse/jobs/", path):
+            raise HTTPException(403, "Job access requires owner-scoped job migration")
+        return await call_next(request)
+    except HTTPException as exc:
+        return JSONResponse(status_code=exc.status_code, content={"detail":exc.detail})
 
 class ProjectPayload(BaseModel):
     id: str
