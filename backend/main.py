@@ -341,8 +341,19 @@ def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
         if u: usage=(u.prompt_tokens,u.completion_tokens,u.total_tokens)
         return json.loads(res.choices[0].message.content or '{}')
     except Exception as exc:
-        status='error';error=str(exc)[:500]
-        raise HTTPException(502,'AI request failed: '+error[:250])
+        # Never expose upstream response bodies or request details to clients.
+        # The upstream SDK can include echoed prompts and provider diagnostics.
+        upstream_status=getattr(exc,'status_code',None)
+        kind=type(exc).__name__.lower()
+        if upstream_status in (401,403): category='upstream_auth'
+        elif upstream_status==404: category='model_or_endpoint'
+        elif upstream_status==429: category='rate_limited_or_quota'
+        elif upstream_status==400: category='unsupported_request'
+        elif upstream_status in (408,504) or 'timeout' in kind: category='upstream_timeout'
+        elif isinstance(exc,json.JSONDecodeError): category='invalid_json'
+        else: category='upstream_error'
+        status='error';error=f'{category} (provider HTTP {upstream_status or "unknown"})'
+        raise HTTPException(502,'AI request failed: '+error) from None
     finally:
         with db() as c:
             c.execute('INSERT INTO ai_usage(created_at,task_type,paper_id,model,input_tokens,output_tokens,total_tokens,status,error) VALUES(?,?,?,?,?,?,?,?,?)',(time.time(),task_type,paper_id,model,*usage,status,error))
