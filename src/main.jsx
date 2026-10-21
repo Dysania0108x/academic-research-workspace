@@ -158,6 +158,7 @@ function App({user}){
  const [paperJobs,setPaperJobs]=useState({});
  const analysisStartRef=useRef(new Set());
  const [aiError,setAiError]=useState('');
+ const [uploadStage,setUploadStage]=useState('');
  const [aiDetails,setAiDetails]=useState(null);
  const [health,setHealth]=useState(null);
  const [usage,setUsage]=useState(null);
@@ -342,13 +343,25 @@ function App({user}){
   // Persist each paper independently so a later failure does not lose earlier uploads.
   const added=[];
   for(const file of files){
+    setUploadStage('Connecting to backend / parsing PDF');
     const fd=new FormData();fd.append('file',file);
-    const r=await apiFetch('/api/papers?project_id='+encodeURIComponent(targetProjectId),{method:'POST',body:fd});
-    const d=await r.json();if(!r.ok)throw Error(d.detail||'PDF upload failed');
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),60000);
+    let r,d;
+    try{
+      r=await apiFetch('/api/papers?project_id='+encodeURIComponent(targetProjectId),{method:'POST',body:fd,signal:controller.signal});
+      const raw=await r.text();
+      try{d=JSON.parse(raw)}catch{d={detail:raw.slice(0,240)||'Non-JSON backend response'}}
+      if(!r.ok)throw Error('Backend HTTP '+r.status+': '+(d.detail||'PDF processing failed'));
+    }catch(error){
+      throw Error('PDF backend upload: '+(error.name==='AbortError'?'timed out after 60 seconds':error.message));
+    }finally{clearTimeout(timeout)}
     let storagePath=null;
     try{
+      setUploadStage('Uploading PDF to private cloud storage');
       storagePath=await storePrivatePdf(file,targetProjectId,d.id);
       const paper={...d,seed:false,size:file.size,storagePath};
+      setUploadStage('Saving PDF metadata to Project');
       const {data:row,error:loadError}=await supabase.from('projects').select('data,updated_at').eq('id',targetProjectId).eq('user_id',user.id).single();
       if(loadError)throw Error('Cloud metadata read failed: '+loadError.message);
       const papers=[...(row.data?.papers||[])];
@@ -369,11 +382,12 @@ function App({user}){
     const paper=added[added.length-1];
     setCloudProjects(prev=>prev.map(p=>p.id===targetProjectId?{...p,papers:[...(p.papers||[]).filter(x=>x.id!==paper.id),paper]}:p));
     setPaperId(paper.id);
+    setUploadStage('PDF saved successfully');
   }
   return added;
  };
  const finishProject=()=>{setCreating(false);setDraftStep('details');setDraft({name:'',question:'',topics:''});setPage('papers')};
- const upload=async(files)=>{if(!files?.length)return;setBusy(true);setAiError('');try{await uploadFilesForProject(files,project.id);toast('PDF saved privately to cloud.')}catch(e){setAiError(e.message)}finally{setBusy(false)}};
+ const upload=async(files)=>{if(!files?.length)return;setBusy(true);setAiError('');try{await uploadFilesForProject(files,project.id);toast('PDF saved privately to cloud.')}catch(e){setAiError(e.message)}finally{setBusy(false);setUploadStage('')}};
  const deleteProject=async p=>{if(!window.confirm('Delete project "'+p.name+'" and its research records? This cannot be undone.'))return;cloudDeleted.current.add(p.id);cloudPending.current.delete(p.id);await cloudWrites.current.catch(()=>{});
  const paths=(p.papers||[]).map(paper=>paper.storagePath).filter(Boolean);
  if(paths.length){const {error:storageError}=await supabase.storage.from('research-pdfs').remove(paths);if(storageError){cloudDeleted.current.delete(p.id);setCloudError('Could not remove project PDFs: '+storageError.message);return}}
