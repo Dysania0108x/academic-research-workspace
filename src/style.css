@@ -476,3 +476,11 @@
 .v52-synthesis-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px}
 .v52-error{font-size:12px;color:#bb394a}
 @media(max-width:700px){.v52-rq-question,.v52-rq-section-head,.v52-synthesis-heading{align-items:flex-start;flex-direction:column}.v52-synthesis-results{grid-template-columns:1fr}.v52-synthesis-actions{grid-column:auto;flex-wrap:wrap}}
+
+/* V5.3: temporary RQ Map -> theme evidence navigation */
+.v53-rq-return{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:16px 0;padding:14px 17px;border:1px solid #ddd6f6;border-radius:11px;background:#f8f6ff}
+.v53-rq-return>div:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.v53-rq-return strong{font-size:13px;color:#4e4083;overflow-wrap:anywhere}
+.v53-rq-return span{font-size:11px;color:#857a9c}
+.v53-rq-return>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:650px){.v53-rq-return{align-items:stretch;flex-direction:column}}
