@@ -8,6 +8,8 @@ from pydantic import BaseModel
 import fitz
 from openai import OpenAI
 from dotenv import load_dotenv
+import cloud_jobs
+import cloud_usage
 load_dotenv(Path(__file__).with_name('.env'))
 ROOT=Path(__file__).parent
 STORE=ROOT/'uploads'; STORE.mkdir(exist_ok=True)
@@ -29,7 +31,10 @@ def init_db():
         c.execute('CREATE INDEX IF NOT EXISTS idx_jobs_owner_context ON analysis_jobs_persisted(owner_id, cache_key, updated_at)')
 init_db()
 app=FastAPI(title='Research Workspace API')
-app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http://127.0.0.1:5173'],allow_methods=['*'],allow_headers=['*'])
+# Set FRONTEND_ORIGINS to comma-separated exact HTTPS origins in production.
+# Never combine credentialed CORS with a wildcard origin.
+frontend_origins=[origin.strip().rstrip('/') for origin in os.getenv('FRONTEND_ORIGINS','').split(',') if origin.strip()]
+
 # V6.3: all API calls except the non-sensitive health probe require a valid
 # Supabase access token. Project/paper ownership enforcement is a separate
 # requirement before multi-user release.
@@ -38,7 +43,9 @@ from cloud_auth import authenticated_user
 @app.middleware("http")
 async def require_api_session(request, call_next):
     """Authorize all project and paper endpoints before any local file access."""
-    if not request.url.path.startswith("/api/") or request.url.path == "/api/health":
+    # Browser CORS preflight has no bearer token. Let CORSMiddleware answer it;
+    # actual API requests still require authenticated ownership checks.
+    if request.method == "OPTIONS" or not request.url.path.startswith("/api/") or request.url.path == "/api/health":
         return await call_next(request)
     from fastapi.responses import JSONResponse
     from cloud_auth import require_project_owner
@@ -49,7 +56,7 @@ async def require_api_session(request, call_next):
         project_match = re.match(r"^/api/projects/([^/]+)", path)
         if project_match:
             require_project_owner(project_match.group(1), token)
-        if path == '/api/projects' or path.startswith('/api/projects/') or path == '/api/usage':
+        if path == '/api/projects' or path.startswith('/api/projects/')  :
             raise HTTPException(410, 'Legacy unscoped endpoint disabled')
         # Do not let paper deletion race against an unrelated user's local cache.
         # Existing files are globally named, so ownership is checked before deletion.
@@ -86,7 +93,7 @@ async def require_api_session(request, call_next):
             url, key = _configuration()
             with httpx.Client(timeout=8.0) as client:
                 resp = client.get(f"{url}/rest/v1/projects",
-                    params={"select":"data", "user_id":f"eq.{user_id}"},
+                    params={"select":"id,data", "user_id":f"eq.{user_id}"},
                     headers={"apikey":key,"Authorization":token})
             if resp.status_code != 200:
                 raise HTTPException(503, "Unable to verify paper ownership")
@@ -156,6 +163,17 @@ async def require_api_session(request, call_next):
         return await call_next(request)
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail":exc.detail})
+
+# Register CORS last so it wraps authentication middleware responses too.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
+    # Project-scoped Vercel Preview domains change with each deployment.
+    # CORS is not authentication: all protected routes still require JWT ownership checks.
+    allow_origin_regex=r'^https://academic-research-workspace-[a-z0-9-]+\.vercel\.app$',
+    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allow_headers=['Authorization','Content-Type'],
+)
 
 class ProjectPayload(BaseModel):
     id: str
@@ -314,7 +332,7 @@ def _mock_response(messages,task_type):
                          'evidence_ids':ids[:1]}]}
     return {}
 
-def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
+def ask(messages,task_type='other',paper_id=None,timeout_seconds=None,owner_id=None):
     if mock_mode():return _mock_response(messages,task_type)
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
@@ -327,16 +345,66 @@ def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
         if u: usage=(u.prompt_tokens,u.completion_tokens,u.total_tokens)
         return json.loads(res.choices[0].message.content or '{}')
     except Exception as exc:
-        status='error';error=str(exc)[:500]
-        raise HTTPException(502,'AI request failed: '+error[:250])
+        # Classify provider errors without exposing response bodies, prompts or secrets.
+        code=getattr(exc,'status_code',None)
+        kind=type(exc).__name__.lower()
+        if code in (401,403): category='upstream_auth'
+        elif code==404: category='model_or_endpoint'
+        elif code==429: category='rate_limited_or_quota'
+        elif code==400: category='unsupported_request'
+        elif code in (408,504) or 'timeout' in kind: category='upstream_timeout'
+        elif isinstance(exc,json.JSONDecodeError): category='invalid_json'
+        else: category='upstream_error'
+        status='error';error=f'{category} (provider HTTP {code or "unknown"})'
+        raise HTTPException(502,'AI request failed: '+error) from None
     finally:
         with db() as c:
             c.execute('INSERT INTO ai_usage(created_at,task_type,paper_id,model,input_tokens,output_tokens,total_tokens,status,error) VALUES(?,?,?,?,?,?,?,?,?)',(time.time(),task_type,paper_id,model,*usage,status,error))
+        if owner_id and cloud_usage.enabled():
+            try:
+                cloud_usage.record(owner_id=owner_id,paper_id=paper_id,task_type=task_type,
+                                   model=model,usage=usage,status=status)
+            except Exception:
+                # Do not fail a successful AI response because metering is unavailable.
+                import logging
+                logging.getLogger(__name__).exception('Durable AI usage write failed')
+
 @app.get('/api/usage')
-def usage_stats():
-    with db() as c:
-        rows=[dict(r) for r in c.execute('SELECT task_type, COUNT(*) AS requests, SUM(COALESCE(input_tokens,0)) AS input_tokens, SUM(COALESCE(output_tokens,0)) AS output_tokens, SUM(COALESCE(total_tokens,0)) AS total_tokens, SUM(CASE WHEN status="error" THEN 1 ELSE 0 END) AS errors FROM ai_usage GROUP BY task_type ORDER BY task_type')]
-    return {'by_task':rows,'total_tokens':sum(r['total_tokens'] for r in rows),'requests':sum(r['requests'] for r in rows),'note':'Counts actual model responses only; cache hits use zero new tokens.'}
+def usage_stats(project_id: str | None = None, authorization: str | None = Header(default=None)):
+    if not project_id:
+        raise HTTPException(422,'Project ID required for scoped usage report')
+    from cloud_auth import require_project_owner, _configuration
+    import httpx
+    user_id=require_project_owner(project_id,authorization)
+    url,key=_configuration()
+    with httpx.Client(timeout=8.0) as client:
+        response=client.get(url+'/rest/v1/projects',params={'select':'data','id':'eq.'+project_id,'user_id':'eq.'+user_id,'limit':'1'},
+                            headers={'apikey':key,'Authorization':authorization})
+    if response.status_code!=200 or not response.json():
+        raise HTTPException(503,'Unable to read project usage scope')
+    papers=(response.json()[0].get('data') or {}).get('papers',[])
+    paper_ids=[str(p['id']) for p in papers if isinstance(p,dict) and p.get('id')]
+    if not cloud_usage.enabled():
+        raise HTTPException(503,'Durable usage storage is not configured')
+    try:
+        events=cloud_usage.project_report(user_id,paper_ids)
+    except Exception:
+        raise HTTPException(503,'Durable usage storage unavailable; verify database migration')
+    grouped={}
+    for event in events:
+        task=event['task_type']
+        row=grouped.setdefault(task,{'task_type':task,'requests':0,'input_tokens':0,
+                                     'output_tokens':0,'total_tokens':0,'errors':0})
+        row['requests']+=1
+        for field in ('input_tokens','output_tokens','total_tokens'):
+            row[field]+=int(event.get(field) or 0)
+        row['errors']+=int(event.get('status')=='error')
+    rows=sorted(grouped.values(),key=lambda item:item['task_type'])
+    return {'by_task':rows,'total_tokens':sum(row['total_tokens'] for row in rows),
+            'requests':sum(row['requests'] for row in rows),
+            'note':'Durable events recorded after migration only; cached results use no new tokens.',
+            'scope':'project','durable':True}
+
 @app.get('/api/health')
 def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY')) or mock_mode(),'mock_mode':mock_mode()}
 
@@ -374,8 +442,11 @@ def locate_quote(paper_id:str,req:LocateRequest):
         return {'found':True,'page':req.page,'rects':rects}
 
 @app.post('/api/papers')
-async def upload(file:UploadFile=File(...)):
-    if not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
+async def upload(file:UploadFile=File(...), project_id: str | None = None, authorization: str | None = Header(default=None)):
+    from cloud_auth import require_project_owner
+    if not project_id: raise HTTPException(422,'Project ID required for PDF upload')
+    require_project_owner(project_id, authorization)
+    if not file.filename or not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
     data=await file.read(20*1024*1024+1)
     if len(data)>20*1024*1024: raise HTTPException(413,'PDF must be under 20MB')
     sha=hashlib.sha256(data).hexdigest()
@@ -432,12 +503,14 @@ def original_pdf(paper_id:str):
         return Response((STORE/(paper_id+'.pdf')).read_bytes(),media_type='application/pdf',headers={'Content-Disposition':'inline'})
 
 @app.get('/api/papers/{paper_id}/pages/{page_num}/image')
-def page_image(paper_id:str,page_num:int,scale:float=2.5):
+def page_image(paper_id:str,page_num:int,scale:float=1.7):
     with get_doc(paper_id) as doc:
         if page_num<1 or page_num>len(doc):raise HTTPException(404,'Page not found')
-        scale=max(1.5,min(3.0,scale))
+        scale=max(1.2,min(3.0,scale))
         pix=doc[page_num-1].get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False)
-        return Response(pix.tobytes('png'),media_type='image/png')
+        # JPEG reduces transfer size for remote readers; source PDF remains unchanged.
+        return Response(pix.tobytes('jpeg',jpg_quality=85),media_type='image/jpeg',
+                        headers={'Cache-Control':'private, max-age=300'})
 def exact_quote_rectangles(page, quote, block_rect):
     """Return verified PDF quads only; never fall back to whole text blocks."""
     quote=' '.join(str(quote).split()).strip()
@@ -500,11 +573,17 @@ def _job_snapshot(job):
 
 def _persist_job(job):
     snapshot=_job_snapshot(job)
+    if cloud_jobs.save(job,snapshot):return
     with db() as c:
         c.execute('INSERT INTO analysis_jobs_persisted(id,owner_id,paper_id,cache_key,snapshot,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET snapshot=excluded.snapshot,updated_at=excluded.updated_at',
                   (job['id'],job['owner_id'],job['paper_id'],job['cache_key'],json.dumps(snapshot,ensure_ascii=False),time.time()))
 
 def _load_job(job_id, owner_id):
+    if cloud_jobs.enabled():
+        snapshot=cloud_jobs.get(job_id,owner_id)
+        if snapshot and snapshot.get('status') in ('queued','running'):
+            snapshot.update(status='interrupted',message='Worker stopped; restart analysis to retry',batch_started_at=None)
+        return snapshot
     with db() as c:
         row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE id=? AND owner_id=?',(job_id,owner_id)).fetchone()
     if not row:return None
@@ -514,6 +593,11 @@ def _load_job(job_id, owner_id):
     return snapshot
 
 def _latest_persisted_job(owner_id, identity):
+    if cloud_jobs.enabled():
+        snapshot=cloud_jobs.latest(owner_id,identity)
+        if snapshot and snapshot.get('status') in ('queued','running'):
+            snapshot.update(status='interrupted',message='Worker stopped; restart analysis to retry',batch_started_at=None)
+        return snapshot
     with db() as c:
         row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE owner_id=? AND cache_key=? ORDER BY updated_at DESC LIMIT 1',(owner_id,identity)).fetchone()
     if not row:return None
@@ -564,11 +648,19 @@ def _analyse_job(job, req):
                         'Never invent or paraphrase quotes. Returning zero matches is valid.'
                     )},
                     {'role':'user','content':json.dumps({'research_question':req.question,'themes':themes,'pdf_blocks':compact},ensure_ascii=False)}
-                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')))
+                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')),owner_id=job['owner_id'])
                 except HTTPException as exc:
                     if job['cancel_event'].is_set():return
                     failed_batches.append(index+1)
-                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed after {int(time.monotonic()-started_at)}s; continuing',failed_batches=list(failed_batches),batch_started_at=None)
+                    detail=str(exc.detail)
+                    known=('upstream_auth','model_or_endpoint','rate_limited_or_quota',
+                           'unsupported_request','upstream_timeout','invalid_json','upstream_error')
+                    category=next((name for name in known if name in detail),
+                                  'missing_api_key' if exc.status_code==503 else 'upstream_error')
+                    errors=[*job.get('batch_errors',[]),{'batch':index+1,'category':category}]
+                    _set_job(job,completed_batches=index+1,
+                             message=f'Batch {index+1}/{total} failed ({category}); continuing',
+                             failed_batches=list(failed_batches),batch_errors=errors,batch_started_at=None)
                     continue
                 result=[]
                 allowed_ids={b['id'] for b in batch}
