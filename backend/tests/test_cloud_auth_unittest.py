@@ -37,12 +37,12 @@ class CloudAuthBoundaryTests(unittest.TestCase):
 
     def test_authenticated_user_cannot_read_unowned_paper(self):
         user_id = "11111111-1111-4111-8111-111111111111"
-        with patch.object(main, "authenticated_user", return_value=user_id), \
-             patch("cloud_auth._configuration", return_value=("https://example.supabase.co", "anon")), \
-             patch("httpx.Client") as client_class:
-            client_class.return_value.__enter__.return_value.get.return_value = Mock(
-                status_code=200, json=lambda: [])
-            with TestClient(main.app) as client:
+        with TestClient(main.app) as client:
+            with patch.object(main, "authenticated_user", return_value=user_id), \
+                 patch("cloud_auth._configuration", return_value=("https://example.supabase.co", "anon")), \
+                 patch("httpx.Client") as client_class:
+                client_class.return_value.__enter__.return_value.get.return_value = Mock(
+                    status_code=200, json=lambda: [])
                 response = client.get("/api/papers/unowned/blocks",
                                       headers={"Authorization": "Bearer valid"})
         self.assertEqual(response.status_code, 404)
