@@ -377,7 +377,29 @@ function App({user}){
  const paths=(p.papers||[]).map(paper=>paper.storagePath).filter(Boolean);
  if(paths.length){const {error:storageError}=await supabase.storage.from('research-pdfs').remove(paths);if(storageError){cloudDeleted.current.delete(p.id);setCloudError('Could not remove project PDFs: '+storageError.message);return}}
  const {error}=await supabase.from('projects').delete().eq('id',p.id).eq('user_id',user.id);if(error){cloudDeleted.current.delete(p.id);setCloudError('Delete failed: '+error.message);return}setProjects(old=>old.filter(x=>x.id!==p.id));if(projectId===p.id){setProjectId(null);setPaperId(null)}toast('Project deleted from cloud')};
- const deletePaper=async p=>{const linked=project.evidence.filter(e=>e.paperId===p.id).length;if(!window.confirm('Delete "'+p.name+'"? '+linked+' linked evidence records will also be removed.'))return;if(p.storagePath){const {error}=await supabase.storage.from('research-pdfs').remove([p.storagePath]);if(error){setAiError('Cloud PDF deletion failed: '+error.message);return}}await apiFetch('/api/papers/'+p.id,{method:'DELETE'});update(pr=>({...pr,papers:pr.papers.filter(x=>x.id!==p.id),evidence:pr.evidence.filter(e=>e.paperId!==p.id),networkLinks:(pr.networkLinks||[]).filter(l=>!pr.evidence.some(e=>e.paperId===p.id&&(e.id===l.source_id||e.id===l.target_id)))}));if(paperId===p.id)setPaperId(project.papers.find(x=>x.id!==p.id)?.id||null);toast('Paper deleted')};
+ const deletePaper=async p=>{
+  const linked=project.evidence.filter(e=>e.paperId===p.id).length;
+  if(!window.confirm('Delete "'+p.name+'"? '+linked+' linked evidence records will also be removed.'))return;
+  setAiError('');
+  try{
+    // Keep cloud metadata intact if the private Storage operation fails.
+    if(p.storagePath){
+      const expected=user.id+'/'+project.id+'/'+p.id+'.pdf';
+      if(p.storagePath!==expected)throw Error('PDF storage path does not match this project');
+      const {error}=await supabase.storage.from('research-pdfs').remove([p.storagePath]);
+      if(error)throw Error('Cloud PDF deletion failed: '+error.message);
+    }
+    // Local cleanup is best-effort: a fresh device may have no local copy.
+    const response=await apiFetch('/api/papers/'+encodeURIComponent(p.id),{method:'DELETE'});
+    if(!response.ok && response.status!==404){
+      const detail=await response.json().catch(()=>({}));
+      setAiError('Cloud PDF removed, but local cleanup failed: '+(detail.detail||response.status)+'. Local cleanup may be required.');
+    }
+    update(pr=>({...pr,papers:pr.papers.filter(x=>x.id!==p.id),evidence:pr.evidence.filter(e=>e.paperId!==p.id),networkLinks:(pr.networkLinks||[]).filter(l=>!pr.evidence.some(e=>e.paperId===p.id&&(e.id===l.source_id||e.id===l.target_id)))}));
+    if(paperId===p.id)setPaperId(project.papers.find(x=>x.id!==p.id)?.id||null);
+    toast('Paper removed from project');
+  }catch(error){setAiError(error.message)}
+ };
  const editPaper=p=>setPaperEditor({...p});
  const savePaperMetadata=()=>{if(!paperEditor)return;const name=String(paperEditor.name||'').trim();if(!name){toast('Please enter a display name for this PDF.');return;}update(p=>({...p,papers:p.papers.map(x=>x.id===paperEditor.id?{...x,...paperEditor,name,metadata_status:'user_confirmed'}:x)}));setPaperEditor(null);toast('Paper name and metadata saved.')};
  const renameTheme=(oldName)=>{const name=window.prompt('Rename theme',oldName)?.trim();if(!name||name===oldName||project.topics.includes(name))return;update(p=>({...p,topics:p.topics.map(t=>t===oldName?name:t),evidence:p.evidence.map(e=>({...e,theme:e.theme===oldName?name:e.theme,themes:[...new Set([...(e.themes||[e.theme]).map(t=>t===oldName?name:t)])]}))}));setMatches([])};
