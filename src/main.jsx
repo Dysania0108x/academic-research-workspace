@@ -266,7 +266,7 @@ function App({user}){
   setPageImageUrl(null);
   if(!paperId||!pageSizes.length)return;
   let active=true;let objectUrl=null;
-  apiFetch('/api/papers/'+encodeURIComponent(paperId)+'/pages/'+pageNumber+'/image?scale=2.5')
+  apiFetch('/api/papers/'+encodeURIComponent(paperId)+'/pages/'+pageNumber+'/image?scale=1.7')
    .then(async response=>{if(!response.ok)throw Error('PDF page could not be loaded');return response.blob()})
    .then(blob=>{objectUrl=URL.createObjectURL(blob);if(active)setPageImageUrl(objectUrl);else URL.revokeObjectURL(objectUrl)})
    .catch(error=>{if(active){setPageImageUrl(null);setAiError(error.message)}});
