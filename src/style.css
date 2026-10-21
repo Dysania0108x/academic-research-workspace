@@ -554,7 +554,7 @@
 .pdfjs-first-reader{min-height:0;display:flex;flex-direction:column;flex:1}
 .pdfjs-first-reader .pdfjs-preview{min-height:520px;max-height:calc(100vh - 240px)}
 .pdfjs-first-reader .pdfjs-scroll{min-height:380px}
-.pdfjs-first-reader .pdfjs-toolbar button:last-child{display:none}
+
 
 /* V6.6 reader containment: prevent the PDF canvas from covering adjacent panels. */
 .library-layout{grid-template-columns:minmax(150px,190px) minmax(0,1fr) minmax(270px,310px);min-width:0}
@@ -569,3 +569,9 @@
 .pdfjs-first-reader .pdfjs-page{max-width:none}
 .pdfjs-first-reader .reader-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 @media(max-width:1150px){.library-layout,.library-layout.library-collapsed{grid-template-columns:minmax(0,1fr)}.pdfjs-first-reader .pdfjs-scroll{max-height:65vh}}
+
+/* Keep both zoom controls visible, including the final + button. */
+.pdfjs-first-reader .pdfjs-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:10px;min-width:0;overflow:visible}
+.pdfjs-first-reader .pdfjs-toolbar strong{flex:1 0 100%;margin:0;text-align:left}
+.pdfjs-first-reader .pdfjs-toolbar button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:36px}
+.pdfjs-first-reader .pdfjs-toolbar span{white-space:nowrap}
