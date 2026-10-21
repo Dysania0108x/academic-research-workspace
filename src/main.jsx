@@ -14,7 +14,8 @@ async function apiFetch(input, init={}) {
   if(error||!session?.access_token) throw Error('Sign in again to access the research API');
   const headers=new Headers(init.headers||{});
   headers.set('Authorization','Bearer '+session.access_token);
-  return fetch(input,{...init,headers});
+  const base=(import.meta.env.VITE_API_BASE_URL||'').replace(/\/$/,'');
+  return fetch(base+input,{...init,headers});
 }
 
 
