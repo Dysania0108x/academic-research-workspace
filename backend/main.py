@@ -449,12 +449,14 @@ def original_pdf(paper_id:str):
         return Response((STORE/(paper_id+'.pdf')).read_bytes(),media_type='application/pdf',headers={'Content-Disposition':'inline'})
 
 @app.get('/api/papers/{paper_id}/pages/{page_num}/image')
-def page_image(paper_id:str,page_num:int,scale:float=2.5):
+def page_image(paper_id:str,page_num:int,scale:float=1.7):
     with get_doc(paper_id) as doc:
         if page_num<1 or page_num>len(doc):raise HTTPException(404,'Page not found')
-        scale=max(1.5,min(3.0,scale))
+        scale=max(1.2,min(3.0,scale))
         pix=doc[page_num-1].get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False)
-        return Response(pix.tobytes('png'),media_type='image/png')
+        # JPEG reduces transfer size for remote readers; source PDF remains unchanged.
+        return Response(pix.tobytes('jpeg',jpg_quality=85),media_type='image/jpeg',
+                        headers={'Cache-Control':'private, max-age=300'})
 def exact_quote_rectangles(page, quote, block_rect):
     """Return verified PDF quads only; never fall back to whole text blocks."""
     quote=' '.join(str(quote).split()).strip()
