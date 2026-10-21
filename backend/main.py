@@ -49,6 +49,8 @@ async def require_api_session(request, call_next):
             require_project_owner(project_match.group(1), token)
         if path == '/api/projects' or path.startswith('/api/projects/') or path == '/api/usage':
             raise HTTPException(410, 'Legacy unscoped endpoint disabled')
+        # Do not let paper deletion race against an unrelated user's local cache.
+        # Existing files are globally named, so ownership is checked before deletion.
         paper_ids = []
         paper_match = re.match(r"^/api/papers/([^/]+)", path)
         if paper_match:
