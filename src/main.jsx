@@ -352,10 +352,24 @@ function App({user}){
   // Persist each paper independently so a later failure does not lose earlier uploads.
   const added=[];
   for(const file of files){
+    // Render Free can take 50+ seconds to wake. Wake it before sending PDF bytes,
+    // then give the actual upload its own deadline.
+    setUploadStage('Checking backend availability (free server may be waking up)');
+    const configuredApi=(import.meta.env.VITE_API_BASE_URL||'').trim().replace(/\\/$/,'');
+    if(configuredApi){
+      const wakeController=new AbortController();
+      const wakeTimeout=setTimeout(()=>wakeController.abort(),90000);
+      try{
+        const health=await fetch(configuredApi+'/api/health',{signal:wakeController.signal,cache:'no-store'});
+        if(!health.ok)throw Error('Backend health HTTP '+health.status);
+      }catch(error){
+        throw Error('Backend unavailable before PDF upload: '+(error.name==='AbortError'?'wake-up exceeded 90 seconds':error.message));
+      }finally{clearTimeout(wakeTimeout)}
+    }
     setUploadStage('Connecting to backend / parsing PDF');
     const fd=new FormData();fd.append('file',file);
     const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),60000);
+    const timeout=setTimeout(()=>controller.abort(),120000);
     let r,d;
     try{
       r=await apiFetch('/api/papers?project_id='+encodeURIComponent(targetProjectId),{method:'POST',body:fd,signal:controller.signal});
@@ -363,7 +377,7 @@ function App({user}){
       try{d=JSON.parse(raw)}catch{d={detail:raw.slice(0,240)||'Non-JSON backend response'}}
       if(!r.ok)throw Error('Backend HTTP '+r.status+': '+(d.detail||'PDF processing failed'));
     }catch(error){
-      throw Error('PDF backend upload: '+(error.name==='AbortError'?'timed out after 60 seconds':error.message));
+      throw Error('PDF backend upload: '+(error.name==='AbortError'?'timed out after 120 seconds':error.message));
     }finally{clearTimeout(timeout)}
     let storagePath=null;
     try{
