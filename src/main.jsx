@@ -328,7 +328,13 @@ function App({user}){
   setCloudProjects(prev=>[...prev,initial]);resetReader();setProjectId(id);setPaperId(null);
   setSuggestions([]);setCreating(false);setDraftStep('details');setPage('papers');
   const pendingFiles=[...draftFiles];setDraftFiles([]);setDraft({name:'',question:'',topics:''});setDraftSuggestions([]);setDraftSelected([]);
-  if(pendingFiles.length)await uploadFilesForProject(pendingFiles,id);
+  if(pendingFiles.length){
+    try{await uploadFilesForProject(pendingFiles,id)}
+    catch(uploadError){
+      // The project exists; keep it accessible and show an actionable error.
+      setAiError('Project created, but PDF upload was incomplete: '+uploadError.message+'. Re-upload the missing papers from Paper Library.');
+    }
+  }
  }catch(e){setCreateError(e.message)}finally{setCreatingBusy(false)}};
  const uploadFilesForProject=async(files,targetProjectId)=>{
   const added=[];
