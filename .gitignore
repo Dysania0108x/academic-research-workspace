@@ -1,15 +1,26 @@
 node_modules/
 dist/
-backend/.env
+
+# Python
 backend/.venv/
-backend/uploads/
+backend/venv/
 __pycache__/
+*.pyc
+
+# Backend secrets and data
+backend/.env
+backend/uploads/
 backend/research.db
 backend/research.db-*
 
-# Frontend configuration and local research exports
+# Frontend environment variables
 .env
 .env.local
 .env.*
 !.env.example
+
+# Local project backups
 *-project-data.json
+
+# macOS
+.DS_Store
