@@ -63,3 +63,30 @@ class CloudAuthBoundaryTests(unittest.TestCase):
                 response = client.get(f"/api/analyse/jobs/{job_id}",
                                       headers={"Authorization": "Bearer valid"})
         self.assertEqual(response.status_code, 404)
+
+    def test_upload_without_token_does_not_create_local_file(self):
+        with TestClient(main.app) as client:
+            response = client.post("/api/papers?project_id=unowned",
+                files={"file": ("example.pdf", b"%PDF-1.4", "application/pdf")})
+        self.assertEqual(response.status_code, 401)
+
+    def test_upload_without_project_id_is_rejected(self):
+        with patch.object(main, "authenticated_user", return_value="test-user"):
+            with TestClient(main.app) as client:
+                response = client.post("/api/papers",
+                    headers={"Authorization": "Bearer test"},
+                    files={"file": ("example.pdf", b"%PDF-1.4", "application/pdf")})
+        self.assertEqual(response.status_code, 422)
+
+    def test_project_owner_check_rejects_other_user(self):
+        user_id = "11111111-1111-4111-8111-111111111111"
+        with patch.object(cloud_auth, "authenticated_user", return_value=user_id), \
+             patch.object(cloud_auth, "_configuration",
+                 return_value=("https://example.supabase.co", "anon")), \
+             patch.object(cloud_auth.httpx, "Client") as client_class:
+            client_class.return_value.__enter__.return_value.get.return_value = Mock(
+                status_code=200, json=lambda: [])
+            with self.assertRaises(HTTPException) as context:
+                cloud_auth.require_project_owner(
+                    "22222222-2222-4222-8222-222222222222", "Bearer valid")
+        self.assertEqual(context.exception.status_code, 404)
