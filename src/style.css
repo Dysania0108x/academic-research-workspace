@@ -501,3 +501,7 @@
 .v61-session-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#faf8ff;border-bottom:1px solid #e9e3f1;padding:8px 20px;font-size:12px;color:#625b75}
 .v61-local-warning{padding:9px 20px;background:#fff5df;color:#765b1c;font-size:12px;line-height:1.45}
 @media(max-width:600px){.v61-auth-card{padding:22px}.v61-session-bar{flex-wrap:wrap}}
+
+/* V6.1 cloud project sync status */
+.v61-cloud-status{margin:14px 14px 0;padding:9px 11px;border:1px solid #e7e1f1;border-radius:9px;background:#f8f6fd;color:#6a6080;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.v61-cloud-status .secondary{margin-top:7px;font-size:11px}
