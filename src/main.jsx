@@ -1,7 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BookOpen, LayoutDashboard, Network, Settings, Plus, FolderOpen, FileText, Bot, Search, Check, X, Pencil, ArrowLeft, Trash2, Upload, Sparkles, ChevronRight, ChevronDown, Eye, Info, FilePenLine, Highlighter, SlidersHorizontal } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import './style.css';
+
+const supabaseUrl=import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabase=supabaseUrl&&supabaseKey?createClient(supabaseUrl,supabaseKey):null;
+
 
 const themePalette=['#E8B844','#67A7E8','#A783E8','#47B99A','#E48C98','#7D89D9'];
 const themeColor=(themes,name)=>{const names=[...new Set([...(themes||[]),name].filter(Boolean))].sort((a,b)=>a.localeCompare(b));const index=names.indexOf(name);return themePalette[index%themePalette.length]};
@@ -72,6 +78,33 @@ function EvidenceNetwork({evidence,links,themes,storedPositions,onPosition,onNod
  {networkHint&&<p className="v12-network-hint" role="status">{networkHint}</p>}
  <div className="network-edges v10-connection-detail">{selectedLink&&active.some(l=>l.id===selectedLink)?(()=>{const link=active.find(l=>l.id===selectedLink);const source=evidence.find(e=>e.id===link.source_id),target=evidence.find(e=>e.id===link.target_id);return <><div className="v10-detail-head"><h3>Connection Details</h3><button className="secondary" onClick={()=>{setSelectedLink(null);onEdge(null)}}>Close</button></div><strong style={{color:edgeColors[link.relationship]}}>{link.relationship}</strong><p>{link.rationale}</p><div className="v10-linked-evidence"><div><small>Source Evidence</small><p>{(source?.quote||source?.text||source?.analysis||'Source unavailable').slice(0,240)}</p></div><div><small>Target Evidence</small><p>{(target?.quote||target?.text||target?.analysis||'Target unavailable').slice(0,240)}</p></div></div></>})():<p className="hint">{active.length} verified connection{active.length===1?'':'s'}. Click a line or label to inspect it. Drag a purple handle to create a connection.</p>}</div>
  </div>
+}
+function AuthGate(){
+ const [session,setSession]=useState(null);
+ const [checking,setChecking]=useState(true);
+ const [email,setEmail]=useState('');
+ const [password,setPassword]=useState('');
+ const [mode,setMode]=useState('signin');
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState('');
+ const [notice,setNotice]=useState('');
+ useEffect(()=>{
+  if(!supabase){setChecking(false);return}
+  let mounted=true;
+  supabase.auth.getSession().then(({data,error})=>{if(!mounted)return;if(error)setError(error.message);setSession(data.session);setChecking(false)}).catch(e=>{if(mounted){setError(e.message);setChecking(false)}});
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,nextSession)=>{if(mounted)setSession(nextSession)});
+  return()=>{mounted=false;subscription.unsubscribe()};
+ },[]);
+ const submit=async event=>{event.preventDefault();if(!supabase||busy)return;setBusy(true);setError('');setNotice('');try{
+  const result=mode==='signin'?await supabase.auth.signInWithPassword({email:email.trim(),password}):await supabase.auth.signUp({email:email.trim(),password});
+  if(result.error)throw result.error;
+  if(mode==='signup'&&!result.data.session)setNotice('Check your email to confirm your account, then sign in.');
+  if(mode==='signup'&&result.data.session)setNotice('Account created.');
+ }catch(e){setError(e.message||'Authentication failed')}finally{setBusy(false)}};
+ if(checking)return <div className="v61-auth-loading">Checking your session…</div>;
+ if(!supabase)return <div className="v61-auth-screen"><div className="v61-auth-card"><h1>Supabase setup required</h1><p>Create a root-level .env.local with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then restart Vite.</p><p>No project data has been changed.</p></div></div>;
+ if(!session)return <div className="v61-auth-screen"><form className="v61-auth-card" onSubmit={submit}><div className="v61-auth-brand"><Network size={23}/><strong>Research Workspace</strong></div><h1>{mode==='signin'?'Welcome back':'Create your account'}</h1><p>Sign in to continue your research workspace.</p><label>Email<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label><label>Password<input type="password" autoComplete={mode==='signin'?'current-password':'new-password'} minLength={6} required value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<div className="v61-auth-error" role="alert">{error}</div>}{notice&&<div className="v61-auth-notice" role="status">{notice}</div>}<button className="primary" disabled={busy} type="submit">{busy?'Please wait…':mode==='signin'?'Sign In':'Sign Up'}</button><button type="button" className="v61-auth-switch" onClick={()=>{setMode(mode==='signin'?'signup':'signin');setError('');setNotice('')}}>{mode==='signin'?'New here? Create an account':'Already have an account? Sign in'}</button></form></div>;
+ return <div className="v61-authenticated"><div className="v61-session-bar"><span>Signed in as <strong>{session.user.email}</strong></span><button className="secondary" onClick={async()=>{const {error}=await supabase.auth.signOut();if(error)setError(error.message)}}>Sign Out</button></div><div className="v61-local-warning">Authentication preview: projects and PDF endpoints are still local and are NOT isolated by user yet. Do not use this build to store private multi-user research data.</div><App key={session.user.id}/></div>;
 }
 function App(){
  const [projects,setProjects]=useState(load);
@@ -385,4 +418,4 @@ function App(){
  </main>{paperEditor&&<div className="modal-backdrop"><div className="modal"><div className="modal-head"><h2>Paper Metadata</h2><button className="icon-btn" onClick={()=>setPaperEditor(null)}><X size={18}/></button></div><p className="hint">Change the name shown in Paper Library without renaming the uploaded PDF file or breaking source links. Review other metadata below.</p><label>Display name in Paper Library<input maxLength={180} value={paperEditor.name||''} onChange={e=>setPaperEditor(p=>({...p,name:e.target.value}))} placeholder="e.g. Sun Protection Behaviours — 2021"/></label>{[['title','Paper title'],['authors','Authors'],['year','Publication year'],['venue','Journal / Conference / Source'],['doi','DOI'],['url','Source URL']].map(([key,label])=><label key={key}>{label}<input value={paperEditor[key]||''} onChange={e=>setPaperEditor(p=>({...p,[key]:e.target.value}))}/></label>)}<div className="modal-actions"><button className="secondary" onClick={()=>setPaperEditor(null)}>Cancel</button><button className="primary" onClick={savePaperMetadata}>Save Metadata</button></div></div></div>}{evidenceEditor&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEvidenceEditor(null)}}><div className="modal evidence-modal v9-evidence-modal" role="dialog" aria-modal="true" aria-labelledby="evidence-edit-title"><div className="v9-modal-header"><div><span className="v9-eyebrow">EVIDENCE DETAILS</span><h2 id="evidence-edit-title">Edit Evidence</h2><p>Review the original source and refine your research interpretation.</p></div><button className="icon-btn" aria-label="Close evidence editor" onClick={()=>setEvidenceEditor(null)}><X size={19}/></button></div><div className="v9-modal-scroll"><section className="v9-modal-section"><div className="v9-section-heading"><strong>Original Passage</strong><span className="v9-readonly">Read-only</span></div><blockquote className="v9-source-quote" style={{borderLeftColor:themeColor(project.topics,evidenceEditor.theme)}}>{evidenceEditor.text||evidenceEditor.quote||'Original quote unavailable'}</blockquote><div className="v9-source-meta"><FileText size={14}/><span>{project.papers.find(p=>p.id===evidenceEditor.paperId)?.name||evidenceEditor.source||'Source paper'} · Page {evidenceEditor.page||'?'}</span></div></section><section className="v9-modal-section"><div className="v9-section-heading"><strong>Relationship to Research Question</strong></div><div className="v9-relationship-picker" role="group" aria-label="Relationship to Research Question">{relationshipOptions.map(t=><button key={t} type="button" className={evidenceEditor.relationship===t?'active':''} style={evidenceEditor.relationship===t?relationshipStyle(t):undefined} onClick={()=>setEvidenceEditor(old=>({...old,relationship:t}))}>{t}</button>)}</div></section><section className="v9-modal-section"><div className="v9-section-heading"><strong>Research Themes</strong><span className="v9-section-note">Select one or more</span></div><div className="v9-theme-options">{[...new Set([...project.topics,'Uncategorised'])].map(t=><label key={t} className={(evidenceEditor.themes||[evidenceEditor.theme]).includes(t)?'selected':''}><input type="checkbox" checked={(evidenceEditor.themes||[evidenceEditor.theme]).includes(t)} onChange={ev=>setEvidenceEditor(old=>{const themes=ev.target.checked?[...new Set([...(old.themes||[old.theme]),t])]:(old.themes||[old.theme]).filter(x=>x!==t);return {...old,themes:themes.length?themes:[old.theme],theme:themes.includes(old.theme)?old.theme:(themes[0]||old.theme)}})}/><span className="theme-swatch" style={{background:themeColor(project.topics,t)}}/>{t}</label>)}</div></section><section className="v9-modal-section"><div className="v9-section-heading"><strong>Interpretation</strong><span className="v9-section-note">Editable</span></div><textarea aria-label="Evidence interpretation" rows="5" value={evidenceDraft} onChange={e=>setEvidenceDraft(e.target.value)} placeholder="Explain how this passage contributes to your research question..."/></section></div><div className="v9-modal-footer"><button className="secondary" onClick={()=>setEvidenceEditor(null)}>Cancel</button><button className="primary" disabled={!evidenceDraft.trim()} onClick={()=>{update(p=>({...p,evidence:p.evidence.map(x=>x.id===evidenceEditor.id?{...x,analysis:evidenceDraft.trim(),relationship:evidenceEditor.relationship||'Unclassified',theme:evidenceEditor.theme,themes:evidenceEditor.themes||[evidenceEditor.theme]}:x)}));setEvidenceEditor(null);toast('Evidence changes saved')}}>Save Changes</button></div></div></div>}{message&&<div className="toast">{message}</div>}
  </div>;
 }
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root')).render(<AuthGate/>);
