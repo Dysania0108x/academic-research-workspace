@@ -86,3 +86,10 @@ Mock and real analysis caches use different model identities, so mock output sho
 To return to real Qwen calls, change the local setting to `AI_MOCK_MODE=false`, restart FastAPI, and check the header says **AI READY**. Never commit `backend/.env` or an API key.
 
 Automated regression checks run in GitHub Actions, but visual browser interaction and live Qwen performance still need manual validation.
+
+
+## V6.2 private PDF storage (development preview)
+
+Supabase Storage bucket `research-pdfs` must be **private**. Authenticated users upload new PDFs at `<user_id>/<project_id>/<paper_id>.pdf` with `application/pdf`. Configure INSERT, SELECT and DELETE RLS policies scoped to the first path component and authenticated UID. The cloud path is stored as `storagePath` in the paper metadata inside the owner's Supabase project JSON. Existing PDFs are not automatically migrated.
+
+**Security limitation:** The current FastAPI upload, extraction, PDF reading and AI endpoints still use local unauthenticated routes. The cloud upload is an additional backup, not a secure end-to-end multi-user PDF workflow. PDF reading across devices is not yet implemented. Do not deploy this preview publicly or use private documents until all FastAPI paper and analysis routes validate Supabase JWTs, verify project ownership and read PDFs through authorized cloud storage. Project deletion does not yet cascade cloud PDF deletion. Do not merge this PR as a complete multi-user release.
