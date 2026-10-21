@@ -9,10 +9,12 @@ function loadPdfjs(){
   if(!loader)loader=import(/* @vite-ignore */ LIB).then(lib=>{lib.GlobalWorkerOptions.workerSrc=WORKER;return lib});
   return loader;
 }
-export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose}){
+export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,pageSize,highlights=[],sourceFocus,onHighlightClick}){
   const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null);
   const [status,setStatus]=useState('Loading original PDF…'),[count,setCount]=useState(0);
   const [zoom,setZoom]=useState(1.5);
+  const [rotation,setRotation]=useState(0);
+  const [renderedPage,setRenderedPage]=useState(null);
   useEffect(()=>{
     let active=true,task;
     (async()=>{
@@ -34,11 +36,13 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
     const doc=documentRef.current;
     if(!doc||!canvas.current||!textLayer.current||page<1||page>count)return;
     let cancelled=false,renderTask;
+    setRenderedPage(null);
     (async()=>{
       try{
         const pdfPage=await doc.getPage(page);
         if(cancelled)return;
         const viewport=pdfPage.getViewport({scale:zoom});
+        setRotation(pdfPage.rotate||0);
         const surface=canvas.current;
         const context=surface.getContext('2d');
         const ratio=Math.min(window.devicePixelRatio||1,2.5);
@@ -61,10 +65,22 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
         });
         await textTask.render();
         if(cancelled)layer.replaceChildren();
+        else setRenderedPage(page);
       }catch(error){if(!cancelled&&error?.name!=='RenderingCancelledException')setStatus('Page rendering failed: '+error.message)}
     })();
     return()=>{cancelled=true;renderTask?.cancel();textLayer.current?.replaceChildren()};
   },[page,count,zoom]);
+  // PyMuPDF rectangles use top-left page coordinates. For unrotated pages,
+  // normalized coordinates are invariant under PDF.js zoom and HiDPI rendering.
+  // Rotated/cropped PDFs need explicit viewport transforms before overlay release.
+  const canOverlay=rotation===0 && pageSize?.width>0 && pageSize?.height>0 && renderedPage===page;
+  const rectStyle=rect=>{
+    if(!Array.isArray(rect)||rect.length!==4||!rect.every(Number.isFinite))return null;
+    const [x0,y0,x1,y1]=rect;
+    if(x1<=x0||y1<=y0)return null;
+    return {left:(x0/pageSize.width*100)+'%',top:(y0/pageSize.height*100)+'%',
+      width:((x1-x0)/pageSize.width*100)+'%',height:((y1-y0)/pageSize.height*100)+'%'};
+  };
   return <section className="pdfjs-preview">
     <div className="pdfjs-toolbar">
       <strong>PDF.js Reader (Preview)</strong>
@@ -76,6 +92,20 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose})
       <button onClick={onClose}>Old Reader</button>
     </div>
     {status&&<p role="status">{status}</p>}
-    <div className="pdfjs-scroll"><div className="pdfjs-page"><canvas ref={canvas}/><div ref={textLayer} className="pdfjs-text-layer textLayer"/></div></div>
+    {rotation!==0&&<p role="status">Highlight overlays are disabled for rotated pages until coordinate transforms are verified.</p>}
+    <div className="pdfjs-scroll"><div className="pdfjs-page"><canvas ref={canvas}/><div ref={textLayer} className="pdfjs-text-layer textLayer"/>
+      {canOverlay&&<div className="pdfjs-highlight-layer">
+        {highlights.flatMap((highlight,index)=>(highlight.rects||[]).map((rect,rectIndex)=>{
+          const style=rectStyle(rect);
+          return style?<button type="button" key={'highlight-'+index+'-'+rectIndex}
+            className="pdfjs-highlight-rect" style={{...style,background:highlight.color||'#a783e855'}}
+            title={highlight.theme||'AI highlight'} aria-label={'View '+(highlight.theme||'highlight')}
+            onClick={()=>onHighlightClick?.(highlight)}/>:null;
+        }))}
+        {sourceFocus?.page===page&&(sourceFocus.rects||[]).map((rect,index)=>{
+          const style=rectStyle(rect);
+          return style?<div key={'source-'+index} className="pdfjs-source-rect" style={style}/>:null;
+        })}
+      </div>}</div></div>
   </section>;
 }
