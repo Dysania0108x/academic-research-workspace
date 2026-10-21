@@ -25,6 +25,8 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS passage_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS theme_cache (cache_key TEXT PRIMARY KEY, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, task_type TEXT NOT NULL, paper_id TEXT, model TEXT, input_tokens INTEGER, output_tokens INTEGER, total_tokens INTEGER, status TEXT NOT NULL, error TEXT)')
+        c.execute('CREATE TABLE IF NOT EXISTS analysis_jobs_persisted (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, paper_id TEXT NOT NULL, cache_key TEXT NOT NULL, snapshot TEXT NOT NULL, updated_at REAL NOT NULL)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_jobs_owner_context ON analysis_jobs_persisted(owner_id, cache_key, updated_at)')
 init_db()
 app=FastAPI(title='Research Workspace API')
 app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http://127.0.0.1:5173'],allow_methods=['*'],allow_headers=['*'])
@@ -494,11 +496,36 @@ analysis_lock=threading.Lock()
 def _job_snapshot(job):
     return {k:v for k,v in job.items() if k not in ('cancel_event','cache_key','request')}
 
+def _persist_job(job):
+    snapshot=_job_snapshot(job)
+    with db() as c:
+        c.execute('INSERT INTO analysis_jobs_persisted(id,owner_id,paper_id,cache_key,snapshot,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET snapshot=excluded.snapshot,updated_at=excluded.updated_at',
+                  (job['id'],job['owner_id'],job['paper_id'],job['cache_key'],json.dumps(snapshot,ensure_ascii=False),time.time()))
+
+def _load_job(job_id, owner_id):
+    with db() as c:
+        row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE id=? AND owner_id=?',(job_id,owner_id)).fetchone()
+    if not row:return None
+    snapshot=json.loads(row['snapshot'])
+    if snapshot.get('status') in ('queued','running'):
+        snapshot.update(status='interrupted',message='Server restarted; start analysis again to resume from cached batches',batch_started_at=None)
+    return snapshot
+
+def _latest_persisted_job(owner_id, identity):
+    with db() as c:
+        row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE owner_id=? AND cache_key=? ORDER BY updated_at DESC LIMIT 1',(owner_id,identity)).fetchone()
+    if not row:return None
+    snapshot=json.loads(row['snapshot'])
+    if snapshot.get('status') in ('queued','running'):
+        snapshot.update(status='interrupted',message='Server restarted; start analysis again to resume from cached batches',batch_started_at=None)
+    return snapshot
+
 def _set_job(job, **changes):
     with analysis_lock:
         if job['cancel_event'].is_set() and changes.get('status') != 'cancelled':
             return
         job.update(changes)
+        _persist_job(job)
 
 def _analyse_job(job, req):
     try:
