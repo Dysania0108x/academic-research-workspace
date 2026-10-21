@@ -256,7 +256,9 @@ def paper_sha(paper_id):
     with db() as c:
         row=c.execute('SELECT sha256 FROM papers WHERE id=?',(paper_id,)).fetchone()
     if not row: raise HTTPException(404,'Paper not found')
-    return row['sha256']
+    # Include the unique paper ID so shared SQLite caches cannot mix accounts
+    # that uploaded identical PDF bytes.
+    return hashlib.sha256((paper_id + ':' + row['sha256']).encode()).hexdigest()
 
 def mock_mode():
     return os.getenv('AI_MOCK_MODE','false').strip().lower() in ('1','true','yes','on')
