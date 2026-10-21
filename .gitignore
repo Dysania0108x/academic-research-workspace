@@ -6,3 +6,10 @@ backend/uploads/
 __pycache__/
 backend/research.db
 backend/research.db-*
+
+# Frontend configuration and local research exports
+.env
+.env.local
+.env.*
+!.env.example
+*-project-data.json
