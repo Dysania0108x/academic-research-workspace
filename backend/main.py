@@ -28,6 +28,21 @@ def init_db():
 init_db()
 app=FastAPI(title='Research Workspace API')
 app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http://127.0.0.1:5173'],allow_methods=['*'],allow_headers=['*'])
+# V6.3: all API calls except the non-sensitive health probe require a valid
+# Supabase access token. Project/paper ownership enforcement is a separate
+# requirement before multi-user release.
+from cloud_auth import authenticated_user
+
+@app.middleware("http")
+async def require_api_session(request, call_next):
+    if request.url.path.startswith("/api/") and request.url.path != "/api/health":
+        from fastapi.responses import JSONResponse
+        try:
+            authenticated_user(request.headers.get("authorization"))
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return await call_next(request)
+
 class ProjectPayload(BaseModel):
     id: str
     data: dict
