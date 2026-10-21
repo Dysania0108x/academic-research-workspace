@@ -252,7 +252,8 @@ function App({user}){
  const setCloudProjects=(fn)=>setProjects(prev=>{const next=typeof fn==='function'?fn(prev):fn;for(const p of next){const before=prev.find(x=>x.id===p.id);if(before!==p)cloudPending.current.add(p.id)}return next});
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
  useEffect(()=>{
-  if(!paperId||!pageSizes.length){setPageImageUrl(null);return}
+  setPageImageUrl(null);
+  if(!paperId||!pageSizes.length)return;
   let active=true;let objectUrl=null;
   apiFetch('/api/papers/'+encodeURIComponent(paperId)+'/pages/'+pageNumber+'/image?scale=2.5')
    .then(async response=>{if(!response.ok)throw Error('PDF page could not be loaded');return response.blob()})
