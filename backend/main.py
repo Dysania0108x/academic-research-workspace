@@ -598,7 +598,27 @@ def _analyse_job(job, req):
                 except HTTPException as exc:
                     if job['cancel_event'].is_set():return
                     failed_batches.append(index+1)
-                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed after {int(time.monotonic()-started_at)}s; continuing',failed_batches=list(failed_batches),batch_started_at=None)
+                    # Persist a safe diagnostic category, never credentials or raw
+                    # upstream response bodies, which may contain sensitive data.
+                    detail=str(exc.detail).lower()
+                    if '429' in detail or 'rate limit' in detail or 'quota' in detail:
+                        reason='rate_limited_or_quota'
+                    elif '401' in detail or '403' in detail or 'invalid api key' in detail:
+                        reason='upstream_auth'
+                    elif '404' in detail or 'model not found' in detail:
+                        reason='model_or_endpoint'
+                    elif 'timeout' in detail or 'timed out' in detail:
+                        reason='upstream_timeout'
+                    elif '400' in detail or 'response_format' in detail or 'unsupported' in detail:
+                        reason='unsupported_request'
+                    elif 'json' in detail:
+                        reason='invalid_json'
+                    else:
+                        reason='upstream_error'
+                    failures=job.get('batch_errors',[])
+                    failures=[*failures,{'batch':index+1,'category':reason,'http_status':exc.status_code}]
+                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed ({reason}); continuing',
+                             failed_batches=list(failed_batches),batch_errors=failures,batch_started_at=None)
                     continue
                 result=[]
                 allowed_ids={b['id'] for b in batch}
