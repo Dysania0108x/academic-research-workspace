@@ -1,7 +1,7 @@
 import os, uuid, json, re, sqlite3, hashlib, time, threading, math
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -96,10 +96,12 @@ async def require_api_session(request, call_next):
             if not project_id:
                 raise HTTPException(422, "project_id required for upload")
             require_project_owner(project_id, token)
-        # Job IDs and shared local caches have no reliable ownership association.
-        # Fail closed until job owner IDs are persisted and checked.
-        if re.match(r"^/api/analyse/jobs/", path):
-            raise HTTPException(403, "Job access requires owner-scoped job migration")
+        job_match = re.match(r"^/api/analyse/jobs/([^/]+)", path)
+        if job_match:
+            with analysis_lock:
+                job = analysis_jobs.get(job_match.group(1))
+                if not job or job.get("owner_id") != user_id:
+                    raise HTTPException(404, "Analysis job not found")
         return await call_next(request)
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail":exc.detail})
@@ -525,12 +527,13 @@ def _analyse_job(job, req):
         _set_job(job,status='failed',error=str(getattr(exc,'detail',exc))[:400],message='Analysis failed; completed batches remain cached')
 
 @app.post('/api/analyse/start')
-def start_analysis(req:AnalysisRequest):
+def start_analysis(req:AnalysisRequest, authorization: str | None = Header(default=None)):
+    owner_id=authenticated_user(authorization)
     themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
     if not themes:raise HTTPException(422,'Add research themes first')
     if not req.question.strip():raise HTTPException(422,'Research question required')
     sha=paper_sha(req.paper_id)
-    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,active_model())
+    identity=fingerprint(owner_id,HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,active_model())
     with analysis_lock:
         for job in analysis_jobs.values():
             if job['cache_key']==identity and job['status'] in ('queued','running'):
@@ -543,13 +546,13 @@ def start_analysis(req:AnalysisRequest):
         for old_id in list(analysis_jobs)[:-40]:
             if analysis_jobs[old_id]['status'] not in ('queued','running'):
                 analysis_jobs.pop(old_id,None)
-        job={'id':str(uuid.uuid4()),'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'failed_batches':[],'batch_started_at':None,'error':None,'cancel_event':threading.Event()}
+        job={'id':str(uuid.uuid4()),'owner_id':owner_id,'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'failed_batches':[],'batch_started_at':None,'error':None,'cancel_event':threading.Event()}
         analysis_jobs[job['id']]=job
     analysis_pool.submit(_analyse_job,job,req)
     return _job_snapshot(job)
 
 @app.get('/api/analyse/papers/{paper_id}/job')
-def get_paper_analysis_job(paper_id:str, question:str, themes:str):
+def get_paper_analysis_job(paper_id:str, question:str, themes:str, authorization: str | None = Header(default=None)):
     """Reconnect to the latest job for this exact paper and research context."""
     sha=paper_sha(paper_id)
     try:
@@ -559,7 +562,7 @@ def get_paper_analysis_job(paper_id:str, question:str, themes:str):
     if not isinstance(theme_list,list):
         raise HTTPException(422,'Themes must be an array')
     normalized=list(dict.fromkeys(str(t).strip() for t in theme_list if str(t).strip()))
-    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,question.strip(),normalized,active_model())
+    identity=fingerprint(authenticated_user(authorization),HIGHLIGHT_ENGINE_VERSION,sha,question.strip(),normalized,active_model())
     with analysis_lock:
         candidates=[j for j in analysis_jobs.values() if j.get('cache_key')==identity]
         if not candidates:
