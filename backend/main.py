@@ -29,7 +29,15 @@ def init_db():
         c.execute('CREATE INDEX IF NOT EXISTS idx_jobs_owner_context ON analysis_jobs_persisted(owner_id, cache_key, updated_at)')
 init_db()
 app=FastAPI(title='Research Workspace API')
-app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http://127.0.0.1:5173'],allow_methods=['*'],allow_headers=['*'])
+# Set FRONTEND_ORIGINS to comma-separated exact HTTPS origins in production.
+# Never combine credentialed CORS with a wildcard origin.
+frontend_origins=[origin.strip().rstrip('/') for origin in os.getenv('FRONTEND_ORIGINS','').split(',') if origin.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
+    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allow_headers=['Authorization','Content-Type'],
+)
 # V6.3: all API calls except the non-sensitive health probe require a valid
 # Supabase access token. Project/paper ownership enforcement is a separate
 # requirement before multi-user release.
