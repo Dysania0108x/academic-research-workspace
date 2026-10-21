@@ -1,4 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
+import {mapPdfRect} from './pdfGeometry.js';
 
 // Experimental reader kept separate from the existing evidence-coordinate reader.
 // PDF.js 4.10.38 is pinned; production bundling will replace the CDN dependency.
@@ -15,6 +16,7 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
   const [zoom,setZoom]=useState(1.5);
   const [rotation,setRotation]=useState(0);
   const [renderedPage,setRenderedPage]=useState(null);
+  const [renderedSize,setRenderedSize]=useState(null);
   useEffect(()=>{
     let active=true,task;
     (async()=>{
@@ -37,11 +39,14 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
     if(!doc||!canvas.current||!textLayer.current||page<1||page>count)return;
     let cancelled=false,renderTask;
     setRenderedPage(null);
+    setRenderedSize(null);
     (async()=>{
       try{
         const pdfPage=await doc.getPage(page);
         if(cancelled)return;
         const viewport=pdfPage.getViewport({scale:zoom});
+        if(cancelled)return;
+        setRenderedSize({width:viewport.width,height:viewport.height});
         setRotation(pdfPage.rotate||0);
         const surface=canvas.current;
         const context=surface.getContext('2d');
@@ -73,14 +78,8 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
   // PyMuPDF rectangles use top-left page coordinates. For unrotated pages,
   // normalized coordinates are invariant under PDF.js zoom and HiDPI rendering.
   // Rotated/cropped PDFs need explicit viewport transforms before overlay release.
-  const canOverlay=rotation===0 && pageSize?.width>0 && pageSize?.height>0 && renderedPage===page;
-  const rectStyle=rect=>{
-    if(!Array.isArray(rect)||rect.length!==4||!rect.every(Number.isFinite))return null;
-    const [x0,y0,x1,y1]=rect;
-    if(x1<=x0||y1<=y0)return null;
-    return {left:(x0/pageSize.width*100)+'%',top:(y0/pageSize.height*100)+'%',
-      width:((x1-x0)/pageSize.width*100)+'%',height:((y1-y0)/pageSize.height*100)+'%'};
-  };
+  const canOverlay=rotation===0 && pageSize?.width>0 && pageSize?.height>0 && renderedPage===page && renderedSize;
+  const rectStyle=rect=>mapPdfRect(rect,pageSize,renderedSize);
   return <section className="pdfjs-preview">
     <div className="pdfjs-toolbar">
       <strong>PDF.js Reader (Preview)</strong>
