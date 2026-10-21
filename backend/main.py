@@ -34,15 +34,7 @@ app=FastAPI(title='Research Workspace API')
 # Set FRONTEND_ORIGINS to comma-separated exact HTTPS origins in production.
 # Never combine credentialed CORS with a wildcard origin.
 frontend_origins=[origin.strip().rstrip('/') for origin in os.getenv('FRONTEND_ORIGINS','').split(',') if origin.strip()]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
-    # Project-scoped Vercel Preview domains change with each deployment.
-    # CORS is not authentication: all protected routes still require JWT ownership checks.
-    allow_origin_regex=r'^https://academic-research-workspace-[a-z0-9-]+\.vercel\.app$',
-    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allow_headers=['Authorization','Content-Type'],
-)
+
 # V6.3: all API calls except the non-sensitive health probe require a valid
 # Supabase access token. Project/paper ownership enforcement is a separate
 # requirement before multi-user release.
@@ -171,6 +163,17 @@ async def require_api_session(request, call_next):
         return await call_next(request)
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail":exc.detail})
+
+# Register CORS last so it wraps authentication middleware responses too.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
+    # Project-scoped Vercel Preview domains change with each deployment.
+    # CORS is not authentication: all protected routes still require JWT ownership checks.
+    allow_origin_regex=r'^https://academic-research-workspace-[a-z0-9-]+\.vercel\.app$',
+    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allow_headers=['Authorization','Content-Type'],
+)
 
 class ProjectPayload(BaseModel):
     id: str
