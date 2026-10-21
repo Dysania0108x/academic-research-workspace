@@ -96,3 +96,6 @@ Supabase Storage bucket `research-pdfs` must be **private**. Authenticated users
 
 ## V6.5 Preview deployment
 This branch contains the opt-in PDF.js reader and coordinate regression tests. Deploy as a Vercel Preview for browser validation before merging. The existing reader remains the default.
+
+### V6.5 PDF.js preview verification
+The PDF.js reader remains opt-in until selectable text, source-highlight alignment, and Evidence Analysis interactions are verified on a Vercel Preview. Do not merge the branch before reconciling the latest V6.4 cloud-auth changes.
