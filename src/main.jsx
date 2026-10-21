@@ -343,16 +343,27 @@ function App({user}){
     const fd=new FormData();fd.append('file',file);
     const r=await apiFetch('/api/papers?project_id='+encodeURIComponent(targetProjectId),{method:'POST',body:fd});
     const d=await r.json();if(!r.ok)throw Error(d.detail||'PDF upload failed');
-    const storagePath=await storePrivatePdf(file,targetProjectId,d.id);
-    const paper={...d,seed:false,size:file.size,storagePath};
-    const {data:row,error:loadError}=await supabase.from('projects').select('data').eq('id',targetProjectId).eq('user_id',user.id).single();
-    if(loadError)throw Error('Cloud metadata read failed: '+loadError.message);
-    const papers=[...(row.data?.papers||[])];
-    if(!papers.some(p=>p.id===paper.id))papers.push(paper);
-    const next={...row.data,papers};
-    const {error:saveError}=await supabase.from('projects').update({data:next}).eq('id',targetProjectId).eq('user_id',user.id);
-    if(saveError)throw Error('Cloud metadata save failed: '+saveError.message);
-    added.push(paper);
+    let storagePath=null;
+    try{
+      storagePath=await storePrivatePdf(file,targetProjectId,d.id);
+      const paper={...d,seed:false,size:file.size,storagePath};
+      const {data:row,error:loadError}=await supabase.from('projects').select('data').eq('id',targetProjectId).eq('user_id',user.id).single();
+      if(loadError)throw Error('Cloud metadata read failed: '+loadError.message);
+      const papers=[...(row.data?.papers||[])];
+      if(!papers.some(p=>p.id===paper.id))papers.push(paper);
+      const next={...row.data,papers};
+      const {error:saveError}=await supabase.from('projects').update({data:next}).eq('id',targetProjectId).eq('user_id',user.id);
+      if(saveError)throw Error('Cloud metadata save failed: '+saveError.message);
+      added.push(paper);
+    }catch(uploadError){
+      // Best-effort compensation; never hide cleanup failures.
+      if(storagePath){
+        const {error:cleanupError}=await supabase.storage.from('research-pdfs').remove([storagePath]);
+        if(cleanupError)throw Error(uploadError.message+'; cloud cleanup also failed: '+cleanupError.message);
+      }
+      throw uploadError;
+    }
+    const paper=added[added.length-1];
     setCloudProjects(prev=>prev.map(p=>p.id===targetProjectId?{...p,papers:[...(p.papers||[]).filter(x=>x.id!==paper.id),paper]}:p));
     setPaperId(paper.id);
   }
