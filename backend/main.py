@@ -341,8 +341,18 @@ def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
         if u: usage=(u.prompt_tokens,u.completion_tokens,u.total_tokens)
         return json.loads(res.choices[0].message.content or '{}')
     except Exception as exc:
-        status='error';error=str(exc)[:500]
-        raise HTTPException(502,'AI request failed: '+error[:250])
+        # Classify provider errors without exposing response bodies, prompts or secrets.
+        code=getattr(exc,'status_code',None)
+        kind=type(exc).__name__.lower()
+        if code in (401,403): category='upstream_auth'
+        elif code==404: category='model_or_endpoint'
+        elif code==429: category='rate_limited_or_quota'
+        elif code==400: category='unsupported_request'
+        elif code in (408,504) or 'timeout' in kind: category='upstream_timeout'
+        elif isinstance(exc,json.JSONDecodeError): category='invalid_json'
+        else: category='upstream_error'
+        status='error';error=f'{category} (provider HTTP {code or "unknown"})'
+        raise HTTPException(502,'AI request failed: '+error) from None
     finally:
         with db() as c:
             c.execute('INSERT INTO ai_usage(created_at,task_type,paper_id,model,input_tokens,output_tokens,total_tokens,status,error) VALUES(?,?,?,?,?,?,?,?,?)',(time.time(),task_type,paper_id,model,*usage,status,error))
@@ -598,7 +608,15 @@ def _analyse_job(job, req):
                 except HTTPException as exc:
                     if job['cancel_event'].is_set():return
                     failed_batches.append(index+1)
-                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed after {int(time.monotonic()-started_at)}s; continuing',failed_batches=list(failed_batches),batch_started_at=None)
+                    detail=str(exc.detail)
+                    known=('upstream_auth','model_or_endpoint','rate_limited_or_quota',
+                           'unsupported_request','upstream_timeout','invalid_json','upstream_error')
+                    category=next((name for name in known if name in detail),
+                                  'missing_api_key' if exc.status_code==503 else 'upstream_error')
+                    errors=[*job.get('batch_errors',[]),{'batch':index+1,'category':category}]
+                    _set_job(job,completed_batches=index+1,
+                             message=f'Batch {index+1}/{total} failed ({category}); continuing',
+                             failed_batches=list(failed_batches),batch_errors=errors,batch_started_at=None)
                     continue
                 result=[]
                 allowed_ids={b['id'] for b in batch}
