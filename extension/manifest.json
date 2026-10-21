@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Academic Research Floating Assistant",
+  "version": "0.1.0",
+  "description": "Capture source-linked research excerpts into your private workspace.",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.supabase.co/*"
+  ],
+  "action": {
+    "default_title": "Open Research Assistant"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  }
+}
