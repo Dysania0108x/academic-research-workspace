@@ -355,7 +355,7 @@ function App({user}){
     // Render Free can take 50+ seconds to wake. Wake it before sending PDF bytes,
     // then give the actual upload its own deadline.
     setUploadStage('Checking backend availability (free server may be waking up)');
-    const configuredApi=(import.meta.env.VITE_API_BASE_URL||'').trim().replace(/\\/$/,'');
+    const configuredApi=(import.meta.env.VITE_API_BASE_URL||'').trim().replace(/\/$/,'');
     if(configuredApi){
       const wakeController=new AbortController();
       const wakeTimeout=setTimeout(()=>wakeController.abort(),90000);
