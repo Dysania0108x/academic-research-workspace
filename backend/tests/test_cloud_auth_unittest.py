@@ -34,3 +34,32 @@ class CloudAuthBoundaryTests(unittest.TestCase):
         with TestClient(main.app) as client:
             response = client.get("/api/health")
         self.assertEqual(response.status_code, 200)
+
+    def test_authenticated_user_cannot_read_unowned_paper(self):
+        user_id = "11111111-1111-4111-8111-111111111111"
+        with patch.object(main, "authenticated_user", return_value=user_id), \
+             patch("cloud_auth._configuration", return_value=("https://example.supabase.co", "anon")), \
+             patch("httpx.Client") as client_class:
+            client_class.return_value.__enter__.return_value.get.return_value = Mock(
+                status_code=200, json=lambda: [])
+            with TestClient(main.app) as client:
+                response = client.get("/api/papers/unowned/blocks",
+                                      headers={"Authorization": "Bearer valid"})
+        self.assertEqual(response.status_code, 404)
+
+    def test_legacy_global_project_list_is_disabled(self):
+        with patch.object(main, "authenticated_user", return_value="test-user"):
+            with TestClient(main.app) as client:
+                response = client.get("/api/projects",
+                                      headers={"Authorization": "Bearer valid"})
+        self.assertEqual(response.status_code, 410)
+
+    def test_other_users_analysis_job_is_hidden(self):
+        job_id = "11111111-1111-4111-8111-111111111111"
+        job = {"id": job_id, "owner_id": "another-user", "status": "completed"}
+        with patch.object(main, "authenticated_user", return_value="current-user"), \
+             patch.dict(main.analysis_jobs, {job_id: job}, clear=True):
+            with TestClient(main.app) as client:
+                response = client.get(f"/api/analyse/jobs/{job_id}",
+                                      headers={"Authorization": "Bearer valid"})
+        self.assertEqual(response.status_code, 404)
