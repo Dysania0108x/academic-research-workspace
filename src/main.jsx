@@ -348,13 +348,14 @@ function App({user}){
     try{
       storagePath=await storePrivatePdf(file,targetProjectId,d.id);
       const paper={...d,seed:false,size:file.size,storagePath};
-      const {data:row,error:loadError}=await supabase.from('projects').select('data').eq('id',targetProjectId).eq('user_id',user.id).single();
+      const {data:row,error:loadError}=await supabase.from('projects').select('data,updated_at').eq('id',targetProjectId).eq('user_id',user.id).single();
       if(loadError)throw Error('Cloud metadata read failed: '+loadError.message);
       const papers=[...(row.data?.papers||[])];
       if(!papers.some(p=>p.id===paper.id))papers.push(paper);
       const next={...row.data,papers};
-      const {error:saveError}=await supabase.from('projects').update({data:next}).eq('id',targetProjectId).eq('user_id',user.id);
+      const {data:saved,error:saveError}=await supabase.from('projects').update({data:next,updated_at:new Date().toISOString()}).eq('id',targetProjectId).eq('user_id',user.id).eq('updated_at',row.updated_at).select('id').maybeSingle();
       if(saveError)throw Error('Cloud metadata save failed: '+saveError.message);
+      if(!saved)throw Error('Project changed during upload; please retry to avoid overwriting another device.');
       added.push(paper);
     }catch(uploadError){
       // Best-effort compensation; never hide cleanup failures.
