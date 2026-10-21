@@ -87,8 +87,8 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
       <button onClick={()=>onPageChange(Math.max(1,page-1))} disabled={page<=1}>Previous</button>
       <span>{page} / {count||'…'}</span>
       <button onClick={()=>onPageChange(Math.min(count,page+1))} disabled={page>=count}>Next</button>
-      <button onClick={()=>setZoom(z=>Math.max(.7,z-.2))}>−</button>
-      <button onClick={()=>setZoom(z=>Math.min(2.5,z+.2))}>+</button>
+      <button type="button" aria-label="Zoom out" title="Zoom out" onClick={()=>setZoom(z=>Math.max(.7,Math.round((z-.2)*10)/10))}>−</button>
+      <span aria-label="Zoom level">{Math.round(zoom*100)}%</span><button type="button" aria-label="Zoom in" title="Zoom in" onClick={()=>setZoom(z=>Math.min(2.5,Math.round((z+.2)*10)/10))}>+</button>
 
     </div>
     {status&&<p role="status">{status}</p>}
