@@ -117,10 +117,23 @@ async def require_api_session(request, call_next):
                         raise HTTPException(422, "Cloud PDF has no readable text")
                     pages = len(doc)
                 sha = hashlib.sha256(content).hexdigest()
-                target.write_bytes(content)
-                with db() as conn:
-                    conn.execute("INSERT OR REPLACE INTO papers VALUES(?,?,?,?,?)",
-                        (pid, metadata.get("name") or pid+".pdf", sha, pages, time.time()))
+                # Write atomically so a failed download never leaves a partial PDF.
+                import tempfile
+                temporary = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode="wb", suffix=".pdf", prefix="restore-",
+                        dir=STORE, delete=False
+                    ) as output:
+                        temporary = Path(output.name)
+                        output.write(content)
+                    temporary.replace(target)
+                    with db() as conn:
+                        conn.execute("INSERT OR REPLACE INTO papers VALUES(?,?,?,?,?)",
+                            (pid, metadata.get("name") or pid+".pdf", sha, pages, time.time()))
+                finally:
+                    if temporary is not None:
+                        temporary.unlink(missing_ok=True)
         # New uploads must be bound to an existing project; unaffiliated uploads
         # would otherwise create unowned local files.
         if path == "/api/papers" and request.method == "POST":
