@@ -54,3 +54,63 @@
 @keyframes ev-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:760px){.ev-header{height:76px}.ev-header nav{display:none}.ev-hero{min-height:0;padding-bottom:75px}.ev-hero-art{transform:scale(.75);margin:-2px auto -20px}.ev-about{grid-template-columns:1fr;gap:5px;padding:60px 25px}.ev-features{grid-template-columns:1fr}.ev-features article{border-right:0;border-bottom:1px solid #e4e5dc}.ev-auth-page{grid-template-columns:1fr}.ev-auth-left{min-height:230px}.ev-auth-editorial{margin:30px 0}.ev-auth-editorial svg,.ev-auth-editorial p,.ev-auth-left-foot{display:none}.ev-auth-quote{font-size:34px;margin:0}.ev-auth-right{min-height:580px;padding:45px 25px}}
 @media(prefers-reduced-motion:reduce){.ev-hero-art{animation:none}.ev-top-cta,.ev-main-cta,.ev-auth-submit{transition:none}}
+
+
+/* Evitlas V2 — independent living-atlas visual language, ivory-first palette */
+.ev-landing{background:#FAF9F6;color:#3C413D}
+.ev-landing .ev-hero-atlas{padding-top:55px;min-height:820px}
+.ev-hero-atlas h1{font-size:clamp(45px,5.3vw,79px);line-height:1.12;margin:31px 0 16px}
+.ev-hero-atlas h1 em,.ev-about-expanded h2 em,.ev-approach h2 em,.ev-final-cta h2 em{color:#B29FBB}
+.ev-hero-atlas>p{color:#81867F;margin-bottom:0}
+.ev-atlas{width:min(740px,96%);margin:10px auto 0}
+.ev-atlas svg{width:100%;height:auto;overflow:visible}
+.ev-atlas-note{font-size:11px;letter-spacing:.035em;color:#A3A69D;margin-top:-14px}
+.ev-atlas-link{stroke-dasharray:420;stroke-dashoffset:420;animation:ev-draw 1.4s ease forwards}
+.ev-atlas-node{opacity:0;animation:ev-node-in .6s ease forwards}
+@keyframes ev-draw{to{stroke-dashoffset:0}}
+@keyframes ev-node-in{to{opacity:1}}
+.ev-hero-atlas .ev-main-cta,.ev-landing .ev-top-cta{background:#B7A6BD;color:#fff}
+.ev-hero-atlas .ev-main-cta:hover,.ev-landing .ev-top-cta:hover{background:#9F8BAB}
+.ev-hero-atlas .ev-main-cta{margin-top:8px}
+.ev-about-expanded{grid-template-columns:1fr 1fr;gap:85px;padding-top:110px;padding-bottom:110px}
+.ev-about-expanded h2{font-size:clamp(36px,4.2vw,60px)}
+.ev-about-copy{max-width:490px}
+.ev-about-copy p{color:#777D77;line-height:1.9;font-size:15px;margin:0 0 21px}
+.ev-about-principle{margin-top:32px;padding:22px 0 0;border-top:1px solid #E5E3DC;display:flex;gap:24px;align-items:start}
+.ev-about-principle span{font-size:10px;letter-spacing:.14em;color:#A1A69E;white-space:nowrap;padding-top:6px}
+.ev-about-principle strong{font-family:'DM Serif Display',Georgia,serif;font-weight:400;font-size:24px;line-height:1.4;color:#7C9F96}
+.ev-approach{max-width:1160px;margin:0 auto;padding:100px 25px 115px;border-top:1px solid #E5E3DC}
+.ev-approach-head{text-align:center;max-width:720px;margin:0 auto 62px}
+.ev-approach-head h2{font-size:clamp(35px,4.5vw,62px);line-height:1.17;font-weight:450;letter-spacing:-.055em;margin:20px 0}
+.ev-approach-head p{font-size:15px;color:#858B83;line-height:1.8}
+.ev-approach-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.ev-approach-steps article{border:1px solid #E8E5DE;background:#FFFEFB;border-radius:17px;padding:25px 25px 30px;min-width:0}
+.ev-step-index{font-size:10px;letter-spacing:.14em;color:#9C9F98}
+.ev-step-art{height:172px;margin:20px 0 26px;border-radius:12px;background:#F4F2EC;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ev-step-read{background:#F1F0E9}
+.ev-mini-page{width:102px;height:132px;background:#FFFDF9;border:1px solid #E2DED5;border-radius:5px;transform:rotate(-9deg) translateX(14px);box-shadow:0 8px 15px #7B817514;padding:28px 12px;display:grid;align-content:start;gap:8px}
+.ev-mini-page.second{transform:rotate(8deg) translateX(-10px);background:#F9F4EE}
+.ev-mini-page i{height:4px;background:#CDD8CF;border-radius:3px}
+.ev-mini-page i:nth-child(2){width:70%;background:#E9B9A3}
+.ev-step-trace{flex-direction:column;gap:12px}
+.ev-quote-line{height:7px;width:66%;border-radius:4px;background:#DADCD5}
+.ev-quote-line.short{width:50%}
+.ev-quote-line.selected{background:#E8C7CF;width:62%;height:10px}
+.ev-step-connect{padding:24px;background:#F1F1EC}
+.ev-approach-steps h3{font-weight:500;letter-spacing:-.035em;font-size:25px;margin:0 0 12px}
+.ev-approach-steps p{color:#858A83;line-height:1.8;font-size:13px;margin:0}
+.ev-final-cta{background:#F1EEE9;padding:95px 24px 105px;text-align:center}
+.ev-final-cta h2{font-weight:450;font-size:clamp(40px,5vw,68px);letter-spacing:-.055em;line-height:1.12;margin:20px 0 28px}
+.ev-final-cta button{border:1px solid #C9C4BA;background:#FFFEFB;color:#555B55;border-radius:10px;padding:15px 24px;font:inherit;font-size:14px;display:inline-flex;gap:38px;align-items:center;cursor:pointer;transition:transform .2s ease,border-color .2s ease}
+.ev-final-cta button:hover{transform:translateY(-2px);border-color:#A997B3}
+@media(max-width:760px){
+ .ev-landing .ev-hero-atlas{padding-top:38px;min-height:0;padding-bottom:70px}
+ .ev-atlas{width:100%;margin:25px 0 18px}
+ .ev-atlas-note{margin-top:0}
+ .ev-about-expanded{grid-template-columns:1fr;gap:20px;padding-top:70px;padding-bottom:75px}
+ .ev-approach{padding:70px 22px}
+ .ev-approach-steps{grid-template-columns:1fr}
+ .ev-approach-head{margin-bottom:36px}
+ .ev-final-cta{padding:75px 22px}
+}
+@media(prefers-reduced-motion:reduce){.ev-atlas-link{stroke-dashoffset:0;animation:none}.ev-atlas-node{opacity:1;animation:none}}
