@@ -525,3 +525,9 @@
 .pdfjs-text-layer .markedContent{top:0;height:0}
 .pdfjs-text-layer ::selection{background:rgba(89,114,222,.3)}
 .pdfjs-page{isolation:isolate}
+
+/* V6.5 experimental source overlays: pointer events pass through empty regions. */
+.pdfjs-highlight-layer{position:absolute;inset:0;pointer-events:none;z-index:3}
+.pdfjs-highlight-rect{position:absolute;pointer-events:auto;border:0;padding:0;border-radius:2px;cursor:pointer;mix-blend-mode:multiply}
+.pdfjs-highlight-rect:hover,.pdfjs-highlight-rect:focus-visible{outline:2px solid #7059d5}
+.pdfjs-source-rect{position:absolute;pointer-events:none;outline:2px solid #7c58d6;background:#a48cff22}
