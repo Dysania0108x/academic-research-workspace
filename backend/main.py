@@ -47,6 +47,8 @@ async def require_api_session(request, call_next):
         project_match = re.match(r"^/api/projects/([^/]+)", path)
         if project_match:
             require_project_owner(project_match.group(1), token)
+        if path == '/api/projects' or path.startswith('/api/projects/') or path == '/api/usage':
+            raise HTTPException(410, 'Legacy unscoped endpoint disabled')
         paper_ids = []
         paper_match = re.match(r"^/api/papers/([^/]+)", path)
         if paper_match:
