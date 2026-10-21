@@ -4,6 +4,7 @@ import { BookOpen, LayoutDashboard, Network, Settings, Plus, FolderOpen, FileTex
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
 import PdfJsPreview from './PdfJsPreview.jsx';
+import EvitlasLanding, {EvitlasAuth} from './EvitlasLanding.jsx';
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -106,6 +107,7 @@ function AuthGate(){
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
  const [mode,setMode]=useState('signin');
+ const [entry,setEntry]=useState('landing');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
@@ -124,7 +126,8 @@ function AuthGate(){
  }catch(e){setError(e.message||'Authentication failed')}finally{setBusy(false)}};
  if(checking)return <div className="v61-auth-loading">Checking your session…</div>;
  if(!supabase)return <div className="v61-auth-screen"><div className="v61-auth-card"><h1>Supabase setup required</h1><p>Create a root-level .env.local with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then restart Vite.</p><p>No project data has been changed.</p></div></div>;
- if(!session)return <div className="v61-auth-screen"><form className="v61-auth-card" onSubmit={submit}><div className="v61-auth-brand"><Network size={23}/><strong>Research Workspace</strong></div><h1>{mode==='signin'?'Welcome back':'Create your account'}</h1><p>Sign in to continue your research workspace.</p><label>Email<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label><label>Password<input type="password" autoComplete={mode==='signin'?'current-password':'new-password'} minLength={6} required value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<div className="v61-auth-error" role="alert">{error}</div>}{notice&&<div className="v61-auth-notice" role="status">{notice}</div>}<button className="primary" disabled={busy} type="submit">{busy?'Please wait…':mode==='signin'?'Sign In':'Sign Up'}</button><button type="button" className="v61-auth-switch" onClick={()=>{setMode(mode==='signin'?'signup':'signin');setError('');setNotice('')}}>{mode==='signin'?'New here? Create an account':'Already have an account? Sign in'}</button></form></div>;
+ if(!session&&entry==='landing')return <EvitlasLanding onEnter={()=>setEntry('auth')}/>;
+ if(!session)return <EvitlasAuth mode={mode} setMode={next=>{setMode(next);setError('');setNotice('')}} email={email} setEmail={setEmail} password={password} setPassword={setPassword} busy={busy} error={error} notice={notice} onSubmit={submit} onBack={()=>setEntry('landing')}/>;
  return <div className="v61-authenticated"><div className="v61-session-bar"><span>Signed in as <strong>{session.user.email}</strong></span><button className="secondary" onClick={async()=>{const {error}=await supabase.auth.signOut();if(error)setError(error.message)}}>Sign Out</button></div><div className="v61-local-warning">Projects and private PDFs are stored in Supabase; AI analysis runs through the Render backend. Verify AI evidence against original PDF sources.</div><App key={session.user.id} user={session.user}/></div>;
 }
 function App({user}){

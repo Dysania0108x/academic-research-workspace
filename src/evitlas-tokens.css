@@ -1,0 +1,37 @@
+/* Evitlas visual foundations — opt-in, not applied globally until preview review. */
+:root {
+  --ev-canvas: #F8F7F3;
+  --ev-surface: #FFFEFB;
+  --ev-surface-muted: #F1F0E9;
+  --ev-border: #E7E5DD;
+  --ev-ink: #333A36;
+  --ev-muted: #747B74;
+  --ev-sage: #AFC7B7;
+  --ev-teal: #80B8B0;
+  --ev-apricot: #E8B59D;
+  --ev-lilac: #C9B9D2;
+  --ev-radius-sm: 8px;
+  --ev-radius-md: 12px;
+  --ev-radius-lg: 18px;
+  --ev-space-1: 4px;
+  --ev-space-2: 8px;
+  --ev-space-3: 12px;
+  --ev-space-4: 16px;
+  --ev-space-6: 24px;
+  --ev-space-8: 32px;
+  --ev-shadow: 0 8px 28px rgba(45,55,47,.055);
+  --ev-motion-fast: 160ms;
+  --ev-motion-normal: 260ms;
+}
+.evitlas-theme {
+  color: var(--ev-ink);
+  background: var(--ev-canvas);
+  font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+}
+.evitlas-theme :focus-visible {outline: 2px solid #629B92;outline-offset: 3px}
+@media (prefers-reduced-motion: reduce) {
+  .evitlas-theme *, .evitlas-theme *::before, .evitlas-theme *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
