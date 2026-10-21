@@ -302,7 +302,7 @@ function App({user}){
  useEffect(()=>{
   const job=paperId?paperJobs[projectId+':'+paperId]:null;
   setAnalysisJob(job&&['queued','running'].includes(job.status)?job:null);
-  if(job){setMatches(job.matches||[]);if(job.status==='failed')setAiError(job.error||'Analysis failed');else if(job.status==='partial')setCacheMessage(job.message||'Partial results. Retry analysis to complete failed batches.');}
+  if(job){setMatches(job.matches||[]);if(job.status==='failed')setAiError(job.error||'Analysis failed');else if(job.status==='partial')setCacheMessage((job.message||'Partial results. Retry analysis to complete failed batches.')+(job.batch_errors?.length?' Failure categories: '+[...new Set(job.batch_errors.map(e=>e.category))].join(', '):''));}
  },[projectId,paperId,paperJobs]);
  const update=(fn)=>setCloudProjects(prev=>prev.map(p=>p.id===projectId?fn(p):p));
  const toast=(s)=>{setMessage(s);setTimeout(()=>setMessage(''),3200)};
