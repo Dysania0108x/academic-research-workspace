@@ -5,8 +5,6 @@ of authorization. Verify bearer tokens with Supabase Auth and query projects
 using the same token, so the database's RLS policies remain authoritative.
 """
 import os
-from urllib.parse import quote
-
 import httpx
 from fastapi import Header, HTTPException
 
