@@ -1,3 +1,4 @@
+from supabase_server_auth import enabled as server_enabled, headers as server_headers
 """Durable owner-scoped job snapshots in Supabase PostgREST.
 
 The backend uses a server-only service-role key for background worker writes.
@@ -8,11 +9,10 @@ import os
 import httpx
 
 def enabled():
-    return bool(os.getenv("SUPABASE_SERVICE_ROLE_KEY") and os.getenv("SUPABASE_URL"))
+    return server_enabled()
 
 def _headers():
-    key=os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    return {"apikey":key,"Authorization":"Bearer "+key,"Content-Type":"application/json"}
+    return server_headers()
 
 def _url():
     return os.environ["SUPABASE_URL"].rstrip("/")+"/rest/v1/analysis_jobs"
