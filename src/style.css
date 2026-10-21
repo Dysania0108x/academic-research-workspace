@@ -531,3 +531,8 @@
 .pdfjs-highlight-rect{position:absolute;pointer-events:auto;border:0;padding:0;border-radius:2px;cursor:pointer;mix-blend-mode:multiply}
 .pdfjs-highlight-rect:hover,.pdfjs-highlight-rect:focus-visible{outline:2px solid #7059d5}
 .pdfjs-source-rect{position:absolute;pointer-events:none;outline:2px solid #7c58d6;background:#a48cff22}
+
+/* Keep the research assistant visible beside the experimental reader. */
+@media(min-width:1100px){.pdfjs-modal-with-assistant{right:25vw}}
+.pdfjs-highlight-rect.is-selected{outline:2px solid #654ac5;outline-offset:1px;z-index:2}
+.pdfjs-source-rect{scroll-margin:150px}
