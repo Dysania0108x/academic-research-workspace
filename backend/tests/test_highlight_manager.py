@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import main
 
+@unittest.skip('Legacy SQLite project API removed in V6.3; replace with owner-scoped cloud highlight tests')
 class HighlightManagerTests(unittest.TestCase):
     def test_candidates_are_scoped_to_project_papers_and_deduplicated(self):
         project='highlight-manager-fixture'
