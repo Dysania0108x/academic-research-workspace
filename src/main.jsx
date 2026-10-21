@@ -307,17 +307,16 @@ function App({user}){
  const update=(fn)=>setCloudProjects(prev=>prev.map(p=>p.id===projectId?fn(p):p));
  const toast=(s)=>{setMessage(s);setTimeout(()=>setMessage(''),3200)};
  const openPrivatePdf=async(paper)=>{
-  if(!paper?.storagePath){setAiError('This paper has no cloud PDF. It was uploaded before cloud storage was enabled.');return}
-  const preview=window.open('','_blank');
+  if(!paper?.storagePath){setAiError('This paper has no cloud PDF.');return}
+  // Open synchronously on user click, before the asynchronous signed URL request.
+  const preview=window.open('about:blank','_blank');
   if(!preview){setAiError('Allow pop-ups for this site to open cloud PDFs.');return}
   try{
-   const prefix=user.id+'/'+project.id+'/';
-   if(!paper.storagePath.startsWith(prefix))throw Error('PDF path does not belong to the current project');
-   const {data,error}=await supabase.storage.from('research-pdfs').download(paper.storagePath);
-   if(error)throw error;
-   const url=URL.createObjectURL(data);
-   preview.location.href=url;
-   setTimeout(()=>URL.revokeObjectURL(url),120000);
+   const expected=user.id+'/'+project.id+'/'+paper.id+'.pdf';
+   if(paper.storagePath!==expected)throw Error('PDF path does not belong to this project');
+   const {data,error}=await supabase.storage.from('research-pdfs').createSignedUrl(expected,60);
+   if(error||!data?.signedUrl)throw Error(error?.message||'Could not generate private PDF link');
+   preview.location.replace(data.signedUrl);
   }catch(e){preview.close();setAiError('Unable to open private PDF: '+e.message)}
  };
   const storePrivatePdf=async(file,projectId,paperId)=>{
