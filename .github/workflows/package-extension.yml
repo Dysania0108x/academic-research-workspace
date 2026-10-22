@@ -26,6 +26,7 @@ jobs:
           node --check extension/panel.js
           node --check extension/connection.js
           node --check extension/excerpts-cloud.js
+          node --check extension/captureRules.mjs
           node --check extension/config.js
       - name: Package unpacked extension
         run: |
