@@ -83,7 +83,10 @@ import {themeChipStyle} from './themePalette.mjs';
   try{
    const job=await globalThis.nuscopeCloud.analysisJob(jobId);
    if(activeJob!==jobId)return;
-   notice.textContent=(job.message||job.status||'Analysing')+' · '+(job.completed_batches||0)+'/'+(job.total_batches||'?')+' batches';
+   const timings=job.batch_timings||[];
+   const last=timings[timings.length-1];
+   const elapsed=job.batch_started_at?Math.max(0,Math.round(Date.now()/1000-job.batch_started_at)):null;
+   notice.textContent=(job.message||job.status||'Analysing')+' · '+(job.completed_batches||0)+'/'+(job.total_batches||'?')+' batches'+(elapsed!==null?' · current batch '+elapsed+'s':'')+(last?' · previous '+last.seconds+'s'+(last.cached?' (cached)':''):'');
    // Keep the review form stable while background batches are still arriving.
    if(!['queued','running'].includes(job.status))render(job);
    if(['queued','running'].includes(job.status)){
