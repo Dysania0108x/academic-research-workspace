@@ -282,8 +282,26 @@ def paper_sha(paper_id):
 def mock_mode():
     return os.getenv('AI_MOCK_MODE','false').strip().lower() in ('1','true','yes','on')
 
+def ai_provider():
+    provider=os.getenv('AI_PROVIDER','bailian').strip().lower()
+    if provider not in ('bailian','qwen','deepseek'):
+        raise HTTPException(503,'AI_PROVIDER must be bailian, qwen or deepseek')
+    return provider
+
 def active_model():
-    return 'mock-deterministic-v1' if mock_mode() else os.getenv('QWEN_MODEL','qwen-plus')
+    if mock_mode():return 'mock-deterministic-v1'
+    if ai_provider()=='bailian':return os.getenv('BAILIAN_MODEL') or os.getenv('QWEN_MODEL') or 'deepseek-v4.1-flash'
+    if ai_provider()=='deepseek':return os.getenv('DEEPSEEK_MODEL','deepseek-chat')
+    return os.getenv('QWEN_MODEL','qwen-plus')
+
+def ai_client_config():
+    if ai_provider() in ('bailian','qwen'):
+        key=os.getenv('DASHSCOPE_API_KEY')
+        if not key:raise HTTPException(503,'Set DASHSCOPE_API_KEY on the backend server')
+        return key,os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1')
+    key=os.getenv('DEEPSEEK_API_KEY')
+    if not key:raise HTTPException(503,'Set DEEPSEEK_API_KEY on the backend server')
+    return key,'https://api.deepseek.com'
 
 def _mock_response(messages,task_type):
     """Deterministic contract-compatible responses; never call a remote model."""
@@ -331,10 +349,9 @@ def _mock_response(messages,task_type):
 
 def ask(messages,task_type='other',paper_id=None,timeout_seconds=None,owner_id=None):
     if mock_mode():return _mock_response(messages,task_type)
-    key=os.getenv('DASHSCOPE_API_KEY')
-    if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
+    key,base_url=ai_client_config()
     model=active_model()
-    client=OpenAI(api_key=key,base_url=os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1'),timeout=float(timeout_seconds or os.getenv('QWEN_TIMEOUT_SECONDS','120')),max_retries=0)
+    client=OpenAI(api_key=key,base_url=base_url,timeout=float(timeout_seconds or os.getenv('AI_TIMEOUT_SECONDS','120')),max_retries=0)
     usage=(None,None,None);status='success';error=None
     try:
         res=client.chat.completions.create(model=model,messages=messages,temperature=0.1,response_format={'type':'json_object'})
@@ -403,7 +420,7 @@ def usage_stats(project_id: str | None = None, authorization: str | None = Heade
             'scope':'project','durable':True}
 
 @app.get('/api/health')
-def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY')) or mock_mode(),'mock_mode':mock_mode()}
+def health(): return {'ok':True,'ai_configured':(bool(os.getenv('DEEPSEEK_API_KEY')) if ai_provider()=='deepseek' else bool(os.getenv('DASHSCOPE_API_KEY'))) or mock_mode(),'mock_mode':mock_mode(),'ai_provider':ai_provider(),'ai_model':active_model()}
 
 def extract_paper_metadata(doc):
     """Conservative PDF metadata: no guessed journal, author, or publication year."""
