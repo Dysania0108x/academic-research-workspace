@@ -66,5 +66,32 @@
   el('logout').addEventListener('click',async()=>{session=null;projects=[];await chrome.storage.local.remove(['nuscopeSession','nuscopeProjectId']);updateAuth();});
   el('refreshProjects').addEventListener('click',()=>loadProjects(el('projectSelect').value));
   el('projectSelect').addEventListener('change',displayProject);
-  settings().catch(error=>{status.textContent='Initialization error: '+error.message;});
+
+  // Expose only narrowly scoped authenticated operations to this extension page.
+  // Never expose access tokens to content scripts or ordinary web pages.
+  globalThis.nuscopeCloud={
+    async current(){
+      await validSession();
+      const id=el('projectSelect').value;
+      const project=projects.find(p=>p.id===id);
+      if(!project)throw Error('Select a NUScope project first.');
+      const user=await request('/auth/v1/user',{headers:{Authorization:'Bearer '+session.access_token}});
+      return {project,userId:user.id};
+    },
+    async list(projectId){
+      await validSession();
+      return request('/rest/v1/saved_excerpts?select=*&project_id=eq.'+encodeURIComponent(projectId)+'&order=captured_at.desc',{headers:{Authorization:'Bearer '+session.access_token}});
+    },
+    async save(item,projectId,userId){
+      await validSession();
+      return request('/rest/v1/saved_excerpts',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({id:item.id,user_id:userId,project_id:projectId,quote:item.quote,note:item.note||'',source_title:item.title||'',source_url:item.url||'',captured_at:item.capturedAt||new Date().toISOString()})});
+    },
+    async promote(excerptId,theme,interpretation){
+      await validSession();
+      return request('/rest/v1/rpc/add_excerpt_evidence',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_excerpt_id:excerptId,p_theme:theme,p_interpretation:interpretation})});
+    }
+  };
+  el('projectSelect').addEventListener('change',()=>document.dispatchEvent(new Event('nuscope-project-changed')));
+  settings().then(()=>document.dispatchEvent(new Event('nuscope-connection-ready'))).catch(error=>{status.textContent='Initialization error: '+error.message;});
+
 })();
