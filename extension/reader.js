@@ -20,6 +20,7 @@ function sourceRange(root,start,end){
 }
 function drawHighlights(){
  const layer=$('textLayer'),over=$('highlightLayer');
+ let located=0,unmatched=0;
  over.replaceChildren();
  const text=layer.textContent||'';
  const {nuscopePdfHighlights:selection}=window.readerSelection||{};
@@ -27,10 +28,11 @@ function drawHighlights(){
  for(const m of selection.matches||[]){
   if(Number(m.page)!==page)continue;
   const offsets=locateQuote(text,m.quote||m.text||'');
-  if(!offsets)continue;
+  if(!offsets){unmatched++;continue;}
   const range=sourceRange(layer,offsets.start,offsets.end);
-  if(!range)continue;
+  if(!range){unmatched++;continue;}
   const parent=layer.getBoundingClientRect();
+  located++;
   for(const rect of range.getClientRects()){
    if(rect.width<1||rect.height<1)continue;
    const marker=document.createElement('div');marker.className='mark';
@@ -38,12 +40,19 @@ function drawHighlights(){
    marker.style.width=rect.width+'px';marker.style.height=rect.height+'px';over.append(marker);
   }
  }
+ const summary=$('highlightStatus');
+ if(summary)summary.textContent=located+' located highlight(s)'+(unmatched?' · '+unmatched+' quote(s) could not be located on this page':'');
 }
 async function render(){
  if(!documentPdf)return;
  const id=++epoch;
  try{
-  if(renderTask){renderTask.cancel();renderTask=null;}
+  if(renderTask){
+   const previous=renderTask;renderTask=null;
+   previous.cancel();
+   try{await previous.promise;}catch{} // PDF.js releases its canvas after cancellation settles.
+  }
+  if(id!==epoch)return;
   const pdfPage=await documentPdf.getPage(page);
   if(id!==epoch)return;
   const viewport=pdfPage.getViewport({scale:1.35});
@@ -53,8 +62,9 @@ async function render(){
   const layer=$('textLayer');layer.replaceChildren();layer.style.width=viewport.width+'px';layer.style.height=viewport.height+'px';
   layer.style.setProperty('--scale-factor',String(viewport.scale));
   const overlay=$('highlightLayer');overlay.style.width=viewport.width+'px';overlay.style.height=viewport.height+'px';
-  renderTask=pdfPage.render({canvasContext:canvas.getContext('2d'),viewport,transform:[ratio,0,0,ratio,0,0]});
-  await renderTask.promise;
+  const task=pdfPage.render({canvasContext:canvas.getContext('2d'),viewport,transform:[ratio,0,0,ratio,0,0]});
+  renderTask=task;
+  try{await task.promise;}finally{if(renderTask===task)renderTask=null;}
   if(id!==epoch)return;
   const content=await pdfPage.getTextContent();
   const textTask=new pdfjs.TextLayer({textContentSource:content,container:layer,viewport});
