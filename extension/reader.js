@@ -21,7 +21,6 @@ function drawHighlights(){
  const layer=$('textLayer'),over=$('highlightLayer');
  over.replaceChildren();
  const text=layer.textContent||'';
- const normalized=text.replace(/\s+/g,' ').toLowerCase();
  const {nuscopePdfHighlights:selection}=window.readerSelection||{};
  if(!selection||selection.paperId!==paperId||selection.projectId!==projectId)return;
  // Normalize text with source offsets so whitespace differences do not shift DOM Ranges.
@@ -34,6 +33,7 @@ function drawHighlights(){
  for(const m of selection.matches||[]){
   if(Number(m.page)!==page)continue;
   const quote=(m.quote||m.text||'').replace(/\s+/g,' ').trim().toLowerCase();
+  if(!quote)continue;
   const index=compact.indexOf(quote);
   if(index<0)continue;
   const range=sourceRange(layer,map[index],map[index+quote.length-1]+1);
@@ -77,11 +77,21 @@ async function render(){
 async function load(){
  try{
   if(!projectId||!paperId)throw Error('Missing project or paper ID.');
-  const {nuscopeSession:session}=await chrome.storage.local.get(['nuscopeSession']);
+  const {nuscopeSession:storedSession}=await chrome.storage.local.get(['nuscopeSession']);
+  let session=storedSession;
   // Public configuration is packaged with the extension, not read from arbitrary websites.
   const config=globalThis.NUSCOPE_PUBLIC_CONFIG||{};
   if(!session?.access_token)throw Error('Sign in through the NUScope side panel first.');
   const base=config.url;
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base)||!config.key)throw Error('Invalid packaged NUScope connection.');
+  if(Date.now()>=(session.expires_at||0)-60000){
+   if(!session.refresh_token)throw Error('Session expired. Sign in again.');
+   const response=await fetch(base+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+   if(!response.ok)throw Error('Session expired. Sign in again in the side panel.');
+   const refreshed=await response.json();
+   session={access_token:refreshed.access_token,refresh_token:refreshed.refresh_token,expires_at:Date.now()+refreshed.expires_in*1000};
+   await chrome.storage.local.set({nuscopeSession:session});
+  }
   const userResponse=await fetch(base+'/auth/v1/user',{headers:{apikey:config.key,Authorization:'Bearer '+session.access_token}});
   if(!userResponse.ok)throw Error('Session expired. Sign in again in the side panel.');
   const user=await userResponse.json();
