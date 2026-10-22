@@ -19,8 +19,11 @@
     const title=document.createElement('strong');title.textContent=entry.source_title||'Untitled';
     const quote=document.createElement('blockquote');quote.textContent=entry.quote;
     const note=document.createElement('p');note.className='note';note.textContent=entry.note||'';
+    const source=document.createElement('a');source.textContent='View original source ↗';
+    try{const url=new URL(entry.source_url||'');if(url.protocol==='https:'||url.protocol==='http:'){source.href=url.href;source.target='_blank';source.rel='noopener noreferrer';}}catch{}
     const label=document.createElement('p');label.className='meta';label.textContent=entry.evidence_id?'Added to Evidence Map':'Not added to Evidence Map';
     card.append(title,quote,note,label);
+    if(source.href)card.append(source);
     if(!entry.evidence_id){
      const theme=document.createElement('select');theme.setAttribute('aria-label','Evidence theme');
      theme.add(new Option('Choose theme',''));
@@ -64,4 +67,5 @@
  $('loadCloud').addEventListener('click',load);
  document.addEventListener('nuscope-project-changed',load);
  document.addEventListener('nuscope-connection-ready',load);
+ chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures){message('New local capture saved. Sync it to the selected project when ready.');}});
 })();
