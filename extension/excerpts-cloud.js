@@ -45,11 +45,12 @@
   try{
    const {project,userId}=await current();
    const {nuscopeCaptures=[]}=await chrome.storage.local.get({nuscopeCaptures:[]});
-   // Legacy local captures have no project association. Require explicit user action.
-   if(!nuscopeCaptures.length){message('No local excerpts to sync.');return;}
-   if(!confirm('Upload '+nuscopeCaptures.length+' local excerpt(s) to project "'+project.name+'"?'))return;
+   const eligible=nuscopeCaptures.filter(e=>!e.projectId||e.projectId===project.id);
+   const legacy=eligible.filter(e=>!e.projectId).length;
+   if(!eligible.length){message('No excerpts for this project. Captures from other projects are excluded.');return;}
+   if(!confirm('Upload '+eligible.length+' excerpt(s) to "'+project.name+'"?'+(legacy?' Includes '+legacy+' older unassigned capture(s).':'')))return;
    let synced=0;
-   for(const entry of nuscopeCaptures){
+   for(const entry of eligible){
     try{await globalThis.nuscopeCloud.save(entry,project.id,userId);synced++;}
     catch(error){
      // Already synced excerpts remain unchanged; other errors are reported.
