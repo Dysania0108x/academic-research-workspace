@@ -87,7 +87,8 @@
   chrome.runtime.sendMessage({type:'GET_PANEL_STATE'},response=>{if(!chrome.runtime.lastError)panelOpen=!!response?.open;});
   mini.querySelector('.primary').addEventListener('click',async()=>{
     if(!selected){status.textContent='Select some text first.';return;}
-    const entry={id:crypto.randomUUID(),quote:selected,note:note.value.trim(),title:document.title||location.hostname,url:location.href,capturedAt:new Date().toISOString()};
+    const {nuscopeProjectId:projectId=''}=await chrome.storage.local.get({nuscopeProjectId:''});
+    const entry={id:crypto.randomUUID(),projectId,quote:selected,note:note.value.trim(),title:document.title||location.hostname,url:location.href,capturedAt:new Date().toISOString()};
     try{
       const data=await chrome.storage.local.get({nuscopeCaptures:[]});
       await chrome.storage.local.set({nuscopeCaptures:[entry,...data.nuscopeCaptures].slice(0,500)});
