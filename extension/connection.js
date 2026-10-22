@@ -75,6 +75,7 @@
   // Expose only narrowly scoped authenticated operations to this extension page.
   // Never expose access tokens to content scripts or ordinary web pages.
   globalThis.nuscopeCloud={
+    selectedProject(){return projects.find(p=>p.id===el('projectSelect').value)||null;},
     async current(){
       await validSession();
       const id=el('projectSelect').value;
