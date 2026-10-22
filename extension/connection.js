@@ -155,19 +155,10 @@
     }
   };
   el('projectSelect').addEventListener('change',()=>document.dispatchEvent(new Event('nuscope-project-changed')));
-  el('openProjectPdf').addEventListener('click',async()=>{
-    const id=el('pdfPaper').value;
-    if(!id){el('pdfNotice').textContent='Select a PDF first.';return;}
-    // Open a blank tab synchronously to avoid pop-up blocking during signed URL generation.
-    const tab=await chrome.tabs.create({url:'about:blank',active:true});
-    try{
-      const url=await globalThis.nuscopeCloud.pdfLink(id);
-      await chrome.tabs.update(tab.id,{url});
-      el('pdfNotice').textContent='Opened the original project PDF.';
-    }catch(error){
-      await chrome.tabs.remove(tab.id).catch(()=>{});
-      el('pdfNotice').textContent=error.message;
-    }
+  el('openProjectPdf').addEventListener('click',()=>{
+    const paperId=el('pdfPaper').value,projectId=el('projectSelect').value;
+    if(!paperId||!projectId){el('pdfNotice').textContent='Select a project PDF first.';return;}
+    chrome.tabs.create({url:chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId)});
   });
   settings().then(()=>document.dispatchEvent(new Event('nuscope-connection-ready'))).catch(error=>{status.textContent='Initialization error: '+error.message;});
 
