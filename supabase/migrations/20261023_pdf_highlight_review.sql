@@ -4,7 +4,7 @@ create or replace function public.review_pdf_highlight(
   p_project_id uuid, p_paper_id text, p_page integer, p_quote text,
   p_theme text, p_action text, p_interpretation text default ''
 ) returns jsonb language plpgsql security invoker set search_path=public as $$
-declare p public.projects%rowtype; k text; items jsonb; rejects jsonb; record_id uuid;
+declare p public.projects%rowtype; k text; items jsonb; rejects jsonb; record_id text;
 begin
   if p_action not in ('reject','restore','save') then raise exception 'Invalid action'; end if;
   if p_page < 1 or p_page > 100000 or length(trim(p_quote)) < 8 or length(p_quote) > 2000 then
@@ -30,7 +30,7 @@ begin
             lower(regexp_replace(trim(p_quote),'\s+',' ','g'))
       limit 1;
       if record_id is null then
-        record_id:=gen_random_uuid();
+        record_id:=gen_random_uuid()::text;
         items:=items||jsonb_build_array(jsonb_build_object(
           'id',record_id,'paperId',p_paper_id,'page',p_page,'quote',trim(p_quote),
           'text',trim(p_quote),'theme',p_theme,'themes',jsonb_build_array(p_theme),
