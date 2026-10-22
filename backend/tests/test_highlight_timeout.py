@@ -21,6 +21,7 @@ class HighlightTimeoutTests(unittest.TestCase):
             if len(calls)==1:raise HTTPException(502,'AI request failed: Request timed out.')
             return {'matches':[]}
         class FakeDoc:
+            def __len__(self):return 3  # Keep the multi-batch timeout fixture on the normal batch size.
             def __enter__(self):return self
             def __exit__(self,*args):return False
         with patch.dict(os.environ,{'HIGHLIGHT_BATCH_BLOCKS':'12'}), \
