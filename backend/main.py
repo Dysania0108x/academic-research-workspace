@@ -776,10 +776,12 @@ def get_analysis_job(job_id:str, authorization: str | None = Header(default=None
         return _job_snapshot(job)
 
 @app.post('/api/analyse/jobs/{job_id}/cancel')
-def cancel_analysis_job(job_id:str):
+def cancel_analysis_job(job_id:str, authorization: str | None = Header(default=None)):
+    owner_id=authenticated_user(authorization)
     with analysis_lock:
         job=analysis_jobs.get(job_id)
-        if job is None:raise HTTPException(404,'Analysis job not found')
+        if job is None or job.get('owner_id')!=owner_id:
+            raise HTTPException(404,'Analysis job not found')
         if job['status'] in ('queued','running'):
             job['cancel_event'].set()
             job['status']='cancelled'
