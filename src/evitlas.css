@@ -116,3 +116,26 @@
 .ev-switch{margin-top:32px}.ev-switch button{color:#D36D00}
 @media(max-width:1150px) and (min-width:761px){.ev-nav-note{display:none}.ev-hero{gap:20px}.ev-headline h1{font-size:clamp(61px,6.4vw,86px)}.ev-hero-subtitle{font-size:13px}.ev-story{min-height:390px}.ev-form h2{font-size:clamp(34px,3.5vw,45px)}}
 @media(max-width:760px){.ev-root{--ev-brand-gutter:23px}.ev-nav{height:82px}.ev-nav-note{display:none}.ev-brand{font-size:23px!important;gap:9px}.ev-enter{padding:10px 13px;font-size:11px!important;gap:10px}.ev-landing-wash{top:42%;left:0;width:100%;height:58%;filter:blur(19px)}.ev-hero{padding:20px 23px 55px;gap:20px}.ev-headline{transform:none}.ev-eyebrow{margin:0 0 19px;justify-content:center;font-size:9px}.ev-headline h1{font-size:clamp(51px,10.4vw,78px)}.ev-hero-subtitle{margin:17px auto 0;max-width:340px;text-align:center;font-size:12px}.ev-story{height:clamp(330px,47vh,480px);min-height:0;width:min(100%,530px)}.ev-story-backdrop{left:-7%;top:0;width:114%;height:84%}.ev-scene{inset:0 0 89px}.ev-caption{bottom:34px}.ev-auth{grid-template-columns:1fr}.ev-auth-left{min-height:330px;padding:24px var(--ev-brand-gutter)}.ev-auth-art-panel{min-height:220px}.ev-auth-panel-tag{font-size:9px;margin-top:15px}.ev-auth-illustration{padding:10px 0}.ev-auth-illustration img{max-height:200px}.ev-auth-illustration p{font-size:20px;margin-top:5px}.ev-auth-panel-footer{display:none}.ev-auth-right{padding:44px 25px 68px}.ev-form{width:100%}.ev-form h2{font-size:clamp(32px,8vw,43px);white-space:normal}}
+
+
+/* V7 editorial refinement: crisp organic silhouette, quiet paths, orange-gold type. */
+.ev-gradient-word{
+ color:#EF7C00;
+ background:linear-gradient(105deg,#EF7C00 8%,#E99028 55%,#DDB66B 100%);
+ -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.ev-story-backdrop{left:-3%;top:-2%;width:112%;height:88%;overflow:visible}
+.ev-story-backdrop>path:first-child{
+ transform:translate(22px,-6px) scale(.95);
+ transform-origin:center;
+ clip-path:polygon(0 0,100% 0,100% 100%,0 100%);
+}
+.ev-story-backdrop>path:nth-child(2){transform:translate(16px,-15px) scale(.8);transform-origin:80% 20%}
+.ev-story-backdrop>path:nth-child(3){transform:translate(380px,-260px) scale(.58);transform-origin:center}
+.ev-story-backdrop>g[fill="none"]{opacity:.58}
+.ev-scene{transform:scale(1.065);transform-origin:center 45%}
+.ev-landing{background:#FBFAF7}
+@media(max-width:760px){
+ .ev-story-backdrop{left:-5%;top:0;width:110%;height:86%}
+ .ev-scene{transform:scale(1.015)}
+}
