@@ -1,22 +1,20 @@
 import React, {useEffect,useState} from 'react';
 import './evitlas.css';
+
 const scenes=[
- {caption:'Explore the literature',color:'#1B5B92',image:'/evitlas/01.svg'},
- {caption:'Trace the evidence',color:'#D7783C',image:'/evitlas/02.svg'},
- {caption:'Connect the insights',color:'#427B83',image:'/evitlas/03.svg'}
+ {caption:'Explore the literature',color:'#EF7C00',image:'/evitlas/01.svg'},
+ {caption:'Trace the evidence',color:'#F7F2E9',image:'/evitlas/02.svg'},
+ {caption:'Connect the insights',color:'#B8DDEB',image:'/evitlas/03.svg'}
 ];
-export function EvitlasMark({onClick}){return <button className="ev-brand" type="button" onClick={onClick} aria-label="NUS Scope home"><span className="ev-symbol"><i/><i/><i/></span><span>NUS Scope</span></button>}
-export function EvitlasLanding({onEnter}) {
+const Mark=()=> <svg className="ev-outline-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M11 31C9 14 22 8 35 12C49 16 52 31 46 42C40 54 22 53 15 43" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><path d="M25 22C33 15 48 22 48 33C48 45 36 49 28 43C21 38 20 29 25 22Z" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><path d="M23 35C30 29 37 31 40 36" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/></svg>;
+export function EvitlasMark({onClick}){return <button className="ev-brand" type="button" onClick={onClick} aria-label="NUScope home"><Mark/><span>NUScope</span></button>}
+export function EvitlasLanding({onEnter,onSignIn,onSignUp}) {
  const [active,setActive]=useState(0);
- useEffect(()=>{if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const id=window.setInterval(()=>setActive(i=>(i+1)%3),5000);return()=>window.clearInterval(id)},[]);
- return <div className="ev-root ev-landing">
-  <header className="ev-nav"><EvitlasMark onClick={()=>setActive(0)}/><div className="ev-nav-right"><span className="ev-nav-note">AN EVIDENCE-LED RESEARCH SPACE</span><button type="button" className="ev-enter" onClick={onEnter}>Enter Workspace <span aria-hidden="true">↗</span></button></div></header>
-  <div className="ev-landing-wash" aria-hidden="true"/><div className="ev-glow ev-glow-one"/><div className="ev-glow ev-glow-two"/><div className="ev-glow ev-glow-three"/>
-  <main className="ev-hero"><div className="ev-headline"><div className="ev-eyebrow"><span className="ev-eyebrow-line"/> FOR NUS RESEARCHERS</div><h1>Make sense <span className="ev-headline-second">of <em>more</em><b>.</b></span></h1><p className="ev-hero-subtitle">Explore literature. Verify evidence. Connect ideas.</p></div>
-   <div className="ev-story" aria-label="Research journey"><div className="ev-story-backdrop" aria-hidden="true"><span className="ev-story-orbit ev-story-orbit-a"/><span className="ev-story-orbit ev-story-orbit-b"/><span className="ev-story-spark">✳</span></div>{scenes.map((scene,i)=><div key={scene.caption} className={'ev-scene '+(active===i?'is-active':'')} aria-hidden={active!==i}><img src={scene.image} alt="" /></div>)}
-   <div className="ev-caption" style={{color:scenes[active].color}} aria-live="polite">{scenes[active].caption}</div>
-   <div className="ev-progress" aria-label="Choose research scene">{scenes.map((scene,i)=><button key={scene.caption} type="button" aria-label={scene.caption} aria-current={active===i?'step':undefined} onClick={()=>setActive(i)}><i style={{background:active===i?scene.color:undefined}}/></button>)}</div>
-   </div></main>
+ useEffect(()=>{if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const id=window.setInterval(()=>setActive(i=>(i+1)%3),4000);return()=>window.clearInterval(id)},[]);
+ return <div className="ev-root ev-landing ev-midnight-v8">
+  <header className="ev-nav"><EvitlasMark onClick={()=>setActive(0)}/><div className="ev-nav-actions"><button className="ev-nav-signin" type="button" onClick={onSignIn||onEnter}>Sign in</button><button className="ev-nav-signup" type="button" onClick={onSignUp||onEnter}>Sign up</button></div></header>
+  <main className="ev-v8-hero"><section className="ev-v8-copy"><div className="ev-v8-title-group"><h1>Make sense <span>of <em>more</em><b>.</b></span></h1><button className="ev-v8-cta" type="button" onClick={onSignUp||onEnter}><span>Start exploring</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg></button></div></section>
+  <section className="ev-v8-visual" aria-label="Research journey"><div className="ev-v8-stage">{scenes.map((scene,i)=><div className={'ev-v8-slide '+(active===i?'is-active':'')} key={scene.caption} aria-hidden={active!==i}><img src={scene.image} alt=""/><div className="ev-v8-caption" style={{color:scene.color}}><span>{scene.caption}</span></div></div>)}</div></section></main>
  </div>
 }
 export function EvitlasAuth({mode,setMode,email,setEmail,password,setPassword,busy,error,notice,onSubmit,onBack}){
@@ -27,7 +25,7 @@ export function EvitlasAuth({mode,setMode,email,setEmail,password,setPassword,bu
   <label htmlFor="ev-password">Password</label><input id="ev-password" type="password" minLength={6} required autoComplete={mode==='signin'?'current-password':'new-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters"/>
   {error&&<p className="ev-error" role="alert">{error}</p>}{notice&&<p className="ev-notice" role="status">{notice}</p>}
   <button className="ev-submit" disabled={busy} type="submit"><span>{busy?'Please wait…':mode==='signin'?'Sign in':'Create account'}</span><span aria-hidden="true">→</span></button>
-  <p className="ev-switch">{mode==='signin'?'New to NUS Scope?':'Already have an account?'} <button type="button" onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Create an account':'Sign in'}</button></p>
+  <p className="ev-switch">{mode==='signin'?'New to NUScope?':'Already have an account?'} <button type="button" onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Create an account':'Sign in'}</button></p>
   </form></section>
  </div>
 }
