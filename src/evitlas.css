@@ -234,3 +234,34 @@
 @media(max-width:1180px) and (min-width:761px){.ev-editorial-hero{gap:28px;padding-inline:4vw}.ev-editorial-right h1{font-size:clamp(58px,6.3vw,86px)}.ev-editorial-carousel-footer{gap:10px}.ev-editorial-caption{font-size:24px}}
 @media(max-width:760px){.ev-editorial-hero{grid-template-columns:1fr;min-height:auto;padding:34px 23px 65px;gap:32px}.ev-editorial-right{grid-row:1;align-items:center;text-align:center;padding:12px 0 0}.ev-editorial-side-label{font-size:9px;margin-bottom:18px}.ev-editorial-right h1{font-size:clamp(50px,11vw,78px)}.ev-editorial-title-second{padding-left:0;margin-top:6px}.ev-editorial-description{font-size:12px;margin-top:16px}.ev-editorial-right .ev-hero-start{margin:23px auto 0}.ev-editorial-footnote{display:none}.ev-editorial-left{grid-row:2;padding-top:0}.ev-editorial-kicker{font-size:9px;margin:0 0 9px 3%}.ev-editorial-carousel{height:clamp(260px,78vw,400px)}.ev-editorial-carousel-footer{padding:5px 3% 0;gap:10px}.ev-editorial-caption{font-size:clamp(20px,5.5vw,29px)}}
 @media(prefers-reduced-motion:reduce){.ev-editorial-scene{transition:none;transform:none!important}}
+
+
+/* V11 — one hero headline above a compact illustrated carousel and collage type. */
+.ev-v11-hero{max-width:1480px;min-height:calc(100svh - 96px);margin:0 auto;padding:clamp(28px,4vh,55px) clamp(40px,5vw,85px) clamp(45px,6vh,75px);display:flex;flex-direction:column;justify-content:center;gap:clamp(30px,4vh,56px);position:relative;z-index:1}
+.ev-v11-heading{text-align:center;flex:none}
+.ev-v11-eyebrow{display:flex;justify-content:center;align-items:center;gap:12px;color:#D97812;letter-spacing:.17em;font:600 10px 'DM Sans',sans-serif;margin-bottom:18px}
+.ev-v11-heading h1{margin:0;font:400 clamp(62px,6.35vw,104px)/1.12 'Outfit',sans-serif;letter-spacing:-.075em;color:#003D7C;white-space:nowrap}
+.ev-v11-heading h1 em{font:italic 400 1.09em 'Instrument Serif',Georgia,serif;color:#EF7C00;letter-spacing:-.018em}
+.ev-v11-heading h1 b{font:400 1em 'Instrument Serif',Georgia,serif;color:#003D7C}
+.ev-v11-lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.88fr);align-items:center;gap:clamp(35px,6vw,110px);max-width:1130px;width:100%;margin:0 auto}
+.ev-v11-visual{min-width:0}
+.ev-v11-visual .ev-editorial-carousel{height:clamp(245px,27vw,370px)}
+.ev-v11-visual .ev-editorial-art-bg{inset:0 0 0}
+.ev-v11-visual .ev-editorial-carousel-footer{padding:5px 3% 0}
+.ev-v11-visual .ev-editorial-caption{font-size:clamp(22px,2vw,30px)}
+.ev-v11-message{min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:24px}
+.ev-v11-tiles{width:100%;max-width:470px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.ev-v11-tile{font-family:'Outfit',sans-serif;font-weight:500;letter-spacing:-.055em;line-height:1.1;padding:11px 25px 14px;border-radius:18px;transition:transform .25s ease,box-shadow .25s ease;will-change:transform}
+.ev-v11-tile span{color:#EF7C00}
+.ev-v11-tile-explore{background:#DCEEF8;color:#003D7C;font-size:clamp(38px,3.5vw,56px);transform:rotate(-2deg)}
+.ev-v11-tile-verify{background:#FFE3C3;color:#003D7C;font:italic 400 clamp(34px,3vw,47px)/1.06 'Instrument Serif',Georgia,serif;letter-spacing:-.02em;align-self:center;transform:rotate(2deg)}
+.ev-v11-tile-verify span{color:#003D7C}
+.ev-v11-tile-connect{background:#003D7C;color:#fff;font-size:clamp(40px,3.6vw,58px);display:flex;align-items:center;gap:15px;transform:rotate(-1deg)}
+.ev-v11-tile-connect svg{width:27px;height:27px;color:#EF7C00;flex:none}
+.ev-v11-tile-explore:hover{transform:rotate(-1deg) translateY(-4px)}
+.ev-v11-tile-verify:hover{transform:rotate(1deg) translateY(-4px)}
+.ev-v11-tile-connect:hover{transform:rotate(0deg) translateY(-4px)}
+.ev-v11-start{margin:7px 0 0 15px!important}
+@media(max-width:950px) and (min-width:761px){.ev-v11-hero{padding-inline:4vw}.ev-v11-lower{gap:22px}.ev-v11-heading h1{font-size:clamp(52px,6vw,74px)}.ev-v11-tile{padding:10px 17px}}
+@media(max-width:760px){.ev-v11-hero{min-height:auto;padding:36px 23px 65px;gap:28px}.ev-v11-heading h1{font-size:clamp(35px,8vw,57px);white-space:normal}.ev-v11-eyebrow{font-size:9px}.ev-v11-lower{grid-template-columns:1fr;gap:27px}.ev-v11-visual .ev-editorial-carousel{height:clamp(250px,76vw,390px)}.ev-v11-message{align-items:center}.ev-v11-tiles{max-width:340px;gap:8px}.ev-v11-tile-explore{font-size:42px}.ev-v11-tile-verify{font-size:37px}.ev-v11-tile-connect{font-size:44px}.ev-v11-start{margin:12px auto 0!important}}
+@media(prefers-reduced-motion:reduce){.ev-v11-tile{transition:none!important}}
