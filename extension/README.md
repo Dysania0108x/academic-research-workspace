@@ -73,3 +73,9 @@ Do not use a Supabase secret/service-role key. These values are included in the 
 Go to **Actions → Package NUScope Chrome Extension → Run workflow**, select `feature/extension-project-sync`, and run. When it succeeds, download the **nuscope-extension** artifact from the workflow run. Unzip the artifact and then unzip `nuscope-extension.zip`; select the folder containing `manifest.json` in Chrome's **Load unpacked** dialog.
 
 The workflow deliberately fails when the repository variables are missing, rather than producing a misleading nonfunctional package. No changes are deployed to the Web App. If the workflow is not visible before merging, GitHub may require the workflow to exist on the default branch for manual dispatch; use the local packaging script until then.
+
+## Project PDF library (integration in progress)
+
+The side panel now lists PDFs from the selected project's existing `data.papers` metadata. **Open original PDF** requests a short-lived signed URL from the same private Supabase Storage bucket used by the Web App. It does not make the PDF public, and it rejects unexpected storage paths. This is a viewing bridge only: it does **not** yet apply AI Highlight overlays or save PDF highlights in the Extension. Those must reuse the Web App's existing FastAPI analysis and verified geometry pipeline, rather than claiming Chrome's native PDF viewer supports injection.
+
+This feature is currently a development preview. Test with a disposable project PDF and confirm signed URL access and browser permissions before release.
