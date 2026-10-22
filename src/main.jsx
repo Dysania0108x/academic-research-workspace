@@ -284,22 +284,26 @@ function App({user}){
     if(!alive)return;
     if(error)throw Error('Cloud load failed: '+error.message);
     let rows=data||[];
-    // Every account gets one sample workspace, including accounts with existing projects.
-    // Use a deterministic ID to prevent duplicate examples across browsers or sessions.
-    const starterId='example-'+user.id;
-    if(!rows.some(row=>row.id===starterId)){
+    // Supabase projects.id is UUID. The authenticated user's UUID is a stable,
+    // account-specific UUID for their one starter project (not a string prefix).
+    const starterId=user.id;
+    const hasExample=rows.some(row=>row.id===starterId||row.data?.name==='Example Project — AI in Literature Reviews');
+    if(!hasExample){
      const example={...makeStarterProject(),id:starterId};
      const {error:insertError}=await supabase.from('projects').upsert({
       id:example.id,user_id:user.id,name:example.name,
       research_question:example.question,data:example
      },{onConflict:'id',ignoreDuplicates:true});
      if(!alive)return;
-     if(insertError)throw Error('Example project could not be created: '+insertError.message);
-     // Reload from Supabase so RLS and concurrent logins remain authoritative.
-     const {data:refreshed,error:reloadError}=await supabase.from('projects').select('id,name,research_question,data').eq('user_id',user.id).order('created_at',{ascending:true});
-     if(!alive)return;
-     if(reloadError)throw Error('Example project refresh failed: '+reloadError.message);
-     rows=refreshed||[];
+     if(insertError){
+      // Starter content is optional; never lock users out of their actual projects.
+      setCloudError('Example project unavailable: '+insertError.message);
+     }else{
+      const {data:refreshed,error:reloadError}=await supabase.from('projects').select('id,name,research_question,data').eq('user_id',user.id).order('created_at',{ascending:true});
+      if(!alive)return;
+      if(reloadError)setCloudError('Example project refresh failed: '+reloadError.message);
+      else rows=refreshed||rows;
+     }
     }
     if(!alive)return;
     setProjects(normalizeSeedPapers(rows.map(row=>({...row.data,id:row.id,name:row.name,question:row.research_question}))));
