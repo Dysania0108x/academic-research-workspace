@@ -131,7 +131,7 @@
  clip-path:polygon(0 0,100% 0,100% 100%,0 100%);
 }
 .ev-story-backdrop>path:nth-child(2){transform:translate(16px,-15px) scale(.8);transform-origin:80% 20%}
-.ev-story-backdrop>path:nth-child(3){transform:translate(380px,-260px) scale(.58);transform-origin:center}
+.ev-story-backdrop>path:nth-child(3){transform:scale(.82);transform-origin:82% 22%}
 .ev-story-backdrop>g[fill="none"]{opacity:.58}
 .ev-scene{transform:scale(1.065);transform-origin:center 45%}
 .ev-landing{background:#FBFAF7}
