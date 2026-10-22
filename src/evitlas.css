@@ -183,3 +183,39 @@
 /* Keep the full NUS Scope wordmark readable at desktop and mobile sizes. */
 .ev-brand{font-size:clamp(23px,2vw,29px)!important;letter-spacing:-.055em;white-space:nowrap}
 @media(max-width:760px){.ev-brand{font-size:23px!important;gap:9px}}
+
+
+/* NUScope Midnight Editorial V8 — scoped to landing; existing auth layout stays light. */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600&display=swap');
+.ev-outline-mark{width:37px;height:37px;flex:none;color:currentColor}
+.ev-midnight-v8{--ev-ink:#F7F2E9;background:#003D7C!important;color:#F7F2E9!important}
+.ev-midnight-v8 .ev-nav{height:112px;padding:0 clamp(28px,6vw,100px);max-width:1600px;margin:auto}
+.ev-midnight-v8 .ev-brand{color:#F7F2E9!important;font:600 31px 'Outfit',sans-serif!important;letter-spacing:-.055em;gap:12px}
+.ev-nav-actions{display:flex;align-items:center;gap:12px}
+.ev-nav-actions button{font:500 15px 'DM Sans',sans-serif!important;padding:13px 29px;border-radius:999px;border:1px solid #EF7C00;background:transparent;color:#EF7C00;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.ev-nav-actions .ev-nav-signup{background:#EF7C00;color:#003D7C}
+.ev-nav-actions button:hover{background:#F7F2E9;color:#003D7C;border-color:#F7F2E9}
+.ev-nav-actions button:focus-visible,.ev-v8-cta:focus-visible{outline:2px solid #F7F2E9;outline-offset:4px}
+.ev-v8-hero{max-width:1600px;min-height:calc(100svh - 112px);padding:0 clamp(28px,6vw,100px) 40px;margin:auto;display:grid;grid-template-columns:.95fr 1.05fr;gap:clamp(28px,4vw,75px);align-items:center}
+.ev-v8-copy{display:flex;align-items:center;justify-content:flex-start;min-width:0}
+.ev-v8-title-group{width:max-content;max-width:100%;display:flex;flex-direction:column;align-items:center}
+.ev-v8-title-group h1{font:400 clamp(65px,6.7vw,112px)/1.11 'Outfit',sans-serif;letter-spacing:-.077em;color:#F7F2E9;margin:0 0 60px;white-space:nowrap}
+.ev-v8-title-group h1 span{display:block;margin:17px 0 0 7%}
+.ev-v8-title-group h1 em{font:italic 400 1.1em 'Instrument Serif',Georgia,serif;letter-spacing:-.015em;color:#EF7C00}
+.ev-v8-title-group h1 b{font:400 1em 'Instrument Serif',Georgia,serif;color:#F7F2E9}
+.ev-v8-cta{display:inline-flex;align-items:center;gap:18px;border:1px solid #F7F2E9;border-radius:999px;padding:3px;background:transparent;color:#F7F2E9;cursor:pointer;font:500 16px 'DM Sans',sans-serif!important}
+.ev-v8-cta span{border-radius:999px;background:#F7F2E9;color:#003D7C;padding:17px 32px;transition:background .2s,color .2s}
+.ev-v8-cta svg{margin-right:18px;transition:transform .2s}
+.ev-v8-cta:hover span{background:#EF7C00;color:#fff}
+.ev-v8-cta:hover svg{transform:translateX(4px)}
+.ev-v8-visual{min-width:0}
+.ev-v8-stage{height:min(49vw,590px);position:relative}
+.ev-v8-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:translateY(6px);transition:opacity .55s,transform .55s;pointer-events:none}
+.ev-v8-slide.is-active{opacity:1;transform:none}
+.ev-v8-slide img{height:83%;width:100%;object-fit:contain;filter:drop-shadow(4px 6px 1.5px rgba(0,20,45,.38))}
+.ev-v8-caption{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:-18px;font:200 clamp(19px,1.65vw,24px)/1.35 'Outfit',sans-serif;letter-spacing:.055em;opacity:.88;text-align:center;white-space:nowrap}
+.ev-v8-caption:before,.ev-v8-caption:after{content:'';width:18px;height:1px;background:currentColor;opacity:.65}
+.ev-auth .ev-brand{color:#003D7C}
+.ev-auth .ev-outline-mark{color:#003D7C}
+@media(max-width:850px){.ev-midnight-v8 .ev-nav{height:90px;padding:0 5%}.ev-midnight-v8 .ev-brand{font-size:24px!important}.ev-outline-mark{width:30px;height:30px}.ev-nav-actions button{padding:10px 14px;font-size:12px!important}.ev-v8-hero{min-height:auto;display:flex;flex-direction:column;gap:24px;padding:45px 5% 80px}.ev-v8-copy{justify-content:center}.ev-v8-title-group h1{font-size:clamp(48px,10vw,75px);margin-bottom:30px}.ev-v8-stage{height:min(91vw,510px);width:100%}.ev-v8-visual{width:100%}.ev-v8-caption{font-size:19px;gap:9px;margin-top:-12px}.ev-v8-caption:before,.ev-v8-caption:after{width:14px}}
+@media(prefers-reduced-motion:reduce){.ev-v8-slide{transition:none}}
