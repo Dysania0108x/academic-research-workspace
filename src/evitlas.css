@@ -162,3 +162,38 @@
  .ev-nav-signup .ev-enter-arrow{width:13px;height:13px}
  .ev-hero-start{margin:25px auto 0;padding:13px 17px 13px 19px;font-size:12px!important;gap:26px}
 }
+
+
+/* V9: coherent NUS Scope petal identity and two-tone interactive actions. */
+.ev-headline em{color:#EF7C00!important;-webkit-text-fill-color:#EF7C00!important;background:none!important}
+.ev-nav{height:96px;display:flex;align-items:center;justify-content:space-between;padding-top:0;padding-bottom:0}
+.ev-nav .ev-brand{height:48px;min-height:48px;align-self:center;display:inline-flex;align-items:center;line-height:1}
+.ev-nav .ev-brand>span:last-child{display:inline-flex;align-items:center;height:36px;line-height:1}
+.ev-nav-right{height:48px;display:flex;align-items:center;gap:12px}
+.ev-nav-signin{height:48px;border-radius:13px;padding:0 23px}
+.ev-nav-signup{height:48px;border-radius:13px}
+.ev-split-button{display:inline-flex;align-items:stretch;gap:0!important;padding:0!important;overflow:hidden;background:#003D7C!important;color:#fff!important;border:1px solid #003D7C!important;border-radius:13px!important;box-shadow:0 8px 18px rgba(0,61,124,.08);transition:transform .22s,box-shadow .22s}
+.ev-split-button .ev-split-label{display:flex;align-items:center;justify-content:center;padding:0 22px;white-space:nowrap;min-height:46px;background:#003D7C;color:#fff;transition:background .22s}
+.ev-split-button .ev-split-icon{display:flex;align-items:center;justify-content:center;width:47px;min-height:46px;background:#EF7C00;color:#fff;transition:background .22s}
+.ev-split-button .ev-split-icon svg{width:18px;height:18px;color:inherit;transition:transform .22s}
+.ev-split-button:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(0,61,124,.13)}
+.ev-split-button:hover .ev-split-label{background:#EF7C00}
+.ev-split-button:hover .ev-split-icon{background:#003D7C}
+.ev-split-button:hover .ev-split-icon svg{transform:translate(2px,-2px)}
+.ev-hero-start{margin:27px 0 0 clamp(28px,4vw,72px);height:50px;font-size:14px!important}
+.ev-story-backdrop{left:-4%;top:-3%;width:115%;height:90%}
+.ev-story-backdrop>path:first-child{transform:none;clip-path:none}
+.ev-story-backdrop>path:nth-child(2){transform:translate(8px,-10px) scale(.84);transform-origin:78% 20%}
+.ev-story-backdrop>path:nth-child(3){transform:scale(.72);transform-origin:85% 19%}
+@media(max-width:760px){
+ .ev-nav{height:82px}
+ .ev-nav .ev-brand{height:38px;min-height:38px}
+ .ev-nav-right{height:38px;gap:7px}
+ .ev-nav-signin,.ev-nav-signup{height:38px}
+ .ev-split-button .ev-split-label{min-height:36px;padding:0 12px}
+ .ev-split-button .ev-split-icon{min-height:36px;width:35px}
+ .ev-split-button .ev-split-icon svg{width:14px;height:14px}
+ .ev-hero-start{margin:24px auto 0;height:45px}
+ .ev-hero-start .ev-split-label{min-height:43px;padding:0 18px}
+ .ev-hero-start .ev-split-icon{min-height:43px;width:43px}
+}
