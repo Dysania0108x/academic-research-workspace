@@ -753,13 +753,16 @@ def get_paper_analysis_job(paper_id:str, question:str, themes:str, authorization
         return {'job':_job_snapshot(candidates[-1])}
 
 @app.get('/api/analyse/jobs/{job_id}')
-def get_analysis_job(job_id:str):
+def get_analysis_job(job_id:str, authorization: str | None = Header(default=None)):
+    owner_id=authenticated_user(authorization)
     with analysis_lock:
         job=analysis_jobs.get(job_id)
         if job is None:
-            saved=_load_job(job_id,authenticated_user(authorization))
+            saved=_load_job(job_id,owner_id)
             if saved is None:raise HTTPException(404,'Analysis job not found')
             return saved
+        if job.get('owner_id')!=owner_id:
+            raise HTTPException(404,'Analysis job not found')
         return _job_snapshot(job)
 
 @app.post('/api/analyse/jobs/{job_id}/cancel')
