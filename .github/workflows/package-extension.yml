@@ -26,6 +26,7 @@ jobs:
           npm install --prefix /tmp/nuscope-pdfjs --no-save --ignore-scripts pdfjs-dist@4.10.38
           cp /tmp/nuscope-pdfjs/node_modules/pdfjs-dist/build/pdf.mjs extension/vendor/pdf.mjs
           cp /tmp/nuscope-pdfjs/node_modules/pdfjs-dist/build/pdf.worker.mjs extension/vendor/pdf.worker.mjs
+          cp /tmp/nuscope-pdfjs/node_modules/pdfjs-dist/web/pdf_viewer.css extension/vendor/pdf_viewer.css
       - name: Check JavaScript syntax
         run: |
           node --check extension/background.js
