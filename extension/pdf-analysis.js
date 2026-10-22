@@ -29,7 +29,32 @@
    const meta=document.createElement('strong');meta.textContent=(m.theme||'Uncategorised')+' · Page '+(m.page||'?');
    const quote=document.createElement('blockquote');quote.textContent=m.quote||m.text||'';
    const reason=document.createElement('p');reason.textContent=m.reason||'';
-   card.append(meta,quote,reason);results.append(card);
+   const project=globalThis.nuscopeCloud.selectedProject();
+   const paperId=$('pdfPaper').value;
+   const key=[paperId,m.page,(m.quote||m.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
+   const rejected=(project?.data?.rejected||[]).includes(key);
+   const saved=(project?.data?.evidence||[]).some(e=>e.paperId===paperId&&Number(e.page)===Number(m.page)&&
+     (e.quote||e.text||'').trim().replace(/\s+/g,' ').toLowerCase()===(m.quote||m.text||'').trim().replace(/\s+/g,' ').toLowerCase());
+   const state=document.createElement('p');state.className='meta';state.textContent=rejected?'Rejected':saved?'Added to Evidence Map':'Pending review';
+   const note=document.createElement('textarea');note.placeholder='Interpretation (review before verifying)';note.value=m.reason||'';
+   const actions=document.createElement('div');actions.className='pdf-review-actions';
+   async function act(action){
+     for(const button of actions.querySelectorAll('button'))button.disabled=true;
+     try{
+       await globalThis.nuscopeCloud.reviewPdf(paperId,m,action,note.value);
+       state.textContent=action==='reject'?'Rejected':action==='restore'?'Pending review':'Added to Evidence Map';
+       notice.textContent='Review saved to the shared NUScope project.';
+     }catch(error){notice.textContent='Review failed: '+error.message;}
+     finally{for(const button of actions.querySelectorAll('button'))button.disabled=false;}
+   }
+   const verify=document.createElement('button');verify.textContent='Verify & Add Evidence';verify.disabled=rejected||saved;
+   verify.addEventListener('click',()=>act('save'));
+   const reject=document.createElement('button');reject.textContent='Reject';reject.disabled=rejected||saved;
+   reject.addEventListener('click',()=>act('reject'));
+   const restore=document.createElement('button');restore.textContent='Restore';restore.disabled=!rejected;
+   restore.addEventListener('click',()=>act('restore'));
+   actions.append(verify,reject,restore);
+   card.append(meta,quote,reason,state,note,actions);results.append(card);
   }
  }
  async function poll(jobId,paperId){
