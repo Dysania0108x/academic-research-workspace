@@ -139,3 +139,26 @@
  .ev-story-backdrop{left:-5%;top:0;width:110%;height:86%}
  .ev-scene{transform:scale(1.015)}
 }
+
+
+/* V8 — aligned navigation and differentiated authentication actions. */
+.ev-nav{display:flex;align-items:center;justify-content:space-between}
+.ev-nav .ev-brand{height:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.ev-nav-right{display:flex;align-items:center;gap:12px;height:44px}
+.ev-nav-signin,.ev-nav-signup{height:44px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;font:600 13px 'DM Sans',sans-serif!important;cursor:pointer;transition:background .2s,border-color .2s,transform .2s}
+.ev-nav-signin{background:#fff;border:1px solid #B9CEDC;color:#003D7C;padding:0 23px;border-radius:999px}
+.ev-nav-signin:hover{background:#EEF6FA;border-color:#003D7C}
+.ev-nav-signup{background:#003D7C;border:1px solid #003D7C;color:#fff;padding:0 20px 0 23px;border-radius:999px;gap:14px}
+.ev-nav-signup:hover{background:#002F61;transform:translateY(-1px)}
+.ev-nav-signup .ev-enter-arrow{color:#F5A34D;width:16px;height:16px}
+.ev-hero-start{display:inline-flex;align-items:center;justify-content:space-between;gap:38px;margin:32px 0 0 9px;background:#003D7C;color:#fff;border:1px solid #003D7C;border-radius:11px;padding:16px 19px 16px 24px;font:600 14px 'DM Sans',sans-serif!important;cursor:pointer;box-shadow:0 8px 20px rgba(0,61,124,.09);transition:background .2s,transform .2s}
+.ev-hero-start:hover{background:#002F61;transform:translateY(-2px)}
+.ev-hero-start svg{width:18px;height:18px;color:#F5A34D}
+@media(max-width:760px){
+ .ev-nav-right{gap:7px;height:38px}
+ .ev-nav .ev-brand{height:38px;min-height:38px}
+ .ev-nav-signin,.ev-nav-signup{height:38px;font-size:11px!important}
+ .ev-nav-signin{padding:0 12px}.ev-nav-signup{padding:0 12px;gap:7px}
+ .ev-nav-signup .ev-enter-arrow{width:13px;height:13px}
+ .ev-hero-start{margin:25px auto 0;padding:13px 17px 13px 19px;font-size:12px!important;gap:26px}
+}
