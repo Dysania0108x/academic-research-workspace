@@ -43,6 +43,7 @@
       for(const p of projects)select.add(new Option(p.name||p.data?.name||'Untitled project',p.id));
       if(preferred&&projects.some(p=>p.id===preferred))select.value=preferred;
       displayProject();status.textContent='Connected. '+projects.length+' project(s) available.';
+      document.dispatchEvent(new Event('nuscope-project-changed'));
     }catch(error){status.textContent='Sync error: '+error.message;}
   }
   function displayProject(){
