@@ -91,6 +91,32 @@
       await validSession();
       return request('/rest/v1/saved_excerpts',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({id:item.id,user_id:userId,project_id:projectId,quote:item.quote,note:item.note||'',source_title:item.title||'',source_url:item.url||'',captured_at:item.capturedAt||new Date().toISOString()})});
     },
+    async analysePdf(paperId,themes){
+      const {project}=await this.current();
+      if(!(project.data?.papers||[]).some(p=>p.id===paperId))throw Error('Paper does not belong to selected project.');
+      const apiBase=String(packaged.apiBase||'').replace(/\\/$/,'');
+      if(!apiBase)throw Error('AI API is not configured in the extension package. Set the public VITE_API_BASE_URL GitHub Actions variable and rebuild.');
+      await validSession();
+      const response=await fetch(apiBase+'/api/analyse/start',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'},
+        body:JSON.stringify({paper_id:paperId,question:project.data?.question||project.research_question,themes})
+      });
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(result.detail||'AI analysis failed (HTTP '+response.status+')');
+      return result;
+    },
+    async analysisJob(jobId){
+      const apiBase=String(packaged.apiBase||'').replace(/\\/$/,'');
+      if(!apiBase)throw Error('AI API not configured.');
+      await validSession();
+      const response=await fetch(apiBase+'/api/analyse/jobs/'+encodeURIComponent(jobId),{
+        headers:{'Authorization':'Bearer '+session.access_token}
+      });
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(result.detail||'Unable to load analysis job (HTTP '+response.status+')');
+      return result;
+    },
     async pdfLink(paperId){
       const {project}=await this.current();
       const paper=(project.data?.papers||[]).find(p=>p.id===paperId);
