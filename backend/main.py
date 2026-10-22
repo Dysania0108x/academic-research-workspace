@@ -39,7 +39,7 @@ app.add_middleware(
     allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
     # Project-scoped Vercel Preview domains change with each deployment.
     # CORS is not authentication: all protected routes still require JWT ownership checks.
-    allow_origin_regex=r'^https://academic-research-workspace(?:-[a-z0-9-]+)?\.vercel\.app$',
+    allow_origin_regex=r'^https://academic-research-workspace(?:-[a-z0-9-]+)?\.vercel\.app
     allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
     allow_headers=['Authorization','Content-Type'],
 )
@@ -914,6 +914,10 @@ def suggest_themes(req:ThemeRequest):
     if not themes:
         raise HTTPException(502,'The AI returned no usable research themes after two attempts. Please retry or enter themes manually.')
     return {'themes':themes}
+,
+    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allow_headers=['Authorization','Content-Type'],
+)
 # V6.3: all API calls except the non-sensitive health probe require a valid
 # Supabase access token. Project/paper ownership enforcement is a separate
 # requirement before multi-user release.
