@@ -1,3 +1,4 @@
+import {themeChipStyle} from './themePalette.mjs';
 // Review AI suggestions from the SAME FastAPI analysis job used by the Web App.
 // This panel never labels AI matches as verified evidence.
 (() => {
@@ -17,6 +18,7 @@
    const label=document.createElement('label');label.className='pdf-theme';
    const input=document.createElement('input');input.type='checkbox';input.checked=true;
    input.addEventListener('change',()=>{input.checked?selectedThemes.add(theme):selectedThemes.delete(theme);clearPoll();results.replaceChildren();});
+   Object.assign(label.style,themeChipStyle(themes,theme));
    label.append(input,document.createTextNode(' '+theme));themesBox.append(label);
   }
  }
@@ -27,6 +29,7 @@
   for(const m of job.matches||[]){
    const card=document.createElement('article');card.className='item';
    const meta=document.createElement('strong');meta.textContent=(m.theme||'Uncategorised')+' · Page '+(m.page||'?');
+   Object.assign(meta.style,themeChipStyle(globalThis.nuscopeCloud.selectedProject()?.data?.topics||[],m.theme));
    const quote=document.createElement('blockquote');quote.textContent=m.quote||m.text||'';
    const reason=document.createElement('p');reason.textContent=m.reason||'';
    const project=globalThis.nuscopeCloud.selectedProject();
