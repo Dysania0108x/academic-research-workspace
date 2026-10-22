@@ -55,7 +55,15 @@
    const restore=document.createElement('button');restore.textContent='Restore';restore.disabled=!rejected;
    restore.addEventListener('click',()=>act('restore'));
    actions.append(verify,reject,restore);
-   card.append(meta,quote,reason,state,note,actions);results.append(card);
+   const focus=document.createElement('button');focus.textContent='View highlight in PDF ↗';
+   focus.addEventListener('click',async()=>{
+     const projectId=$('projectSelect').value;
+     await chrome.storage.local.set({nuscopePdfHighlights:{
+       projectId,paperId,page:Number(m.page),matches:job.matches||[]
+     }});
+     await chrome.tabs.create({url:chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId)});
+   });
+   card.append(meta,quote,reason,state,note,focus,actions);results.append(card);
   }
  }
  async function poll(jobId,paperId){
