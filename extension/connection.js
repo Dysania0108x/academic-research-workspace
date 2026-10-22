@@ -95,7 +95,7 @@
     async analysePdf(paperId,themes){
       const {project}=await this.current();
       if(!(project.data?.papers||[]).some(p=>p.id===paperId))throw Error('Paper does not belong to selected project.');
-      const apiBase=String(packaged.apiBase||'').replace(/\\/$/,'');
+      const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
       if(!apiBase)throw Error('AI API is not configured in the extension package. Set the public VITE_API_BASE_URL GitHub Actions variable and rebuild.');
       await validSession();
       const response=await fetch(apiBase+'/api/analyse/start',{
@@ -108,7 +108,7 @@
       return result;
     },
     async analysisJob(jobId){
-      const apiBase=String(packaged.apiBase||'').replace(/\\/$/,'');
+      const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
       if(!apiBase)throw Error('AI API not configured.');
       await validSession();
       const response=await fetch(apiBase+'/api/analyse/jobs/'+encodeURIComponent(jobId),{
