@@ -24,3 +24,9 @@ document.getElementById('export').addEventListener('click',async()=>{
 document.getElementById('openApp').addEventListener('click',()=>chrome.tabs.create({url:'https://github.com/Dysania0108x/academic-research-workspace'}));
 chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures)render();});
 render().catch(()=>{status.textContent='Unable to load local captures.';});
+
+const port=chrome.runtime.connect({name:'NUSCOPE_PANEL'});
+chrome.tabs.query({active:true,currentWindow:true},tabs=>{
+  if(tabs[0]?.id)port.postMessage({type:'REGISTER_PANEL',tabId:tabs[0].id});
+});
+port.onMessage.addListener(message=>{if(message?.type==='CLOSE_PANEL')window.close();});
