@@ -179,3 +179,7 @@
  .ev-form h2{font-size:clamp(32px,8vw,43px);white-space:normal}
  .ev-auth-right{padding:44px 25px 68px}
 }
+
+/* Keep the full NUS Scope wordmark readable at desktop and mobile sizes. */
+.ev-brand{font-size:clamp(23px,2vw,29px)!important;letter-spacing:-.055em;white-space:nowrap}
+@media(max-width:760px){.ev-brand{font-size:23px!important;gap:9px}}
