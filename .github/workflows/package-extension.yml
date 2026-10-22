@@ -20,6 +20,12 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: node scripts/build-extension-config.mjs
+      - name: Bundle pinned PDF.js locally for Chrome MV3
+        run: |
+          mkdir -p /tmp/nuscope-pdfjs extension/vendor
+          npm install --prefix /tmp/nuscope-pdfjs --no-save --ignore-scripts pdfjs-dist@4.10.38
+          cp /tmp/nuscope-pdfjs/node_modules/pdfjs-dist/build/pdf.mjs extension/vendor/pdf.mjs
+          cp /tmp/nuscope-pdfjs/node_modules/pdfjs-dist/build/pdf.worker.mjs extension/vendor/pdf.worker.mjs
       - name: Check JavaScript syntax
         run: |
           node --check extension/background.js
@@ -27,6 +33,9 @@ jobs:
           node --check extension/panel.js
           node --check extension/connection.js
           node --check extension/pdf-analysis.js
+          node --check extension/reader.js
+          test -s extension/vendor/pdf.mjs
+          test -s extension/vendor/pdf.worker.mjs
           node --check extension/excerpts-cloud.js
           node --check extension/captureRules.mjs
           node --check extension/config.js
