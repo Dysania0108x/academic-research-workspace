@@ -575,3 +575,10 @@
 .pdfjs-first-reader .pdfjs-toolbar strong{flex:1 0 100%;margin:0;text-align:left}
 .pdfjs-first-reader .pdfjs-toolbar button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:36px}
 .pdfjs-first-reader .pdfjs-toolbar span{white-space:nowrap}
+
+
+/* Manual evidence creation: scrollable on laptop-height viewports. */
+.modal.evidence-modal:has(> label){max-height:min(88vh,860px);overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal.evidence-modal:has(> label)>label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
+.modal.evidence-modal:has(> label)>label input,.modal.evidence-modal:has(> label)>label select,.modal.evidence-modal:has(> label)>label textarea{width:100%;min-width:0;padding:10px;border:1px solid #d6dbe2;border-radius:9px;background:#fff;color:#23384e;font:inherit}
+.v6-result-actions a.secondary{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
