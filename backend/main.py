@@ -1,13 +1,15 @@
 import os, uuid, json, re, sqlite3, hashlib, time, threading, math
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 import fitz
 from openai import OpenAI
 from dotenv import load_dotenv
+import cloud_jobs
+import cloud_usage
 load_dotenv(Path(__file__).with_name('.env'))
 ROOT=Path(__file__).parent
 STORE=ROOT/'uploads'; STORE.mkdir(exist_ok=True)
@@ -25,9 +27,151 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS passage_cache (cache_key TEXT PRIMARY KEY, paper_id TEXT NOT NULL, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS theme_cache (cache_key TEXT PRIMARY KEY, result TEXT NOT NULL, created_at REAL NOT NULL)')
         c.execute('CREATE TABLE IF NOT EXISTS ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, task_type TEXT NOT NULL, paper_id TEXT, model TEXT, input_tokens INTEGER, output_tokens INTEGER, total_tokens INTEGER, status TEXT NOT NULL, error TEXT)')
+        c.execute('CREATE TABLE IF NOT EXISTS analysis_jobs_persisted (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, paper_id TEXT NOT NULL, cache_key TEXT NOT NULL, snapshot TEXT NOT NULL, updated_at REAL NOT NULL)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_jobs_owner_context ON analysis_jobs_persisted(owner_id, cache_key, updated_at)')
 init_db()
 app=FastAPI(title='Research Workspace API')
-app.add_middleware(CORSMiddleware,allow_origins=['http://localhost:5173','http://127.0.0.1:5173'],allow_methods=['*'],allow_headers=['*'])
+# Set FRONTEND_ORIGINS to comma-separated exact HTTPS origins in production.
+# Never combine credentialed CORS with a wildcard origin.
+frontend_origins=[origin.strip().rstrip('/') for origin in os.getenv('FRONTEND_ORIGINS','').split(',') if origin.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
+    # Project-scoped Vercel Preview domains change with each deployment.
+    # CORS is not authentication: all protected routes still require JWT ownership checks.
+    allow_origin_regex=r'^https://academic-research-workspace-[a-z0-9-]+\.vercel\.app$',
+    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allow_headers=['Authorization','Content-Type'],
+)
+# V6.3: all API calls except the non-sensitive health probe require a valid
+# Supabase access token. Project/paper ownership enforcement is a separate
+# requirement before multi-user release.
+from cloud_auth import authenticated_user
+
+@app.middleware("http")
+async def require_api_session(request, call_next):
+    """Authorize all project and paper endpoints before any local file access."""
+    # Browser CORS preflight has no bearer token. Let CORSMiddleware answer it;
+    # actual API requests still require authenticated ownership checks.
+    if request.method == "OPTIONS" or not request.url.path.startswith("/api/") or request.url.path == "/api/health":
+        return await call_next(request)
+    from fastapi.responses import JSONResponse
+    from cloud_auth import require_project_owner
+    try:
+        token = request.headers.get("authorization")
+        user_id = authenticated_user(token)
+        path = request.url.path
+        project_match = re.match(r"^/api/projects/([^/]+)", path)
+        if project_match:
+            require_project_owner(project_match.group(1), token)
+        if path == '/api/projects' or path.startswith('/api/projects/')  :
+            raise HTTPException(410, 'Legacy unscoped endpoint disabled')
+        # Do not let paper deletion race against an unrelated user's local cache.
+        # Existing files are globally named, so ownership is checked before deletion.
+        paper_ids = []
+        paper_match = re.match(r"^/api/papers/([^/]+)", path)
+        if paper_match:
+            paper_ids.append(paper_match.group(1))
+        if path in ("/api/analyse", "/api/analyse/start", "/api/passage"):
+            payload = await request.body()
+            try:
+                paper_ids.append(json.loads(payload).get("paper_id"))
+            except (ValueError, TypeError):
+                raise HTTPException(422, "Invalid JSON payload")
+            # Replaying the request body requires restoring its ASGI receive channel.
+            async def receive():
+                return {"type": "http.request", "body": payload, "more_body": False}
+            request._receive = receive
+        if path == "/api/themes/suggest":
+            payload = await request.body()
+            try:
+                paper_ids.extend(json.loads(payload).get("paper_ids", []))
+            except (ValueError, TypeError):
+                raise HTTPException(422, "Invalid JSON payload")
+            async def receive():
+                return {"type": "http.request", "body": payload, "more_body": False}
+            request._receive = receive
+        if path == "/api/analyse/papers/" or path.startswith("/api/analyse/papers/"):
+            match = re.match(r"^/api/analyse/papers/([^/]+)/job", path)
+            if match: paper_ids.append(match.group(1))
+        if paper_ids:
+            # Use the caller's RLS-restricted project rows as the authorization source.
+            import httpx
+            from cloud_auth import _configuration
+            url, key = _configuration()
+            with httpx.Client(timeout=8.0) as client:
+                resp = client.get(f"{url}/rest/v1/projects",
+                    params={"select":"id,data", "user_id":f"eq.{user_id}"},
+                    headers={"apikey":key,"Authorization":token})
+            if resp.status_code != 200:
+                raise HTTPException(503, "Unable to verify paper ownership")
+            owned = {str(p.get("id")): (str(row.get("id")), p)
+                     for row in resp.json()
+                     for p in (row.get("data") or {}).get("papers", [])
+                     if isinstance(p, dict)}
+            if any(not isinstance(pid,str) or pid not in owned for pid in paper_ids):
+                raise HTTPException(404, "Paper not found")
+            # Restore absent local PDFs from the owner's private Supabase Storage.
+            # The bearer token is forwarded, preserving Storage RLS.
+            for pid in paper_ids:
+                target = STORE / (pid + ".pdf")
+                if target.exists(): continue
+                project_id, metadata = owned[pid]
+                from cloud_auth import private_pdf_path
+                expected = private_pdf_path(user_id, project_id, pid)
+                if metadata.get("storagePath") != expected:
+                    raise HTTPException(404, "Cloud PDF unavailable")
+                from urllib.parse import quote
+                with httpx.Client(timeout=30.0) as client:
+                    download = client.get(
+                        f"{url}/storage/v1/object/authenticated/research-pdfs/{quote(expected, safe='/')}",
+                        headers={"apikey":key,"Authorization":token})
+                if download.status_code != 200:
+                    raise HTTPException(404, "Unable to restore authorized cloud PDF")
+                content = download.content
+                if len(content) > 20*1024*1024 or not content.startswith(b"%PDF-"):
+                    raise HTTPException(422, "Invalid cloud PDF")
+                with fitz.open(stream=content, filetype="pdf") as doc:
+                    if doc.is_encrypted or not blocks_for(doc):
+                        raise HTTPException(422, "Cloud PDF has no readable text")
+                    pages = len(doc)
+                sha = hashlib.sha256(content).hexdigest()
+                # Write atomically so a failed download never leaves a partial PDF.
+                import tempfile
+                temporary = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode="wb", suffix=".pdf", prefix="restore-",
+                        dir=STORE, delete=False
+                    ) as output:
+                        temporary = Path(output.name)
+                        output.write(content)
+                    temporary.replace(target)
+                    with db() as conn:
+                        conn.execute("INSERT OR REPLACE INTO papers VALUES(?,?,?,?,?)",
+                            (pid, metadata.get("name") or pid+".pdf", sha, pages, time.time()))
+                finally:
+                    if temporary is not None:
+                        temporary.unlink(missing_ok=True)
+        # New uploads must be bound to an existing project; unaffiliated uploads
+        # would otherwise create unowned local files.
+        if path == "/api/papers" and request.method == "POST":
+            project_id = request.query_params.get("project_id")
+            if not project_id:
+                raise HTTPException(422, "project_id required for upload")
+            require_project_owner(project_id, token)
+        job_match = re.match(r"^/api/analyse/jobs/([^/]+)", path)
+        if job_match:
+            with analysis_lock:
+                job = analysis_jobs.get(job_match.group(1))
+                if job and job.get("owner_id") != user_id:
+                    raise HTTPException(404, "Analysis job not found")
+                if not job and not _load_job(job_match.group(1), user_id):
+                    raise HTTPException(404, "Analysis job not found")
+        return await call_next(request)
+    except HTTPException as exc:
+        return JSONResponse(status_code=exc.status_code, content={"detail":exc.detail})
+
 class ProjectPayload(BaseModel):
     id: str
     data: dict
@@ -131,7 +275,9 @@ def paper_sha(paper_id):
     with db() as c:
         row=c.execute('SELECT sha256 FROM papers WHERE id=?',(paper_id,)).fetchone()
     if not row: raise HTTPException(404,'Paper not found')
-    return row['sha256']
+    # Include the unique paper ID so shared SQLite caches cannot mix accounts
+    # that uploaded identical PDF bytes.
+    return hashlib.sha256((paper_id + ':' + row['sha256']).encode()).hexdigest()
 
 def mock_mode():
     return os.getenv('AI_MOCK_MODE','false').strip().lower() in ('1','true','yes','on')
@@ -183,7 +329,7 @@ def _mock_response(messages,task_type):
                          'evidence_ids':ids[:1]}]}
     return {}
 
-def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
+def ask(messages,task_type='other',paper_id=None,timeout_seconds=None,owner_id=None):
     if mock_mode():return _mock_response(messages,task_type)
     key=os.getenv('DASHSCOPE_API_KEY')
     if not key: raise HTTPException(503,'Set DASHSCOPE_API_KEY in backend/.env')
@@ -196,16 +342,66 @@ def ask(messages,task_type='other',paper_id=None,timeout_seconds=None):
         if u: usage=(u.prompt_tokens,u.completion_tokens,u.total_tokens)
         return json.loads(res.choices[0].message.content or '{}')
     except Exception as exc:
-        status='error';error=str(exc)[:500]
-        raise HTTPException(502,'AI request failed: '+error[:250])
+        # Classify provider errors without exposing response bodies, prompts or secrets.
+        code=getattr(exc,'status_code',None)
+        kind=type(exc).__name__.lower()
+        if code in (401,403): category='upstream_auth'
+        elif code==404: category='model_or_endpoint'
+        elif code==429: category='rate_limited_or_quota'
+        elif code==400: category='unsupported_request'
+        elif code in (408,504) or 'timeout' in kind: category='upstream_timeout'
+        elif isinstance(exc,json.JSONDecodeError): category='invalid_json'
+        else: category='upstream_error'
+        status='error';error=f'{category} (provider HTTP {code or "unknown"})'
+        raise HTTPException(502,'AI request failed: '+error) from None
     finally:
         with db() as c:
             c.execute('INSERT INTO ai_usage(created_at,task_type,paper_id,model,input_tokens,output_tokens,total_tokens,status,error) VALUES(?,?,?,?,?,?,?,?,?)',(time.time(),task_type,paper_id,model,*usage,status,error))
+        if owner_id and cloud_usage.enabled():
+            try:
+                cloud_usage.record(owner_id=owner_id,paper_id=paper_id,task_type=task_type,
+                                   model=model,usage=usage,status=status)
+            except Exception:
+                # Do not fail a successful AI response because metering is unavailable.
+                import logging
+                logging.getLogger(__name__).exception('Durable AI usage write failed')
+
 @app.get('/api/usage')
-def usage_stats():
-    with db() as c:
-        rows=[dict(r) for r in c.execute('SELECT task_type, COUNT(*) AS requests, SUM(COALESCE(input_tokens,0)) AS input_tokens, SUM(COALESCE(output_tokens,0)) AS output_tokens, SUM(COALESCE(total_tokens,0)) AS total_tokens, SUM(CASE WHEN status="error" THEN 1 ELSE 0 END) AS errors FROM ai_usage GROUP BY task_type ORDER BY task_type')]
-    return {'by_task':rows,'total_tokens':sum(r['total_tokens'] for r in rows),'requests':sum(r['requests'] for r in rows),'note':'Counts actual model responses only; cache hits use zero new tokens.'}
+def usage_stats(project_id: str | None = None, authorization: str | None = Header(default=None)):
+    if not project_id:
+        raise HTTPException(422,'Project ID required for scoped usage report')
+    from cloud_auth import require_project_owner, _configuration
+    import httpx
+    user_id=require_project_owner(project_id,authorization)
+    url,key=_configuration()
+    with httpx.Client(timeout=8.0) as client:
+        response=client.get(url+'/rest/v1/projects',params={'select':'data','id':'eq.'+project_id,'user_id':'eq.'+user_id,'limit':'1'},
+                            headers={'apikey':key,'Authorization':authorization})
+    if response.status_code!=200 or not response.json():
+        raise HTTPException(503,'Unable to read project usage scope')
+    papers=(response.json()[0].get('data') or {}).get('papers',[])
+    paper_ids=[str(p['id']) for p in papers if isinstance(p,dict) and p.get('id')]
+    if not cloud_usage.enabled():
+        raise HTTPException(503,'Durable usage storage is not configured')
+    try:
+        events=cloud_usage.project_report(user_id,paper_ids)
+    except Exception:
+        raise HTTPException(503,'Durable usage storage unavailable; verify database migration')
+    grouped={}
+    for event in events:
+        task=event['task_type']
+        row=grouped.setdefault(task,{'task_type':task,'requests':0,'input_tokens':0,
+                                     'output_tokens':0,'total_tokens':0,'errors':0})
+        row['requests']+=1
+        for field in ('input_tokens','output_tokens','total_tokens'):
+            row[field]+=int(event.get(field) or 0)
+        row['errors']+=int(event.get('status')=='error')
+    rows=sorted(grouped.values(),key=lambda item:item['task_type'])
+    return {'by_task':rows,'total_tokens':sum(row['total_tokens'] for row in rows),
+            'requests':sum(row['requests'] for row in rows),
+            'note':'Durable events recorded after migration only; cached results use no new tokens.',
+            'scope':'project','durable':True}
+
 @app.get('/api/health')
 def health(): return {'ok':True,'ai_configured':bool(os.getenv('DASHSCOPE_API_KEY')) or mock_mode(),'mock_mode':mock_mode()}
 
@@ -243,15 +439,15 @@ def locate_quote(paper_id:str,req:LocateRequest):
         return {'found':True,'page':req.page,'rects':rects}
 
 @app.post('/api/papers')
-async def upload(file:UploadFile=File(...)):
-    if not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
+async def upload(file:UploadFile=File(...), project_id: str | None = None, authorization: str | None = Header(default=None)):
+    from cloud_auth import require_project_owner
+    if not project_id: raise HTTPException(422,'Project ID required for PDF upload')
+    require_project_owner(project_id, authorization)
+    if not file.filename or not file.filename.lower().endswith('.pdf'): raise HTTPException(400,'Only PDFs supported')
     data=await file.read(20*1024*1024+1)
     if len(data)>20*1024*1024: raise HTTPException(413,'PDF must be under 20MB')
     sha=hashlib.sha256(data).hexdigest()
-    with db() as c:
-        existing=c.execute('SELECT * FROM papers WHERE sha256=?',(sha,)).fetchone()
-    if existing and (STORE/(existing['id']+'.pdf')).exists():
-        return {'id':existing['id'],'name':existing['filename'],'pages':existing['pages'],'duplicate':True,**paper_metadata(existing['id'])}
+    # Never reuse a global paper ID across users/projects, even for identical bytes.
     pid=str(uuid.uuid4()); path=STORE/(pid+'.pdf')
     path.write_bytes(data)
     try:
@@ -304,12 +500,14 @@ def original_pdf(paper_id:str):
         return Response((STORE/(paper_id+'.pdf')).read_bytes(),media_type='application/pdf',headers={'Content-Disposition':'inline'})
 
 @app.get('/api/papers/{paper_id}/pages/{page_num}/image')
-def page_image(paper_id:str,page_num:int,scale:float=2.5):
+def page_image(paper_id:str,page_num:int,scale:float=1.7):
     with get_doc(paper_id) as doc:
         if page_num<1 or page_num>len(doc):raise HTTPException(404,'Page not found')
-        scale=max(1.5,min(3.0,scale))
+        scale=max(1.2,min(3.0,scale))
         pix=doc[page_num-1].get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False)
-        return Response(pix.tobytes('png'),media_type='image/png')
+        # JPEG reduces transfer size for remote readers; source PDF remains unchanged.
+        return Response(pix.tobytes('jpeg',jpg_quality=85),media_type='image/jpeg',
+                        headers={'Cache-Control':'private, max-age=300'})
 def exact_quote_rectangles(page, quote, block_rect):
     """Return verified PDF quads only; never fall back to whole text blocks."""
     quote=' '.join(str(quote).split()).strip()
@@ -370,11 +568,47 @@ analysis_lock=threading.Lock()
 def _job_snapshot(job):
     return {k:v for k,v in job.items() if k not in ('cancel_event','cache_key','request')}
 
+def _persist_job(job):
+    snapshot=_job_snapshot(job)
+    if cloud_jobs.save(job,snapshot):return
+    with db() as c:
+        c.execute('INSERT INTO analysis_jobs_persisted(id,owner_id,paper_id,cache_key,snapshot,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET snapshot=excluded.snapshot,updated_at=excluded.updated_at',
+                  (job['id'],job['owner_id'],job['paper_id'],job['cache_key'],json.dumps(snapshot,ensure_ascii=False),time.time()))
+
+def _load_job(job_id, owner_id):
+    if cloud_jobs.enabled():
+        snapshot=cloud_jobs.get(job_id,owner_id)
+        if snapshot and snapshot.get('status') in ('queued','running'):
+            snapshot.update(status='interrupted',message='Worker stopped; restart analysis to retry',batch_started_at=None)
+        return snapshot
+    with db() as c:
+        row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE id=? AND owner_id=?',(job_id,owner_id)).fetchone()
+    if not row:return None
+    snapshot=json.loads(row['snapshot'])
+    if snapshot.get('status') in ('queued','running'):
+        snapshot.update(status='interrupted',message='Server restarted; start analysis again to resume from cached batches',batch_started_at=None)
+    return snapshot
+
+def _latest_persisted_job(owner_id, identity):
+    if cloud_jobs.enabled():
+        snapshot=cloud_jobs.latest(owner_id,identity)
+        if snapshot and snapshot.get('status') in ('queued','running'):
+            snapshot.update(status='interrupted',message='Worker stopped; restart analysis to retry',batch_started_at=None)
+        return snapshot
+    with db() as c:
+        row=c.execute('SELECT snapshot FROM analysis_jobs_persisted WHERE owner_id=? AND cache_key=? ORDER BY updated_at DESC LIMIT 1',(owner_id,identity)).fetchone()
+    if not row:return None
+    snapshot=json.loads(row['snapshot'])
+    if snapshot.get('status') in ('queued','running'):
+        snapshot.update(status='interrupted',message='Server restarted; start analysis again to resume from cached batches',batch_started_at=None)
+    return snapshot
+
 def _set_job(job, **changes):
     with analysis_lock:
         if job['cancel_event'].is_set() and changes.get('status') != 'cancelled':
             return
         job.update(changes)
+        _persist_job(job)
 
 def _analyse_job(job, req):
     try:
@@ -411,11 +645,19 @@ def _analyse_job(job, req):
                         'Never invent or paraphrase quotes. Returning zero matches is valid.'
                     )},
                     {'role':'user','content':json.dumps({'research_question':req.question,'themes':themes,'pdf_blocks':compact},ensure_ascii=False)}
-                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')))
+                ],task_type='highlight',paper_id=req.paper_id,timeout_seconds=float(os.getenv('HIGHLIGHT_TIMEOUT_SECONDS','90')),owner_id=job['owner_id'])
                 except HTTPException as exc:
                     if job['cancel_event'].is_set():return
                     failed_batches.append(index+1)
-                    _set_job(job,completed_batches=index+1,message=f'Batch {index+1}/{total} failed after {int(time.monotonic()-started_at)}s; continuing',failed_batches=list(failed_batches),batch_started_at=None)
+                    detail=str(exc.detail)
+                    known=('upstream_auth','model_or_endpoint','rate_limited_or_quota',
+                           'unsupported_request','upstream_timeout','invalid_json','upstream_error')
+                    category=next((name for name in known if name in detail),
+                                  'missing_api_key' if exc.status_code==503 else 'upstream_error')
+                    errors=[*job.get('batch_errors',[]),{'batch':index+1,'category':category}]
+                    _set_job(job,completed_batches=index+1,
+                             message=f'Batch {index+1}/{total} failed ({category}); continuing',
+                             failed_batches=list(failed_batches),batch_errors=errors,batch_started_at=None)
                     continue
                 result=[]
                 allowed_ids={b['id'] for b in batch}
@@ -449,12 +691,13 @@ def _analyse_job(job, req):
         _set_job(job,status='failed',error=str(getattr(exc,'detail',exc))[:400],message='Analysis failed; completed batches remain cached')
 
 @app.post('/api/analyse/start')
-def start_analysis(req:AnalysisRequest):
+def start_analysis(req:AnalysisRequest, authorization: str | None = Header(default=None)):
+    owner_id=authenticated_user(authorization)
     themes=list(dict.fromkeys(t.strip() for t in req.themes if t.strip()))
     if not themes:raise HTTPException(422,'Add research themes first')
     if not req.question.strip():raise HTTPException(422,'Research question required')
     sha=paper_sha(req.paper_id)
-    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,active_model())
+    identity=fingerprint(owner_id,HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,active_model())
     with analysis_lock:
         for job in analysis_jobs.values():
             if job['cache_key']==identity and job['status'] in ('queued','running'):
@@ -467,13 +710,14 @@ def start_analysis(req:AnalysisRequest):
         for old_id in list(analysis_jobs)[:-40]:
             if analysis_jobs[old_id]['status'] not in ('queued','running'):
                 analysis_jobs.pop(old_id,None)
-        job={'id':str(uuid.uuid4()),'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'failed_batches':[],'batch_started_at':None,'error':None,'cancel_event':threading.Event()}
+        job={'id':str(uuid.uuid4()),'owner_id':owner_id,'paper_id':req.paper_id,'question':req.question.strip(),'themes':themes,'cache_key':identity,'status':'queued','message':'Queued','completed_batches':0,'total_batches':0,'matches':[],'failed_batches':[],'batch_started_at':None,'error':None,'cancel_event':threading.Event()}
         analysis_jobs[job['id']]=job
+        _persist_job(job)
     analysis_pool.submit(_analyse_job,job,req)
     return _job_snapshot(job)
 
 @app.get('/api/analyse/papers/{paper_id}/job')
-def get_paper_analysis_job(paper_id:str, question:str, themes:str):
+def get_paper_analysis_job(paper_id:str, question:str, themes:str, authorization: str | None = Header(default=None)):
     """Reconnect to the latest job for this exact paper and research context."""
     sha=paper_sha(paper_id)
     try:
@@ -483,11 +727,11 @@ def get_paper_analysis_job(paper_id:str, question:str, themes:str):
     if not isinstance(theme_list,list):
         raise HTTPException(422,'Themes must be an array')
     normalized=list(dict.fromkeys(str(t).strip() for t in theme_list if str(t).strip()))
-    identity=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,question.strip(),normalized,active_model())
+    identity=fingerprint(authenticated_user(authorization),HIGHLIGHT_ENGINE_VERSION,sha,question.strip(),normalized,active_model())
     with analysis_lock:
         candidates=[j for j in analysis_jobs.values() if j.get('cache_key')==identity]
         if not candidates:
-            return {'job':None}
+            return {'job':_latest_persisted_job(authenticated_user(authorization),identity)}
         # Most recently created job wins, including a completed or cancelled job.
         return {'job':_job_snapshot(candidates[-1])}
 
@@ -495,7 +739,10 @@ def get_paper_analysis_job(paper_id:str, question:str, themes:str):
 def get_analysis_job(job_id:str):
     with analysis_lock:
         job=analysis_jobs.get(job_id)
-        if job is None:raise HTTPException(404,'Analysis job not found')
+        if job is None:
+            saved=_load_job(job_id,authenticated_user(authorization))
+            if saved is None:raise HTTPException(404,'Analysis job not found')
+            return saved
         return _job_snapshot(job)
 
 @app.post('/api/analyse/jobs/{job_id}/cancel')
@@ -507,6 +754,7 @@ def cancel_analysis_job(job_id:str):
             job['cancel_event'].set()
             job['status']='cancelled'
             job['message']='Cancelled. In-flight provider request may continue until timeout.'
+            _persist_job(job)
         return _job_snapshot(job)
 
 @app.post('/api/passage')

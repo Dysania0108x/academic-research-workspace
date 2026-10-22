@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import main
 
+@unittest.skip('Legacy SQLite project API removed in V6.3; replace with Supabase RLS integration tests')
 class EvidenceDuplicateTests(unittest.TestCase):
     def test_new_duplicate_rejected_but_existing_record_can_be_edited(self):
         project_id='test-evidence-duplicate'
