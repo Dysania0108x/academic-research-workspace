@@ -283,23 +283,28 @@ def mock_mode():
     return os.getenv('AI_MOCK_MODE','false').strip().lower() in ('1','true','yes','on')
 
 def ai_provider():
-    provider=os.getenv('AI_PROVIDER','deepseek').strip().lower()
-    if provider not in ('deepseek','qwen'):
-        raise HTTPException(503,'AI_PROVIDER must be deepseek or qwen')
+    provider=os.getenv('AI_PROVIDER','bailian').strip().lower()
+    if provider not in ('bailian','deepseek','qwen'):
+        raise HTTPException(503,'AI_PROVIDER must be bailian, deepseek or qwen')
     return provider
 
 def active_model():
     if mock_mode():return 'mock-deterministic-v1'
-    return os.getenv('DEEPSEEK_MODEL','deepseek-v4.1-flash') if ai_provider()=='deepseek' else os.getenv('QWEN_MODEL','qwen-plus')
+    provider=ai_provider()
+    if provider=='bailian':
+        return os.getenv('BAILIAN_MODEL') or os.getenv('QWEN_MODEL') or 'deepseek-v4.1-flash'
+    if provider=='deepseek':return os.getenv('DEEPSEEK_MODEL','deepseek-chat')
+    return os.getenv('QWEN_MODEL','qwen-plus')
 
 def ai_client_config():
-    if ai_provider()=='deepseek':
-        key=os.getenv('DEEPSEEK_API_KEY')
-        if not key:raise HTTPException(503,'Set DEEPSEEK_API_KEY on the backend server')
-        return key,'https://api.deepseek.com'
-    key=os.getenv('DASHSCOPE_API_KEY')
-    if not key:raise HTTPException(503,'Set DASHSCOPE_API_KEY on the backend server')
-    return key,os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1')
+    provider=ai_provider()
+    if provider in ('bailian','qwen'):
+        key=os.getenv('DASHSCOPE_API_KEY')
+        if not key:raise HTTPException(503,'Set DASHSCOPE_API_KEY on the backend server')
+        return key,os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1')
+    key=os.getenv('DEEPSEEK_API_KEY')
+    if not key:raise HTTPException(503,'Set DEEPSEEK_API_KEY on the backend server')
+    return key,'https://api.deepseek.com'
 
 def _mock_response(messages,task_type):
     """Deterministic contract-compatible responses; never call a remote model."""
