@@ -87,3 +87,7 @@ The extension now has a **Project PDF Library → AI Highlight PDF** action. It 
 For the AI button to work, set the public GitHub Actions repository variable `VITE_API_BASE_URL` to the **same HTTPS Render API base URL** as the Web App, then re-run the Extension packaging workflow. The packager adds that specific API origin to the extension's allowed host permissions. No private AI key is bundled. The backend must be deployed with the corresponding code, including authenticated job polling. If the variable is missing, the extension will show a configuration message rather than silently fail.
 
 **Important:** This is a development preview. A valid project paper must also exist in the backend's PDF store; if the Render store was cleared, re-upload through the Web App. Do not treat suggested highlights as verified evidence.
+
+## PDF candidate review (development preview)
+
+After AI analysis, the side panel offers **Verify & Add Evidence**, **Reject**, and **Restore**. These use the authenticated, project-scoped `review_pdf_highlight` Supabase RPC and write to the same `projects.data.evidence` / `projects.data.rejected` fields as the Web App. Before testing, run `supabase/migrations/20261023_pdf_highlight_review.sql` in the existing Supabase project (after backup). The RPC requires ownership and an existing project paper/theme, and serializes writes with a row lock. This does not prove a quotation matches the original PDF: human verification is required. The PDF overlay viewer and live cross-client refresh remain outstanding.
