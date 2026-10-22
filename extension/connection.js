@@ -118,6 +118,20 @@
       if(!response.ok)throw Error(result.detail||'Unable to load analysis job (HTTP '+response.status+')');
       return result;
     },
+    async reviewPdf(paperId,match,action,interpretation=''){
+      const {project}=await this.current();
+      if(!(project.data?.papers||[]).some(p=>p.id===paperId))throw Error('PDF is not in this project.');
+      if(!(project.data?.topics||[]).includes(match.theme))throw Error('Theme is no longer in the project.');
+      await validSession();
+      const result=await request('/rest/v1/rpc/review_pdf_highlight',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},
+        body:JSON.stringify({p_project_id:project.id,p_paper_id:paperId,p_page:match.page,
+          p_quote:match.quote||match.text,p_theme:match.theme,p_action:action,p_interpretation:interpretation})
+      });
+      await loadProjects(project.id);
+      return result;
+    },
     async pdfLink(paperId){
       const {project}=await this.current();
       const paper=(project.data?.papers||[]).find(p=>p.id===paperId);
