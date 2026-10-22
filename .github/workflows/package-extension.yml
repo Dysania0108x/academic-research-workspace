@@ -25,6 +25,7 @@ jobs:
           node --check extension/content.js
           node --check extension/panel.js
           node --check extension/connection.js
+          node --check extension/excerpts-cloud.js
           node --check extension/config.js
       - name: Package unpacked extension
         run: |
