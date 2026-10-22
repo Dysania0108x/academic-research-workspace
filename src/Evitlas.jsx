@@ -12,19 +12,23 @@ export function EvitlasLanding({onSignIn,onSignUp}) {
  return <div className="ev-root ev-landing">
   <header className="ev-nav"><EvitlasMark onClick={()=>setActive(0)}/><div className="ev-nav-right"><button type="button" className="ev-nav-signin" onClick={onSignIn}>Sign in</button><button type="button" className="ev-nav-signup ev-split-button" onClick={onSignUp}><span className="ev-split-label">Sign up</span><span className="ev-split-icon"><svg className="ev-enter-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 19 19 5M7 5h12v12"/></svg></span></button></div></header>
   
-  <main className="ev-hero"><div className="ev-headline"><div className="ev-eyebrow"><span className="ev-eyebrow-line"/> FOR NUS RESEARCHERS</div><h1>Make sense <span className="ev-headline-second">of <em >more</em><b>.</b></span></h1><button type="button" className="ev-hero-start ev-split-button" onClick={onSignUp}><span className="ev-split-label">Start exploring</span><span className="ev-split-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg></span></button></div>
-   <div className="ev-story" aria-label="Research journey"><svg className="ev-story-backdrop" viewBox="0 0 700 640" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
-    <path d="M103 125C126 77 193 51 250 77C298 99 321 109 356 85C397 56 450 58 472 104C492 146 512 154 557 139C607 123 647 153 632 201C620 242 584 263 604 306C628 359 648 388 616 425C585 461 532 448 511 482C480 528 432 515 396 500C356 482 332 488 289 520C249 550 194 536 178 492C164 454 138 439 99 449C56 461 37 415 60 378C83 343 101 327 78 284C50 234 67 169 103 125Z" fill="#DDEFF8"/>
-    <path d="M438 89C500 49 604 84 641 155C670 209 637 268 596 304C558 337 518 349 470 326C418 301 390 246 398 195C403 149 408 113 438 89Z" fill="#B7DDEB"/>
-    <path d="M521 110C550 80 605 90 617 127C627 159 601 173 609 196C617 221 596 240 564 227C535 215 534 187 511 180C484 171 493 135 521 110Z" fill="#FFE1BF"/>
-    <g fill="none" stroke="#6D9BB9" strokeWidth="1.5" opacity=".39">
-      <ellipse cx="348" cy="318" rx="278" ry="185" transform="rotate(-21 348 318)"/>
-      <ellipse cx="349" cy="313" rx="269" ry="198" transform="rotate(24 349 313)"/>
-    </g>
-   </svg>{scenes.map((scene,i)=><div key={scene.caption} className={'ev-scene '+(active===i?'is-active':'')} aria-hidden={active!==i}><img src={scene.image} alt="" /></div>)}
-   <div className="ev-caption" style={{color:scenes[active].color}} aria-live="polite">{scenes[active].caption}</div>
-   <div className="ev-progress" aria-label="Choose research scene">{scenes.map((scene,i)=><button key={scene.caption} type="button" aria-label={scene.caption} aria-current={active===i?'step':undefined} onClick={()=>setActive(i)}><i style={{background:active===i?scene.color:undefined}}/></button>)}</div>
-   </div></main>
+  <main className="ev-editorial-hero">
+   <section className="ev-editorial-left" aria-label="Research discovery">
+    <div className="ev-editorial-kicker"><span className="ev-eyebrow-line"/> FOR NUS RESEARCHERS</div>
+    <div className="ev-editorial-carousel" aria-label="Research journey">
+     <div className="ev-editorial-art-bg" aria-hidden="true"><svg viewBox="0 0 540 420" preserveAspectRatio="xMidYMid meet"><path d="M35 86C63 35 128 57 162 34C205 5 247 32 265 68C280 99 315 64 350 54C397 40 444 61 449 105C453 141 425 157 450 190C483 233 503 275 465 304C430 329 397 306 373 338C343 375 305 359 278 350C237 337 208 386 168 368C128 350 139 320 104 312C55 300 44 274 63 236C84 194 21 159 35 86Z" fill="#E2F1F8"/><path d="M353 55C388 26 440 36 459 69C477 99 448 123 458 148C468 172 443 192 411 175C383 160 375 134 349 129C322 123 325 77 353 55Z" fill="#C4E3EF"/><path d="M82 285C105 259 146 272 154 300C161 329 136 346 109 342C79 339 60 310 82 285Z" fill="#FFE6C8"/><path d="M42 258C125 105 315 72 467 212" fill="none" stroke="#8FB8CF" strokeWidth="1.2" strokeDasharray="4 8" opacity=".55"/></svg></div>
+     {scenes.map((scene,i)=><div key={scene.caption} className={'ev-editorial-scene '+(active===i?'is-active':'')} aria-hidden={active!==i}><img src={scene.image} alt=""/></div>)}
+    </div>
+    <div className="ev-editorial-carousel-footer"><span className="ev-editorial-index">0{active+1} <span>/ 03</span></span><div className="ev-editorial-caption" aria-live="polite">{scenes[active].caption}</div><div className="ev-editorial-controls" aria-label="Choose research scene">{scenes.map((scene,i)=><button key={scene.caption} type="button" aria-label={scene.caption} aria-current={active===i?'step':undefined} onClick={()=>setActive(i)}><span/></button>)}</div></div>
+   </section>
+   <section className="ev-editorial-right">
+    <span className="ev-editorial-side-label">RESEARCH, REIMAGINED <span>↗</span></span>
+    <h1>Make <span>sense</span><span className="ev-editorial-title-second">of <em>more</em><b>.</b></span></h1>
+    <p className="ev-editorial-description">From scattered papers to clearer thinking.</p>
+    <button type="button" className="ev-hero-start ev-split-button" onClick={onSignUp}><span className="ev-split-label">Start exploring</span><span className="ev-split-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7"/></svg></span></button>
+    <div className="ev-editorial-footnote"><span className="ev-editorial-footnote-rule"/> A SPACE TO EXPLORE · VERIFY · CONNECT</div>
+   </section>
+  </main>
  </div>
 }
 export function EvitlasAuth({mode,setMode,email,setEmail,password,setPassword,busy,error,notice,onSubmit,onBack}){
