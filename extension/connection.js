@@ -33,7 +33,7 @@
     el('projectSection').hidden=!session;
     status.textContent=session?'Connected to NUScope Supabase.':'Not connected. Your saved excerpts remain on this device.';
   }
-  async function loadProjects(preferred='',notify=true){
+  async function loadProjects(preferred='',notify=true,strict=false){
     updateAuth();
     try{
       await validSession();
@@ -44,7 +44,7 @@
       if(preferred&&projects.some(p=>p.id===preferred))select.value=preferred;
       displayProject();status.textContent='Connected. '+projects.length+' project(s) available.';
       if(notify)document.dispatchEvent(new Event('nuscope-project-changed'));
-    }catch(error){status.textContent='Sync error: '+error.message;}
+    }catch(error){status.textContent='Sync error: '+error.message;if(strict)throw error;}
   }
   function displayProject(){
     const project=projects.find(p=>p.id===el('projectSelect').value);
@@ -129,7 +129,7 @@
         body:JSON.stringify({p_project_id:project.id,p_paper_id:paperId,p_page:match.page,
           p_quote:match.quote||match.text,p_theme:match.theme,p_action:action,p_interpretation:interpretation})
       });
-      await loadProjects(project.id,false);
+      await loadProjects(project.id,false,true);
       return result;
     },
     async pdfLink(paperId){
