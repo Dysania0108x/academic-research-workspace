@@ -3,11 +3,12 @@
   const el=id=>document.getElementById(id);
   const status=el('authStatus');
   let config=null,session=null,projects=[];
+  const packaged=globalThis.NUSCOPE_PUBLIC_CONFIG||{};
   const originOk=url=>{try{const u=new URL(url);return u.protocol==='https:'&&/^[a-z0-9-]+\.supabase\.co$/i.test(u.hostname)&&u.pathname==='/'&& !u.search&&!u.hash;}catch{return false;}};
   const settings=async()=>{
-    const {nuscopeSupabaseConfig:c,nuscopeSession:s,nuscopeProjectId:p}=await chrome.storage.local.get(['nuscopeSupabaseConfig','nuscopeSession','nuscopeProjectId']);
-    config=c||null;session=s||null;
-    if(config){el('sbUrl').value=config.url;el('sbKey').value=config.key;}
+    const {nuscopeSession:s,nuscopeProjectId:p}=await chrome.storage.local.get(['nuscopeSession','nuscopeProjectId']);
+    config={url:String(packaged.url||'').replace(/\/$/,''),key:String(packaged.key||'')};session=s||null;
+    if(!originOk(config.url+'/')||!config.key){el('configurationNotice').hidden=false;el('loginForm').hidden=true;status.textContent='Extension public configuration missing.';return;}
     if(session){await loadProjects(p||'');}else updateAuth();
   };
   const headers=()=>({'apikey':config.key,'Authorization':'Bearer '+session.access_token});
@@ -53,15 +54,6 @@
     }
     chrome.storage.local.set({nuscopeProjectId:project?.id||''}).catch(()=>{});
   }
-  el('saveSettings').addEventListener('click',async()=>{
-    const url=el('sbUrl').value.trim().replace(/\/$/,'');
-    const key=el('sbKey').value.trim();
-    if(!originOk(url+'/')||!key||/service_role|sb_secret_/i.test(key)){status.textContent='Use a valid HTTPS Supabase project URL and a publishable/anon key (never a secret key).';return;}
-    config={url,key};session=null;projects=[];
-    await chrome.storage.local.set({nuscopeSupabaseConfig:config});
-    await chrome.storage.local.remove(['nuscopeSession','nuscopeProjectId']);
-    updateAuth();status.textContent='Settings saved. Sign in with your NUScope account.';
-  });
   el('loginForm').addEventListener('submit',async event=>{
     event.preventDefault();
     try{
