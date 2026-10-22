@@ -5,7 +5,7 @@ const scenes=[
  {caption:'Trace the evidence',color:'#D7783C',image:'/evitlas/02.svg'},
  {caption:'Connect the insights',color:'#427B83',image:'/evitlas/03.svg'}
 ];
-export function EvitlasMark({onClick}){return <button className="ev-brand" type="button" onClick={onClick} aria-label="Evitlas home"><span className="ev-symbol"><i/><i/><i/></span><span>evitlas</span></button>}
+export function EvitlasMark({onClick}){return <button className="ev-brand" type="button" onClick={onClick} aria-label="NUS Scope home"><span className="ev-symbol"><i/><i/><i/></span><span>NUS Scope</span></button>}
 export function EvitlasLanding({onEnter}) {
  const [active,setActive]=useState(0);
  useEffect(()=>{if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const id=window.setInterval(()=>setActive(i=>(i+1)%3),5000);return()=>window.clearInterval(id)},[]);
@@ -27,7 +27,7 @@ export function EvitlasAuth({mode,setMode,email,setEmail,password,setPassword,bu
   <label htmlFor="ev-password">Password</label><input id="ev-password" type="password" minLength={6} required autoComplete={mode==='signin'?'current-password':'new-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters"/>
   {error&&<p className="ev-error" role="alert">{error}</p>}{notice&&<p className="ev-notice" role="status">{notice}</p>}
   <button className="ev-submit" disabled={busy} type="submit"><span>{busy?'Please wait…':mode==='signin'?'Sign in':'Create account'}</span><span aria-hidden="true">→</span></button>
-  <p className="ev-switch">{mode==='signin'?'New to Evitlas?':'Already have an account?'} <button type="button" onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Create an account':'Sign in'}</button></p>
+  <p className="ev-switch">{mode==='signin'?'New to NUS Scope?':'Already have an account?'} <button type="button" onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Create an account':'Sign in'}</button></p>
   </form></section>
  </div>
 }
