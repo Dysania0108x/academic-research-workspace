@@ -79,3 +79,11 @@ The workflow deliberately fails when the repository variables are missing, rathe
 The side panel now lists PDFs from the selected project's existing `data.papers` metadata. **Open original PDF** requests a short-lived signed URL from the same private Supabase Storage bucket used by the Web App. It does not make the PDF public, and it rejects unexpected storage paths. This is a viewing bridge only: it does **not** yet apply AI Highlight overlays or save PDF highlights in the Extension. Those must reuse the Web App's existing FastAPI analysis and verified geometry pipeline, rather than claiming Chrome's native PDF viewer supports injection.
 
 This feature is currently a development preview. Test with a disposable project PDF and confirm signed URL access and browser permissions before release.
+
+## AI PDF Highlight preview
+
+The extension now has a **Project PDF Library → AI Highlight PDF** action. It sends the selected Project's research question, selected themes, and existing paper ID to the **same FastAPI `/api/analyse/start` endpoint** used by the Web App, then polls the authenticated job endpoint and displays candidate quotes, page numbers and themes. This does not yet paint overlays on the PDF or provide Verify/Reject/Restore controls; it is the first stage of integration.
+
+For the AI button to work, set the public GitHub Actions repository variable `VITE_API_BASE_URL` to the **same HTTPS Render API base URL** as the Web App, then re-run the Extension packaging workflow. The packager adds that specific API origin to the extension's allowed host permissions. No private AI key is bundled. The backend must be deployed with the corresponding code, including authenticated job polling. If the variable is missing, the extension will show a configuration message rather than silently fail.
+
+**Important:** This is a development preview. A valid project paper must also exist in the backend's PDF store; if the Render store was cleared, re-upload through the Web App. Do not treat suggested highlights as verified evidence.
