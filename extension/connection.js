@@ -1,6 +1,7 @@
 // Independent Supabase REST client for the extension. No Web App token scraping.
 (() => {
   const el=id=>document.getElementById(id);
+  const themeChipStyle=globalThis.NUSCOPE_THEME_COLORS?.themeChipStyle;
   const status=el('authStatus');
   let config=null,session=null,projects=[];
   const packaged=globalThis.NUSCOPE_PUBLIC_CONFIG||{};
@@ -55,7 +56,9 @@
     el('researchQuestion').textContent=project?'Research question: '+(project.data?.question||project.research_question||'Not set'):'Select a project created in the NUScope Web App.';
     el('projectThemes').replaceChildren();
     for(const theme of (Array.isArray(project?.data?.topics)?project.data.topics:[])){
-      const chip=document.createElement('span');chip.textContent=String(theme);el('projectThemes').append(chip);
+      const chip=document.createElement('span');chip.textContent=String(theme);
+      if(themeChipStyle)Object.assign(chip.style,themeChipStyle(project.data.topics,theme));
+      el('projectThemes').append(chip);
     }
     chrome.storage.local.set({nuscopeProjectId:project?.id||''}).catch(()=>{});
   }
