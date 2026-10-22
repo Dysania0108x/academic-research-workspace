@@ -39,7 +39,7 @@ app.add_middleware(
     allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
     # Project-scoped Vercel Preview domains change with each deployment.
     # CORS is not authentication: all protected routes still require JWT ownership checks.
-    allow_origin_regex=r'^https://academic-research-workspace-[a-z0-9-]+\.vercel\.app$',
+    allow_origin_regex=r'^https://academic-research-workspace(?:-[a-z0-9-]+)?[.]vercel[.]app$',
     allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
     allow_headers=['Authorization','Content-Type'],
 )

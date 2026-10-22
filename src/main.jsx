@@ -42,6 +42,15 @@ const relationshipStyle=kind=>({background:(relationshipColors[kind]||relationsh
 const clearNativeSelection=()=>{if(typeof window!=='undefined')window.getSelection?.()?.removeAllRanges?.()};
 const defaultThemes=['Research Efficiency','Information Reliability','Research Workflow'];
 const initialProject={id:'demo',name:'AI in Literature Reviews',question:'How does generative AI influence students’ literature review processes?',topics:defaultThemes,papers:[],evidence:[]};
+// A starter workspace contains fictional context only, never fabricated verified quotations.
+const makeStarterProject=()=>({
+ id:crypto.randomUUID(),
+ name:'Example Project — AI in Literature Reviews',
+ question:'How can AI support postgraduate students in reviewing academic literature while maintaining evidence reliability?',
+ topics:['AI-assisted Literature Review','Evidence Verification','Research Workflow'],
+ papers:[],evidence:[],
+ description:'EXAMPLE PROJECT — Sample research question and themes for exploring the workspace. Upload your own papers to generate and verify real evidence.'
+});
 const normalizeSeedPapers=projects=>(projects||[]).map(p=>{let found=false;return {...p,papers:(p.papers||[]).map(paper=>{const seed=!!paper.seed&&!found;if(seed)found=true;return {...paper,seed}})}});
 function load(){try{return normalizeSeedPapers(JSON.parse(localStorage.getItem('arw-v01'))||[initialProject])}catch{return [initialProject]}}
 function EvidenceNetwork({evidence,links,themes,storedPositions,onPosition,onNode,onEdge,onConnect}){
@@ -266,7 +275,33 @@ function App({user}){
   }catch(e){setAiError(e.message)}
  };
  const inspect=async m=>{const request=++passageRequestRef.current;sourceRequestRef.current++;clearNativeSelection();setSourceFocus(null);setFocusedHighlight(highlightKey({...m,paperId}));setRelationship('Unclassified');setSelected({...m,source:project.papers.find(p=>p.id===paperId)?.name+' · page '+m.page,analysis:'',paperId});setEditing('');setAiDetails(null);setPageNumber(m.page);setAssistant(true);setAssistantTab('analysis');setBusy(true);setAiError('');try{const r=await apiFetch('/api/passage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paper_id:paperId,block_id:m.id,question:project.question,theme:m.theme})});const d=await r.json();if(request!==passageRequestRef.current)return;if(!r.ok)throw Error(d.detail);setAiDetails(d);setEditing(d.interpretation);setCacheMessage(d.cache_hit?'Passage analysis loaded from cache (0 new tokens)':'New passage analysis generated');apiFetch('/api/usage').then(r=>r.json()).then(setUsage).catch(()=>{})}catch(e){if(request===passageRequestRef.current)setAiError(e.message)}finally{if(request===passageRequestRef.current)setBusy(false)}};
- useEffect(()=>{let alive=true;setSyncReady(false);setCloudError('');supabase.from('projects').select('id,name,research_question,data').eq('user_id',user.id).order('created_at',{ascending:true}).then(({data,error})=>{if(!alive)return;if(error){setCloudError('Cloud load failed: '+error.message);return}setProjects(normalizeSeedPapers((data||[]).map(row=>({...row.data,id:row.id,name:row.name,question:row.research_question}))));setSyncReady(true)}).catch(e=>{if(alive)setCloudError('Cloud load failed: '+e.message)});return()=>{alive=false}},[user.id,cloudRetry]);
+ useEffect(()=>{
+  let alive=true;
+  setSyncReady(false);setCloudError('');
+  (async()=>{
+   try{
+    const {data,error}=await supabase.from('projects').select('id,name,research_question,data').eq('user_id',user.id).order('created_at',{ascending:true});
+    if(!alive)return;
+    if(error)throw Error('Cloud load failed: '+error.message);
+    let rows=data||[];
+    const starterFlag='arw-starter-created-'+user.id;
+    let initialized=false;
+    try{initialized=localStorage.getItem(starterFlag)==='1'}catch{}
+    if(!rows.length&&!initialized){
+     const example=makeStarterProject();
+     const {error:insertError}=await supabase.from('projects').insert({id:example.id,user_id:user.id,name:example.name,research_question:example.question,data:example});
+     if(!alive)return;
+     if(insertError)throw Error('Example project could not be created: '+insertError.message);
+     rows=[{id:example.id,name:example.name,research_question:example.question,data:example}];
+    }
+    try{localStorage.setItem(starterFlag,'1')}catch{}
+    if(!alive)return;
+    setProjects(normalizeSeedPapers(rows.map(row=>({...row.data,id:row.id,name:row.name,question:row.research_question}))));
+    setSyncReady(true);
+   }catch(e){if(alive)setCloudError(e.message)}
+  })();
+  return()=>{alive=false};
+ },[user.id,cloudRetry]);
  useEffect(()=>{if(!syncReady||!cloudPending.current.size)return;const timer=setTimeout(()=>{const ids=[...cloudPending.current];const snapshots=projects.filter(p=>ids.includes(p.id)&&!cloudDeleted.current.has(p.id));cloudPending.current.clear();if(!snapshots.length)return;setCloudSaving(true);cloudWrites.current=cloudWrites.current.catch(()=>{}).then(async()=>{for(const p of snapshots){if(cloudDeleted.current.has(p.id))continue;const {data:remote,error:readError}=await supabase.from('projects').select('data,updated_at').eq('id',p.id).eq('user_id',user.id).maybeSingle();if(readError)throw readError;if(!remote){cloudPending.current.add(p.id);throw Error('Cloud project missing; refusing to recreate it silently')}const merged={...p,papers:[...new Map([...(remote.data?.papers||[]),...(p.papers||[])].map(item=>[item.id,item])).values()]};const {data:saved,error}=await supabase.from('projects').update({name:merged.name,research_question:merged.question||'',data:merged,updated_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',user.id).eq('updated_at',remote.updated_at).select('id').maybeSingle();if(error||!saved){cloudPending.current.add(p.id);throw Error(error?.message||'Concurrent cloud update; retry after reloading')}}}).then(()=>{setCloudError('');setCloudSaving(false)}).catch(e=>{setCloudError('Cloud save failed: '+e.message);setCloudSaving(false)})},650);return()=>clearTimeout(timer)},[projects,syncReady,user.id]);
  const setCloudProjects=(fn)=>setProjects(prev=>{const next=typeof fn==='function'?fn(prev):fn;for(const p of next){const before=prev.find(x=>x.id===p.id);if(before!==p)cloudPending.current.add(p.id)}return next});
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
@@ -386,7 +421,7 @@ function App({user}){
         const health=await fetch(configuredApi+'/api/health',{signal:wakeController.signal,cache:'no-store'});
         if(!health.ok)throw Error('Backend health HTTP '+health.status);
       }catch(error){
-        throw Error('Backend unavailable before PDF upload: '+(error.name==='AbortError'?'wake-up exceeded 90 seconds':error.message));
+        throw Error('Backend unavailable before PDF upload: '+(error.name==='AbortError'?'wake-up exceeded 90 seconds':error.message)+'. The Render API may be asleep, unreachable, or blocking this site via CORS. Retry after checking the backend status.');
       }finally{clearTimeout(wakeTimeout)}
     }
     setUploadStage('Connecting to backend / parsing PDF');
