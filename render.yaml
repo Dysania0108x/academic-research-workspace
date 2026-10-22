@@ -16,6 +16,10 @@ services:
         sync: false
       - key: FRONTEND_ORIGINS
         sync: false
+      - key: AI_PROVIDER
+        value: bailian
+      - key: BAILIAN_MODEL
+        value: deepseek-v4.1-flash
       - key: DASHSCOPE_API_KEY
         sync: false
       - key: AI_MOCK_MODE
