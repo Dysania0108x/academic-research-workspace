@@ -136,7 +136,7 @@ function AuthGate(){
  if(checking)return <div className="v61-auth-loading">Checking your session…</div>;
  if(!supabase)return <div className="v61-auth-screen"><div className="v61-auth-card"><h1>Supabase setup required</h1><p>Create a root-level .env.local with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then restart Vite.</p><p>No project data has been changed.</p></div></div>;
  if(!session){
-  if(showLanding)return <EvitlasLanding onEnter={()=>setShowLanding(false)}/>;
+  if(showLanding)return <EvitlasLanding onEnter={()=>setShowLanding(false)} onSignIn={()=>{setMode('signin');setShowLanding(false)}} onSignUp={()=>{setMode('signup');setShowLanding(false)}}/>;
   return <EvitlasAuth mode={mode} setMode={next=>{setMode(next);setError('');setNotice('')}} email={email} setEmail={setEmail} password={password} setPassword={setPassword} busy={busy} error={error} notice={notice} onSubmit={submit} onBack={()=>setShowLanding(true)}/>;
  }
  return <div className="v61-authenticated"><div className="v61-session-bar"><span>Signed in as <strong>{session.user.email}</strong></span><button className="secondary" onClick={async()=>{const {error}=await supabase.auth.signOut();if(error)setError(error.message)}}>Sign Out</button></div><div className="v61-local-warning">Projects and private PDFs are stored in Supabase; AI analysis runs through the Render backend. Verify AI evidence against original PDF sources.</div><App key={session.user.id} user={session.user}/></div>;
