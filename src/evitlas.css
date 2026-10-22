@@ -183,3 +183,39 @@
 /* Keep the full NUS Scope wordmark readable at desktop and mobile sizes. */
 .ev-brand{font-size:clamp(23px,2vw,29px)!important;letter-spacing:-.055em;white-space:nowrap}
 @media(max-width:760px){.ev-brand{font-size:23px!important;gap:9px}}
+
+
+/* V4: align the brand lockup and let the original hand-drawn art breathe. */
+.ev-root{--ev-brand-gutter:clamp(28px,5.1vw,86px)}
+.ev-nav{padding-left:var(--ev-brand-gutter);padding-right:var(--ev-brand-gutter)}
+.ev-auth-left{padding-left:var(--ev-brand-gutter);padding-right:var(--ev-brand-gutter)}
+.ev-nav .ev-brand,.ev-auth-left>.ev-brand{
+ margin:0;transform:none;align-self:flex-start;
+ min-height:34px;display:inline-flex;align-items:center;
+}
+.ev-brand .ev-symbol{width:30px;height:30px}
+.ev-brand>span:last-child{line-height:1;display:inline-block}
+.ev-landing-wash{
+ top:0;right:0;width:51%;height:100%;
+ border-radius:0;
+ background:linear-gradient(112deg,rgba(244,249,252,.25) 0%,#EDF6FA 48%,#E5F2F8 100%);
+ opacity:1;
+}
+.ev-story-backdrop{
+ inset:4% -5% 15%;
+ border-radius:0;
+ transform:none;
+ background:radial-gradient(ellipse at 53% 45%,rgba(255,255,255,.67) 0%,rgba(255,255,255,.25) 43%,transparent 73%);
+}
+.ev-story-orbit,.ev-story-spark{display:none}
+.ev-scene img{filter:none;mix-blend-mode:normal}
+@media(max-width:760px){
+ .ev-root{--ev-brand-gutter:23px}
+ .ev-auth-left{padding-left:var(--ev-brand-gutter);padding-right:var(--ev-brand-gutter)}
+ .ev-landing-wash{
+  top:48%;left:0;right:0;width:100%;height:52%;
+  border-radius:0;
+  background:linear-gradient(180deg,#F5FAFD 0%,#EAF5FA 100%);
+ }
+ .ev-story-backdrop{inset:5% 0 14%;border-radius:0}
+}
