@@ -9,3 +9,5 @@
 #projectThemes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 #projectThemes span{background:#e5eef6;border-radius:16px;padding:5px 9px;font-size:12px}
 #researchQuestion{overflow-wrap:anywhere}
+
+#pdfThemes{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.pdf-theme{display:inline-flex!important;align-items:center;gap:4px;margin:0!important;padding:6px 9px;border:1px solid #d7e0e8;border-radius:16px;background:#edf3f8}.pdf-theme input{width:auto!important;margin:0!important}#pdfHighlights{margin-top:12px}#pdfHighlights .item p{font-size:12px;color:#60778c}#pdfNotice{overflow-wrap:anywhere}
