@@ -16,6 +16,10 @@ services:
         sync: false
       - key: FRONTEND_ORIGINS
         sync: false
+      - key: AI_PROVIDER
+        value: deepseek
+      - key: DEEPSEEK_API_KEY
+        sync: false
       - key: DASHSCOPE_API_KEY
         sync: false
       - key: AI_MOCK_MODE
