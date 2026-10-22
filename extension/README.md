@@ -60,3 +60,16 @@ node scripts/build-extension-config.mjs
 Load the resulting `extension/` folder in `chrome://extensions`. Do **not** commit the locally generated `extension/config.js` or include service-role / secret keys. The committed file is intentionally an empty placeholder. Downloading the branch ZIP alone cannot log in until packaging is done.
 
 After login, choose an existing Project and click **Refresh projects** after editing Themes in the Web App. This remains a **read-only project sync preview**; Saved Excerpts are still local and not yet uploaded to Evidence Map.
+
+## Download a ready-to-load ZIP (GitHub Actions)
+
+A manual packaging workflow is available in `.github/workflows/package-extension.yml`. Repository administrators must set two **GitHub Actions repository variables** (not secrets) at **Settings → Secrets and variables → Actions → Variables**:
+
+- `VITE_SUPABASE_URL` — the public Supabase Project URL already used by the NUScope Web App.
+- `VITE_SUPABASE_PUBLISHABLE_KEY` — the corresponding public publishable/anon client key.
+
+Do not use a Supabase secret/service-role key. These values are included in the extension ZIP, as is normal for public browser-client configuration. Supabase RLS must enforce access control.
+
+Go to **Actions → Package NUScope Chrome Extension → Run workflow**, select `feature/extension-project-sync`, and run. When it succeeds, download the **nuscope-extension** artifact from the workflow run. Unzip the artifact and then unzip `nuscope-extension.zip`; select the folder containing `manifest.json` in Chrome's **Load unpacked** dialog.
+
+The workflow deliberately fails when the repository variables are missing, rather than producing a misleading nonfunctional package. No changes are deployed to the Web App. If the workflow is not visible before merging, GitHub may require the workflow to exist on the default branch for manual dispatch; use the local packaging script until then.
