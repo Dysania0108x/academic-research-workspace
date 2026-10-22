@@ -290,7 +290,7 @@ def ai_provider():
 
 def active_model():
     if mock_mode():return 'mock-deterministic-v1'
-    return os.getenv('DEEPSEEK_MODEL','deepseek-chat') if ai_provider()=='deepseek' else os.getenv('QWEN_MODEL','qwen-plus')
+    return os.getenv('DEEPSEEK_MODEL','deepseek-v4.1-flash') if ai_provider()=='deepseek' else os.getenv('QWEN_MODEL','qwen-plus')
 
 def ai_client_config():
     if ai_provider()=='deepseek':
