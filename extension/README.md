@@ -32,3 +32,17 @@ Confirm the production NUScope URL, implement secure extension authentication (n
 - `content.js`: isolated floating button and mini capture window.
 - `background.js`: opens the Chrome side panel.
 - `panel.html`, `panel.css`, `panel.js`: capture review and JSON export.
+
+## Phase 1–2 preview: account and project selection
+
+This feature is on the `feature/extension-project-sync` branch and is not merged to `main`.
+
+1. In the extension Side Panel, expand **Supabase connection settings**.
+2. Enter the same Supabase Project URL and **publishable/anon** key configured for the NUScope Web App (`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`). These are public client configuration values, **not** the service-role key.
+3. Sign in with your NUScope email and password.
+4. Choose a project already created in the Web App. The research question and themes load from the authenticated `projects` table.
+5. Use **Refresh projects** after changing themes in the Web App.
+
+This phase is **read-only**: excerpts remain local and are not automatically associated with the selected project; no evidence or highlight is written to Supabase.
+
+**Security/limitations:** Password authentication must be enabled for your Supabase project. Access is scoped by existing Supabase RLS; verify RLS policies before relying on it for private research. The session is stored in `chrome.storage.local` (extension-local, not shared with Web App); do not test on shared Chrome profiles. Authentication via Supabase's password endpoint is an MVP approach, not a final OAuth/PKCE flow. The extension requests HTTPS access to Supabase subdomains; Chrome may display a new permission prompt when loading it. This preview has not yet been browser-tested.
