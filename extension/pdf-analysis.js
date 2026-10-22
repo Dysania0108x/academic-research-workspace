@@ -66,7 +66,7 @@
      const projectId=$('projectSelect').value;
      await chrome.storage.local.set({nuscopePdfHighlights:{
        projectId,paperId,page:Number(m.page),matches:(job.matches||[]).filter(x=>{
-         const k=[paperId,x.page,(x.quote||x.text||'').trim().replace(/\\s+/g,' ').toLowerCase()].join('|');
+         const k=[paperId,x.page,(x.quote||x.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
          return !(globalThis.nuscopeCloud.selectedProject()?.data?.rejected||[]).includes(k);
        })
      }});
