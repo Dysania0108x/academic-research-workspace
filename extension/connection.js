@@ -48,6 +48,10 @@
   }
   function displayProject(){
     const project=projects.find(p=>p.id===el('projectSelect').value);
+    const pdfSection=el('pdfProject'),paperSelect=el('pdfPaper');
+    pdfSection.hidden=!project;paperSelect.replaceChildren(new Option('Select a PDF',''));
+    for(const paper of project?.data?.papers||[])paperSelect.add(new Option(paper.name||paper.title||'Untitled PDF',paper.id));
+    el('pdfNotice').textContent=project?(paperSelect.options.length-1)+' project paper(s) available.':'';
     el('researchQuestion').textContent=project?'Research question: '+(project.data?.question||project.research_question||'Not set'):'Select a project created in the NUScope Web App.';
     el('projectThemes').replaceChildren();
     for(const theme of (Array.isArray(project?.data?.topics)?project.data.topics:[])){
@@ -87,12 +91,43 @@
       await validSession();
       return request('/rest/v1/saved_excerpts',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({id:item.id,user_id:userId,project_id:projectId,quote:item.quote,note:item.note||'',source_title:item.title||'',source_url:item.url||'',captured_at:item.capturedAt||new Date().toISOString()})});
     },
+    async pdfLink(paperId){
+      const {project}=await this.current();
+      const paper=(project.data?.papers||[]).find(p=>p.id===paperId);
+      if(!paper)throw Error('Choose a paper from this project.');
+      if(!paper.storagePath)throw Error('This PDF has no cloud file. Upload it in the NUScope Web App first.');
+      const {userId}=await this.current();
+      const expected=userId+'/'+project.id+'/'+paper.id+'.pdf';
+      if(paper.storagePath!==expected)throw Error('Unexpected PDF storage path.');
+      await validSession();
+      const result=await request('/storage/v1/object/sign/research-pdfs/'+expected,{
+        method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},
+        body:JSON.stringify({expiresIn:60})
+      });
+      const path=result.signedURL||result.signedUrl;
+      if(!path||!path.startsWith('/'))throw Error('Could not obtain a PDF viewing link.');
+      return config.url+'/storage/v1'+path;
+    },
     async promote(excerptId,theme,interpretation){
       await validSession();
       return request('/rest/v1/rpc/add_excerpt_evidence',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_excerpt_id:excerptId,p_theme:theme,p_interpretation:interpretation})});
     }
   };
   el('projectSelect').addEventListener('change',()=>document.dispatchEvent(new Event('nuscope-project-changed')));
+  el('openProjectPdf').addEventListener('click',async()=>{
+    const id=el('pdfPaper').value;
+    if(!id){el('pdfNotice').textContent='Select a PDF first.';return;}
+    // Open a blank tab synchronously to avoid pop-up blocking during signed URL generation.
+    const tab=await chrome.tabs.create({url:'about:blank',active:true});
+    try{
+      const url=await globalThis.nuscopeCloud.pdfLink(id);
+      await chrome.tabs.update(tab.id,{url});
+      el('pdfNotice').textContent='Opened the original project PDF.';
+    }catch(error){
+      await chrome.tabs.remove(tab.id).catch(()=>{});
+      el('pdfNotice').textContent=error.message;
+    }
+  });
   settings().then(()=>document.dispatchEvent(new Event('nuscope-connection-ready'))).catch(error=>{status.textContent='Initialization error: '+error.message;});
 
 })();
