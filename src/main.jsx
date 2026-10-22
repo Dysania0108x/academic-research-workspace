@@ -284,17 +284,23 @@ function App({user}){
     if(!alive)return;
     if(error)throw Error('Cloud load failed: '+error.message);
     let rows=data||[];
-    const starterFlag='arw-starter-created-'+user.id;
-    let initialized=false;
-    try{initialized=localStorage.getItem(starterFlag)==='1'}catch{}
-    if(!rows.length&&!initialized){
-     const example=makeStarterProject();
-     const {error:insertError}=await supabase.from('projects').insert({id:example.id,user_id:user.id,name:example.name,research_question:example.question,data:example});
+    // Every account gets one sample workspace, including accounts with existing projects.
+    // Use a deterministic ID to prevent duplicate examples across browsers or sessions.
+    const starterId='example-'+user.id;
+    if(!rows.some(row=>row.id===starterId)){
+     const example={...makeStarterProject(),id:starterId};
+     const {error:insertError}=await supabase.from('projects').upsert({
+      id:example.id,user_id:user.id,name:example.name,
+      research_question:example.question,data:example
+     },{onConflict:'id',ignoreDuplicates:true});
      if(!alive)return;
      if(insertError)throw Error('Example project could not be created: '+insertError.message);
-     rows=[{id:example.id,name:example.name,research_question:example.question,data:example}];
+     // Reload from Supabase so RLS and concurrent logins remain authoritative.
+     const {data:refreshed,error:reloadError}=await supabase.from('projects').select('id,name,research_question,data').eq('user_id',user.id).order('created_at',{ascending:true});
+     if(!alive)return;
+     if(reloadError)throw Error('Example project refresh failed: '+reloadError.message);
+     rows=refreshed||[];
     }
-    try{localStorage.setItem(starterFlag,'1')}catch{}
     if(!alive)return;
     setProjects(normalizeSeedPapers(rows.map(row=>({...row.data,id:row.id,name:row.name,question:row.research_question}))));
     setSyncReady(true);
