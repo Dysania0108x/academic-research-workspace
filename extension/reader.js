@@ -1,3 +1,4 @@
+import {locateQuote} from './quoteMatch.mjs';
 import * as pdfjs from './vendor/pdf.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc=chrome.runtime.getURL('vendor/pdf.worker.mjs');
 const $=id=>document.getElementById(id);
@@ -23,20 +24,11 @@ function drawHighlights(){
  const text=layer.textContent||'';
  const {nuscopePdfHighlights:selection}=window.readerSelection||{};
  if(!selection||selection.paperId!==paperId||selection.projectId!==projectId)return;
- // Normalize text with source offsets so whitespace differences do not shift DOM Ranges.
- let compact='',map=[];let wasSpace=false;
- for(let i=0;i<text.length;i++){
-  const isSpace=/\s/.test(text[i]);
-  if(isSpace&&wasSpace)continue;
-  compact+=isSpace?' ':text[i].toLowerCase();map.push(i);wasSpace=isSpace;
- }
  for(const m of selection.matches||[]){
   if(Number(m.page)!==page)continue;
-  const quote=(m.quote||m.text||'').replace(/\s+/g,' ').trim().toLowerCase();
-  if(!quote)continue;
-  const index=compact.indexOf(quote);
-  if(index<0)continue;
-  const range=sourceRange(layer,map[index],map[index+quote.length-1]+1);
+  const offsets=locateQuote(text,m.quote||m.text||'');
+  if(!offsets)continue;
+  const range=sourceRange(layer,offsets.start,offsets.end);
   if(!range)continue;
   const parent=layer.getBoundingClientRect();
   for(const rect of range.getClientRects()){
