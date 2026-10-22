@@ -135,6 +135,17 @@ import {themeChipStyle} from './themePalette.mjs';
       await loadProjects(project.id,false,true);
       return result;
     },
+    async cancelAnalysis(jobId){
+      const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
+      if(!apiBase)throw Error('AI API not configured.');
+      await validSession();
+      const response=await fetch(apiBase+'/api/analyse/jobs/'+encodeURIComponent(jobId)+'/cancel',{
+        method:'POST',headers:{Authorization:'Bearer '+session.access_token}
+      });
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(result.detail||'Unable to cancel analysis (HTTP '+response.status+')');
+      return result;
+    },
     async pdfLink(paperId){
       const {project}=await this.current();
       const paper=(project.data?.papers||[]).find(p=>p.id===paperId);
