@@ -77,9 +77,9 @@ async function render(){
 async function load(){
  try{
   if(!projectId||!paperId)throw Error('Missing project or paper ID.');
-  const {nuscopeSupabaseConfig:legacy,nuscopeSession:session}=await chrome.storage.local.get(['nuscopeSupabaseConfig','nuscopeSession']);
+  const {nuscopeSession:session}=await chrome.storage.local.get(['nuscopeSession']);
   // Public configuration is packaged with the extension, not read from arbitrary websites.
-  const config=(await import('./reader-config.mjs')).publicConfig;
+  const config=globalThis.NUSCOPE_PUBLIC_CONFIG||{};
   if(!session?.access_token)throw Error('Sign in through the NUScope side panel first.');
   const base=config.url;
   const userResponse=await fetch(base+'/auth/v1/user',{headers:{apikey:config.key,Authorization:'Bearer '+session.access_token}});
