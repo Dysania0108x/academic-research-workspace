@@ -1,3 +1,4 @@
+import {eligibleCaptures} from './captureRules.mjs';
 // Local captures remain intact; cloud sync is explicit and project-scoped.
 (() => {
  const $=id=>document.getElementById(id);
@@ -48,7 +49,7 @@
   try{
    const {project,userId}=await current();
    const {nuscopeCaptures=[]}=await chrome.storage.local.get({nuscopeCaptures:[]});
-   const eligible=nuscopeCaptures.filter(e=>!e.projectId||e.projectId===project.id);
+   const eligible=eligibleCaptures(nuscopeCaptures,project.id);
    const legacy=eligible.filter(e=>!e.projectId).length;
    if(!eligible.length){message('No excerpts for this project. Captures from other projects are excluded.');return;}
    if(!confirm('Upload '+eligible.length+' excerpt(s) to "'+project.name+'"?'+(legacy?' Includes '+legacy+' older unassigned capture(s).':'')))return;
