@@ -13,9 +13,9 @@ if(apiBase){
  if(parsedApi.protocol!=='https:'||parsedApi.username||parsedApi.password||parsedApi.search||parsedApi.hash)throw Error('VITE_API_BASE_URL must be an HTTPS API URL without credentials or query parameters.');
  apiOrigin=parsedApi.origin;
 }
-writeFileSync('extension/config.js','globalThis.NUSCOPE_PUBLIC_CONFIG = '+JSON.stringify({url,key,apiBase})+';\\n');
+writeFileSync('extension/config.js','globalThis.NUSCOPE_PUBLIC_CONFIG = '+JSON.stringify({url,key,apiBase})+';\n');
 const manifestPath='extension/manifest.json';
 const manifest=JSON.parse(readFileSync(manifestPath,'utf8'));
 manifest.host_permissions=[url+'/*',...(apiOrigin?[apiOrigin+'/*']:[])];
-writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\\n');
+writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');
 console.log('Public NUScope extension configuration generated.');
