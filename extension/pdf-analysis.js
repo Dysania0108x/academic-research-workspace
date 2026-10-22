@@ -65,7 +65,10 @@
    focus.addEventListener('click',async()=>{
      const projectId=$('projectSelect').value;
      await chrome.storage.local.set({nuscopePdfHighlights:{
-       projectId,paperId,page:Number(m.page),matches:job.matches||[]
+       projectId,paperId,page:Number(m.page),matches:(job.matches||[]).filter(x=>{
+         const k=[paperId,x.page,(x.quote||x.text||'').trim().replace(/\\s+/g,' ').toLowerCase()].join('|');
+         return !(globalThis.nuscopeCloud.selectedProject()?.data?.rejected||[]).includes(k);
+       })
      }});
      await chrome.tabs.create({url:chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId)});
    });
@@ -78,7 +81,8 @@
    const job=await globalThis.nuscopeCloud.analysisJob(jobId);
    if(activeJob!==jobId)return;
    notice.textContent=(job.message||job.status||'Analysing')+' · '+(job.completed_batches||0)+'/'+(job.total_batches||'?')+' batches';
-   render(job);
+   // Keep the review form stable while background batches are still arriving.
+   if(!['queued','running'].includes(job.status))render(job);
    if(['queued','running'].includes(job.status)){
     pollTimer=setTimeout(()=>poll(jobId,paperId),2500);
    }else{activeJob=null;notice.textContent='Analysis '+job.status+'. '+(job.matches||[]).length+' candidate(s). Review before adding evidence.';}
@@ -94,7 +98,7 @@
   notice.textContent='Starting analysis using the NUScope AI backend…';
   try{
    const job=await globalThis.nuscopeCloud.analysePdf(paperId,themes);
-   activeJob=job.id;render(job);await poll(job.id,paperId);
+   activeJob=job.id;if(!['queued','running'].includes(job.status))render(job);await poll(job.id,paperId);
   }catch(error){notice.textContent=error.message;}
   finally{$('analysePdf').disabled=false;}
  });
