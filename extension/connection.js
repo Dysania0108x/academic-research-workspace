@@ -1,7 +1,7 @@
+import {themeChipStyle} from './themePalette.mjs';
 // Independent Supabase REST client for the extension. No Web App token scraping.
 (() => {
   const el=id=>document.getElementById(id);
-  const themeChipStyle=globalThis.NUSCOPE_THEME_COLORS?.themeChipStyle;
   const status=el('authStatus');
   let config=null,session=null,projects=[];
   const packaged=globalThis.NUSCOPE_PUBLIC_CONFIG||{};
