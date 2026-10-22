@@ -5,7 +5,7 @@ import {themeChipStyle} from './themePalette.mjs';
  const $=id=>document.getElementById(id);
  const themesBox=$('pdfThemes'),results=$('pdfHighlights'),notice=$('pdfNotice');
  let selectedThemes=new Set(),activeJob=null,pollTimer=null;
- const clearPoll=()=>{if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}activeJob=null;};
+ const clearPoll=()=>{if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}activeJob=null;$('cancelPdfAnalysis').hidden=true;};
  function refreshThemes(){
   clearPoll();results.replaceChildren();
   const projectId=$('projectSelect').value;
@@ -91,7 +91,7 @@ import {themeChipStyle} from './themePalette.mjs';
    if(!['queued','running'].includes(job.status))render(job);
    if(['queued','running'].includes(job.status)){
     pollTimer=setTimeout(()=>poll(jobId,paperId),2500);
-   }else{activeJob=null;notice.textContent='Analysis '+job.status+'. '+(job.matches||[]).length+' candidate(s). Review before adding evidence.';}
+   }else{activeJob=null;$('cancelPdfAnalysis').hidden=true;notice.textContent='Analysis '+job.status+'. '+(job.matches||[]).length+' candidate(s). Review before adding evidence.';}
   }catch(error){activeJob=null;notice.textContent=error.message;}
  }
  $('analysePdf').addEventListener('click',async()=>{
@@ -104,9 +104,20 @@ import {themeChipStyle} from './themePalette.mjs';
   notice.textContent='Starting analysis using the NUScope AI backend…';
   try{
    const job=await globalThis.nuscopeCloud.analysePdf(paperId,themes);
-   activeJob=job.id;if(!['queued','running'].includes(job.status))render(job);await poll(job.id,paperId);
+   activeJob=job.id;$('cancelPdfAnalysis').hidden=!['queued','running'].includes(job.status);if(!['queued','running'].includes(job.status))render(job);await poll(job.id,paperId);
   }catch(error){notice.textContent=error.message;}
   finally{$('analysePdf').disabled=false;}
+ });
+ $('cancelPdfAnalysis').addEventListener('click',async()=>{
+  if(!activeJob)return;
+  const jobId=activeJob;
+  $('cancelPdfAnalysis').disabled=true;
+  notice.textContent='Requesting cancellation…';
+  try{
+   const result=await globalThis.nuscopeCloud.cancelAnalysis(jobId);
+   if(activeJob===jobId){clearPoll();notice.textContent=result.message||'Analysis cancelled. In-flight AI requests may still complete.';}
+  }catch(error){notice.textContent='Cancellation failed: '+error.message;}
+  finally{$('cancelPdfAnalysis').disabled=false;}
  });
  $('pdfPaper').addEventListener('change',()=>{clearPoll();results.replaceChildren();});
  document.addEventListener('nuscope-project-changed',refreshThemes);
