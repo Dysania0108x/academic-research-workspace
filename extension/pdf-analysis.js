@@ -43,9 +43,10 @@
      try{
        await globalThis.nuscopeCloud.reviewPdf(paperId,m,action,note.value);
        state.textContent=action==='reject'?'Rejected':action==='restore'?'Pending review':'Added to Evidence Map';
+       verify.disabled=action!=='restore';reject.disabled=action!=='restore';restore.disabled=action!=='reject';
        notice.textContent='Review saved to the shared NUScope project.';
      }catch(error){notice.textContent='Review failed: '+error.message;}
-     finally{for(const button of actions.querySelectorAll('button'))button.disabled=false;}
+     finally{if(state.textContent==='Pending review'){verify.disabled=false;reject.disabled=false;restore.disabled=true;}else if(state.textContent==='Rejected'){verify.disabled=true;reject.disabled=true;restore.disabled=false;}else{verify.disabled=true;reject.disabled=true;restore.disabled=true;}}
    }
    const verify=document.createElement('button');verify.textContent='Verify & Add Evidence';verify.disabled=rejected||saved;
    verify.addEventListener('click',()=>act('save'));
