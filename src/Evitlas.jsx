@@ -16,7 +16,7 @@ export function EvitlasLanding({onEnter}) {
    <div className="ev-story" aria-label="Research journey"><svg className="ev-story-backdrop" viewBox="0 0 700 640" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
     <path d="M114 94C176 30 298 48 382 74C465 99 489 59 568 95C657 136 657 219 622 287C586 359 656 414 607 490C555 573 437 557 365 548C271 536 223 593 138 545C52 496 73 401 53 325C30 236 46 163 114 94Z" fill="#DDEFF8"/>
     <path d="M438 89C500 49 604 84 641 155C670 209 637 268 596 304C558 337 518 349 470 326C418 301 390 246 398 195C403 149 408 113 438 89Z" fill="#B7DDEB"/>
-    <path d="M115 394C160 357 230 366 263 413C298 460 275 524 224 545C171 569 104 552 82 499C65 460 81 422 115 394Z" fill="#FFE1BF"/>
+    <path d="M521 110C550 80 605 90 617 127C627 159 601 173 609 196C617 221 596 240 564 227C535 215 534 187 511 180C484 171 493 135 521 110Z" fill="#FFE1BF"/>
     <g fill="none" stroke="#6D9BB9" strokeWidth="1.5" opacity=".39">
       <ellipse cx="348" cy="318" rx="278" ry="185" transform="rotate(-21 348 318)"/>
       <ellipse cx="349" cy="313" rx="269" ry="198" transform="rotate(24 349 313)"/>
