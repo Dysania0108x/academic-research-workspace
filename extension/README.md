@@ -46,3 +46,17 @@ This feature is on the `feature/extension-project-sync` branch and is not merged
 This phase is **read-only**: excerpts remain local and are not automatically associated with the selected project; no evidence or highlight is written to Supabase.
 
 **Security/limitations:** Password authentication must be enabled for your Supabase project. Access is scoped by existing Supabase RLS; verify RLS policies before relying on it for private research. The session is stored in `chrome.storage.local` (extension-local, not shared with Web App); do not test on shared Chrome profiles. Authentication via Supabase's password endpoint is an MVP approach, not a final OAuth/PKCE flow. The extension requests HTTPS access to Supabase subdomains; Chrome may display a new permission prompt when loading it. This preview has not yet been browser-tested.
+
+## Packaged connection (Phase 2 preview)
+
+The extension now displays **NUScope sign in**, not database settings. The public Supabase configuration must be injected once when preparing an extension package; it cannot be retrieved automatically from Vercel by an unpacked extension.
+
+From the repository root, set the same **public** `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` values used by the Web App in your local shell, then run:
+
+```sh
+node scripts/build-extension-config.mjs
+```
+
+Load the resulting `extension/` folder in `chrome://extensions`. Do **not** commit the locally generated `extension/config.js` or include service-role / secret keys. The committed file is intentionally an empty placeholder. Downloading the branch ZIP alone cannot log in until packaging is done.
+
+After login, choose an existing Project and click **Refresh projects** after editing Themes in the Web App. This remains a **read-only project sync preview**; Saved Excerpts are still local and not yet uploaded to Evidence Map.
