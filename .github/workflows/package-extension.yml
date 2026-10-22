@@ -1,0 +1,37 @@
+name: Package NUScope Chrome Extension
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate public extension configuration
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/build-extension-config.mjs
+      - name: Check JavaScript syntax
+        run: |
+          node --check extension/background.js
+          node --check extension/content.js
+          node --check extension/panel.js
+          node --check extension/connection.js
+          node --check extension/config.js
+      - name: Package unpacked extension
+        run: |
+          cd extension
+          zip -qr ../nuscope-extension.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuscope-extension
+          path: nuscope-extension.zip
+          retention-days: 7
