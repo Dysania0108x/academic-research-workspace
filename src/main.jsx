@@ -581,14 +581,17 @@ function App({user}){
  };
  const createManualEvidence=()=>{
   const d=manualEvidence;
+  const excerpt=evidenceEntryMode==='excerpts'?savedExcerpts.find(x=>x.id===selectedExcerptId):null;
+  if(evidenceEntryMode==='excerpts'&&!excerpt){toast('Select a saved excerpt first.');return;}
+  if(excerpt&&(project.evidence||[]).some(e=>e.savedExcerptId===excerpt.id)){toast('This excerpt is already in the Evidence Map.');return;}
   if(!d.quote.trim()||!d.theme){toast('Enter evidence text and select a theme.');return;}
   if(d.sourceUrl.trim()){
    try{const url=new URL(d.sourceUrl);if(!['https:','http:'].includes(url.protocol))throw Error();}
    catch{toast('Source URL must be an HTTP(S) link.');return;}
   }
-  const record={id:crypto.randomUUID(),sourceType:d.sourceType,sourceTitle:d.sourceTitle.trim(),sourceUrl:d.sourceUrl.trim(),quote:d.quote.trim(),text:d.quote.trim(),analysis:d.analysis.trim(),theme:d.theme,themes:[d.theme],relationship:d.relationship,verificationStatus:'unverified',status:'unverified',verified:false,createdAt:new Date().toISOString()};
+  const record={id:crypto.randomUUID(),...(excerpt?{savedExcerptId:excerpt.id,capturedAt:excerpt.captured_at}:{}),sourceType:d.sourceType,sourceTitle:d.sourceTitle.trim(),sourceUrl:d.sourceUrl.trim(),quote:d.quote.trim(),text:d.quote.trim(),analysis:d.analysis.trim(),theme:d.theme,themes:[d.theme],relationship:d.relationship,verificationStatus:'unverified',status:'unverified',verified:false,createdAt:new Date().toISOString()};
   update(p=>({...p,evidence:[...(p.evidence||[]),record]}));
-  setManualEvidenceOpen(false);
+  setManualEvidenceOpen(false);setSelectedExcerptId('');setEvidenceEntryMode('manual');
   setManualEvidence({sourceType:'web',sourceTitle:'',sourceUrl:'',quote:'',analysis:'',theme:'',relationship:'Unclassified'});
   setMapView('list');setMapTheme(null);toast('Unverified evidence added to this project.');
  };
