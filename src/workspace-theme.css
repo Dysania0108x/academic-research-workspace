@@ -64,3 +64,39 @@
 
 .v61-authenticated .sidebar nav button.active,.v61-authenticated .v5-settings-nav button.active{background:#E5EDF4;color:var(--ws-navy)}
 .v61-authenticated .text-link,.v61-authenticated .tabs button.on{color:var(--ws-navy)}
+
+/* NUScope brand alignment: interactive UI must not retain legacy lilac. */
+.v61-authenticated .sidebar nav button,
+.v61-authenticated .all-projects,
+.v61-authenticated .v5-settings-nav button,
+.v61-authenticated .paper-item>button:first-child{color:var(--ws-ink)}
+.v61-authenticated .sidebar nav button:hover,
+.v61-authenticated .all-projects:hover,
+.v61-authenticated .v5-settings-nav button:hover{background:#EAF0F4;color:var(--ws-navy)}
+.v61-authenticated .sidebar nav button.active,
+.v61-authenticated .v5-settings-nav button.active{background:#DDE9F3;color:var(--ws-navy)}
+.v61-authenticated .v5-settings-nav,
+.v61-authenticated .settings-card{background:var(--ws-surface);border-color:var(--ws-border)}
+.v61-authenticated .project-card strong,
+.v61-authenticated .project-card h3,
+.v61-authenticated .folder-icon,
+.v61-authenticated .stat strong{color:var(--ws-navy)}
+.v61-authenticated .folder-icon{background:#E4EDF3}
+.v61-authenticated .pill,
+.v61-authenticated .tag,
+.v61-authenticated .project-chip{background:#E8F0F5;color:var(--ws-navy);border-color:#D5E3EC}
+.v61-authenticated .tiny,
+.v61-authenticated .future{color:var(--ws-navy);background:#ECF2F6}
+.v61-authenticated .v61-session-bar{background:#F0F1EC;color:var(--ws-ink)}
+.v61-authenticated .v61-cloud-status{color:var(--ws-muted)}
+.v61-authenticated .sidebar .brandmark{background:transparent url('/nuscope-symbol.svg') center/contain no-repeat}
+.v61-authenticated .sidebar .brand strong::after{color:var(--ws-navy)}
+/* Small screens: no vertical text in the narrow sidebar. */
+@media(max-width:760px){
+ .v61-authenticated .sidebar .brand{justify-content:center;padding:8px 0 20px}
+ .v61-authenticated .sidebar .brandmark{width:42px;min-width:42px;height:42px}
+ .v61-authenticated .sidebar .brand>div:last-child,
+ .v61-authenticated .sidebar .sidebar-bottom{display:none}
+ .v61-authenticated .sidebar .project-chip{overflow:hidden}
+ .v61-authenticated .sidebar .project-chip small{display:none}
+}
