@@ -64,3 +64,36 @@
 
 .v61-authenticated .sidebar nav button.active,.v61-authenticated .v5-settings-nav button.active{background:#E5EDF4;color:var(--ws-navy)}
 .v61-authenticated .text-link,.v61-authenticated .tabs button.on{color:var(--ws-navy)}
+
+/* NUScope unified authenticated workspace: retain six semantic theme colors. */
+.v61-authenticated{
+ --ws-bg:#F8F2E8;--ws-surface:#FFFDF9;--ws-sidebar:#F4EEE4;
+ --ws-ink:#073B73;--ws-muted:#61758B;--ws-border:#E5DCCD;
+ --ws-navy:#073B73;--ws-navy-hover:#0B518D;--ws-orange:#F58200;
+}
+.v61-authenticated .app,.v61-authenticated .main,.v61-authenticated .content{background:var(--ws-bg);color:var(--ws-ink)}
+.v61-authenticated .sidebar{background:var(--ws-sidebar);border-color:var(--ws-border)}
+.v61-authenticated .sidebar .brandmark{width:44px;min-width:44px;height:44px}
+.v61-authenticated .brand strong::after{color:var(--ws-navy)}
+.v61-authenticated .heading h1,.v61-authenticated .panel h2,.v61-authenticated .panel h3,
+.v61-authenticated .project-card h3,.v61-authenticated .stat strong{color:var(--ws-navy)}
+.v61-authenticated .project-card,.v61-authenticated .panel,.v61-authenticated .stat,
+.v61-authenticated .modal,.v61-authenticated .map-card{background:var(--ws-surface);border-color:var(--ws-border)}
+.v61-authenticated .primary,.v61-authenticated button.primary{background:var(--ws-navy);border-color:var(--ws-navy);color:#FFFDF9}
+.v61-authenticated .primary:hover,.v61-authenticated button.primary:hover{background:var(--ws-navy-hover)}
+.v61-authenticated .secondary{color:var(--ws-navy);border-color:var(--ws-border);background:var(--ws-surface)}
+.v61-authenticated .sidebar nav button.active,.v61-authenticated .v5-settings-nav button.active,
+.v61-authenticated .v5-settings-list button.active{background:#E5EDF4;color:var(--ws-navy)}
+.v61-authenticated .tabs button.on,.v61-authenticated .text-link,
+.v61-authenticated .project-card .project-title{color:var(--ws-navy)}
+.v61-authenticated .tabs button.on{border-bottom-color:var(--ws-orange)}
+.v61-authenticated .project-chip,.v61-authenticated .pill,.v61-authenticated .tag{border-color:#D8E2E9}
+.v61-authenticated input:focus,.v61-authenticated textarea:focus,.v61-authenticated select:focus{border-color:var(--ws-orange);box-shadow:0 0 0 3px #F5820026}
+@media(max-width:800px){
+ .v61-authenticated .sidebar{width:68px;min-width:68px;padding:14px 8px}
+ .v61-authenticated .sidebar .brand{justify-content:center}
+ .v61-authenticated .sidebar .brand>div:last-child{display:none}
+ .v61-authenticated .sidebar .brandmark{width:44px;min-width:44px;height:44px}
+ .v61-authenticated .sidebar .project-chip{display:none}
+ .v61-authenticated .main{min-width:0}
+}
