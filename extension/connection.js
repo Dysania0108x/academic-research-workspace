@@ -132,6 +132,50 @@ import {themeChipStyle} from './themePalette.mjs';
       if(!response.ok)throw Error(result.detail||'AI analysis failed (HTTP '+response.status+')');
       return result;
     },
+    async importPublicPdf(bytes,sourceUrl){
+      const {project,userId}=await this.current();
+      const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
+      if(!apiBase)throw Error('AI API is not configured.');
+      if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<5||bytes.byteLength>20*1024*1024)throw Error('PDF must be smaller than 20 MB.');
+      const filename=decodeURIComponent(new URL(sourceUrl).pathname.split('/').pop()||'imported-paper.pdf').slice(0,150);
+      const file=new File([bytes],filename.toLowerCase().endsWith('.pdf')?filename:filename+'.pdf',{type:'application/pdf'});
+      const form=new FormData();form.append('file',file);
+      await validSession();
+      const response=await fetch(apiBase+'/api/papers?project_id='+encodeURIComponent(project.id),{
+        method:'POST',headers:{Authorization:'Bearer '+session.access_token},body:form
+      });
+      const metadata=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(metadata.detail||'PDF backend import failed (HTTP '+response.status+')');
+      const path=userId+'/'+project.id+'/'+metadata.id+'.pdf';
+      const upload=await fetch(config.url+'/storage/v1/object/research-pdfs/'+path,{
+        method:'POST',headers:{...headers(),'Content-Type':'application/pdf','x-upsert':'false'},body:bytes
+      });
+      if(!upload.ok)throw Error('Private PDF upload failed ('+upload.status+').');
+      const paper={...metadata,seed:false,size:bytes.byteLength,storagePath:path,sourceUrl};
+      try{
+        let saved=false;
+        for(let attempt=0;attempt<3;attempt++){
+          const rows=await request('/rest/v1/projects?id=eq.'+encodeURIComponent(project.id)+'&select=data,updated_at',{
+            headers:{Authorization:'Bearer '+session.access_token}
+          });
+          const row=rows?.[0];if(!row)throw Error('Project no longer available.');
+          const papers=row.data?.papers||[];
+          if(papers.some(p=>p.id===paper.id)){saved=true;break;}
+          const next={...row.data,papers:[...papers,paper]};
+          const updated=await request('/rest/v1/projects?id=eq.'+encodeURIComponent(project.id)+'&updated_at=eq.'+encodeURIComponent(row.updated_at)+'&select=id',{
+            method:'PATCH',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'return=representation'},
+            body:JSON.stringify({data:next,updated_at:new Date().toISOString()})
+          });
+          if(updated?.length){saved=true;break;}
+        }
+        if(!saved)throw Error('Project changed during import; retry after refreshing.');
+      }catch(error){
+        const cleanup=await fetch(config.url+'/storage/v1/object/research-pdfs/'+path,{method:'DELETE',headers:headers()});
+        throw Error(error.message+(cleanup.ok?'':' (cloud cleanup may be required)'));
+      }
+      await loadProjects(project.id,true,true);
+      return paper;
+    },
     async existingAnalysis(paperId,themes){
       const {project}=await this.current();
       if(!(project.data?.papers||[]).some(p=>p.id===paperId))throw Error('PDF is not in the selected project.');
