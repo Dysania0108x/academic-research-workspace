@@ -325,11 +325,11 @@ function App({user}){
  const remoteEvidence=JSON.stringify(remote.data?.evidence||[]);
  const localEvidence=JSON.stringify(p.evidence||[]);
  if(baseline===undefined){cloudPending.current.add(p.id);throw Error('Evidence baseline unavailable; reload before saving.');}
- if(remoteEvidence!==baseline&&localEvidence!==baseline){
+ if(remoteEvidence!==baseline){
   cloudPending.current.add(p.id);
   throw Error('Evidence changed in another window. Copy any unsaved edits, then reload before retrying.');
  }
- const merged={...p,evidence:localEvidence===baseline?(remote.data?.evidence||[]):p.evidence,
+ const merged={...p,
   papers:[...new Map([...(remote.data?.papers||[]),...(p.papers||[])].map(item=>[item.id,item])).values()]};const {data:saved,error}=await supabase.from('projects').update({name:merged.name,research_question:merged.question||'',data:merged,updated_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',user.id).eq('updated_at',remote.updated_at).select('id').maybeSingle();if(error||!saved){cloudPending.current.add(p.id);throw Error(error?.message||'Concurrent cloud update; retry after reloading')}evidenceBaseline.current.set(p.id,JSON.stringify(merged.evidence||[]))}}).then(()=>{setCloudError('');setCloudSaving(false)}).catch(e=>{setCloudError('Cloud save failed: '+e.message);setCloudSaving(false)})},650);return()=>clearTimeout(timer)},[projects,syncReady,user.id]);
  const setCloudProjects=(fn)=>setProjects(prev=>{const next=typeof fn==='function'?fn(prev):fn;for(const p of next){const before=prev.find(x=>x.id===p.id);if(before!==p)cloudPending.current.add(p.id)}return next});
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
