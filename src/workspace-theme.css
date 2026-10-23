@@ -123,3 +123,9 @@
 
 .v61-authenticated .evidence-source-link{display:inline-flex;align-items:center;margin-left:8px;color:#073B73;text-decoration:underline;text-underline-offset:3px;font-size:12px;overflow-wrap:anywhere}
 .v61-authenticated .evidence-source-link:hover{color:#F58200}
+
+/* Evidence Details: match the existing outline action buttons. */
+.v61-authenticated .evidence-modal .evidence-source-link{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;text-decoration:none;border:1px solid #E5DCCD;border-radius:9px;background:#FFFDF9;color:#073B73;padding:8px 12px;font-size:12px;font-weight:650;margin-left:auto}
+.v61-authenticated .evidence-modal .evidence-source-link:hover{background:#F8F2E8;color:#073B73}
+.v61-authenticated .v5-network-scroll svg{max-width:100%;display:block;margin:0 auto}
+.v61-authenticated .v5-network-tools{flex-wrap:wrap}
