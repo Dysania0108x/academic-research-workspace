@@ -6,7 +6,8 @@
   "permissions": [
     "storage",
     "sidePanel",
-    "activeTab"
+    "activeTab",
+    "permissions"
   ],
   "host_permissions": [
     "https://*.supabase.co/*"
@@ -31,5 +32,8 @@
       ],
       "run_at": "document_idle"
     }
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
   ]
 }
