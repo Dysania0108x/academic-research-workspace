@@ -423,6 +423,7 @@ function App({user}){
     id,user_id:user.id,name:initial.name,research_question:initial.question,data:initial
   });
   if(projectError)throw Error('Could not create cloud project: '+projectError.message);
+  evidenceBaseline.current.set(id,JSON.stringify(initial.evidence));
   setCloudProjects(prev=>[...prev,initial]);resetReader();setProjectId(id);setPaperId(null);
   setSuggestions([]);setCreating(false);setDraftStep('details');setPage('papers');
   const pendingFiles=[...draftFiles];setDraftFiles([]);setDraft({name:'',question:'',topics:''});setDraftSuggestions([]);setDraftSelected([]);
