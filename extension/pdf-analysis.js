@@ -174,7 +174,7 @@ import {themeChipStyle} from './themePalette.mjs';
   }catch(error){notice.textContent='Cancellation failed: '+error.message;}
   finally{$('cancelPdfAnalysis').disabled=false;}
  });
- $('pdfPaper').addEventListener('change',loadExisting);
+ $('pdfPaper').addEventListener('change',()=>loadExisting());
  document.addEventListener('nuscope-project-changed',()=>{refreshThemes();loadExisting();});
  document.addEventListener('nuscope-connection-ready',()=>{refreshThemes();loadExisting();});
  document.addEventListener('nuscope-shared-project-updated',()=>{
