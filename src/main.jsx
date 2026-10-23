@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookOpen, LayoutDashboard, Network, Settings, Plus, FolderOpen, FileText, Bot, Search, Check, X, Pencil, ArrowLeft, Trash2, Upload, Sparkles, ChevronRight, ChevronDown, Eye, Info, FilePenLine, Highlighter, SlidersHorizontal } from 'lucide-react';
+import {PanelLeftOpen,PanelLeftClose, BookOpen, LayoutDashboard, Network, Settings, Plus, FolderOpen, FileText, Bot, Search, Check, X, Pencil, ArrowLeft, Trash2, Upload, Sparkles, ChevronRight, ChevronDown, Eye, Info, FilePenLine, Highlighter, SlidersHorizontal } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
 import { EvitlasLanding, EvitlasAuth } from './Evitlas.jsx';
@@ -196,6 +196,14 @@ function App({user}){
  const [syncReady,setSyncReady]=useState(false);
  const [zoom,setZoom]=useState(100);
  const [libraryOpen,setLibraryOpen]=useState(false);
+ const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{
+  try{return window.localStorage.getItem('nuscope.sidebar.collapsed')==='true';}
+  catch{return false;}
+ });
+ useEffect(()=>{
+  try{window.localStorage.setItem('nuscope.sidebar.collapsed',String(sidebarCollapsed));}
+  catch{}
+ },[sidebarCollapsed]);
  const [evidenceEditor,setEvidenceEditor]=useState(null);
  const [manualEvidenceOpen,setManualEvidenceOpen]=useState(false);
  const [evidenceEntryMode,setEvidenceEntryMode]=useState('manual');
@@ -666,10 +674,10 @@ function App({user}){
  const generateSynthesis=async()=>{if(!project.evidence.length)return;setSynthesisBusy(true);setAiError('');try{const r=await apiFetch('/api/synthesis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:project.question,evidence:project.evidence.map(e=>({id:e.id,theme:e.theme,quote:e.quote||e.text,interpretation:e.analysis,relationship:e.relationship||'Unclassified',source:e.source}))})});const d=await r.json();if(!r.ok)throw Error(d.detail||'Synthesis failed');setSynthesis({...d,projectId:project.id,sourceSignature:JSON.stringify(project.evidence.map(e=>[e.id,e.analysis,e.relationship]))})}catch(e){setAiError(e.message)}finally{setSynthesisBusy(false)}};
  const nav=[['overview','Overview',LayoutDashboard],['papers','Paper Library',BookOpen],['map','Evidence Map',Network],['writing','Academic Writing',FilePenLine],['settings','Project Settings',Settings]];
  if(!syncReady)return <div className="v61-auth-loading"><div><p>{cloudError||'Loading your cloud projects…'}</p>{cloudError&&<button className="secondary" onClick={()=>setCloudRetry(x=>x+1)}>Retry Cloud Load</button>}</div></div>;
- return <div className="app">
- <aside className="sidebar"><div className="brand"><div className="brandmark"><Network size={20}/></div><div><strong>Research Workspace</strong><small>V6.0</small></div></div>
- <button className="all-projects" onClick={()=>{setProjectId(null);setCreating(false)}}><ArrowLeft size={16}/> All projects</button>
- {project&&<><div className="project-chip"><span className="eyebrow">CURRENT PROJECT</span><strong>{project.name}</strong><small>{project.papers.length} papers · {project.evidence.length} verified</small></div><div className="nav-label">WORKSPACE</div><nav>{nav.map(([id,label,Icon])=><button key={id} className={page===id?'active':''} onClick={()=>{setPage(id);setSelected(null)}}><Icon size={17}/>{label}{id==='writing'&&<span className="future">Future</span>}</button>)}</nav></>}
+ return <div className={"app"+(sidebarCollapsed?" sidebar-is-collapsed":"")}>
+ <aside className="sidebar"><button type="button" className="sidebar-collapse-toggle" aria-label={sidebarCollapsed?"Expand navigation":"Collapse navigation"} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed?"Expand navigation":"Collapse navigation"} onClick={()=>setSidebarCollapsed(v=>!v)}>{sidebarCollapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</button><div className="brand"><div className="brandmark"><Network size={20}/></div><div><strong>Research Workspace</strong><small>V6.0</small></div></div>
+ <button className="all-projects" title="All projects" aria-label="All projects" onClick={()=>{setProjectId(null);setCreating(false)}}><ArrowLeft size={16}/> All projects</button>
+ {project&&<><div className="project-chip"><span className="eyebrow">CURRENT PROJECT</span><strong>{project.name}</strong><small>{project.papers.length} papers · {project.evidence.length} verified</small></div><div className="nav-label">WORKSPACE</div><nav>{nav.map(([id,label,Icon])=><button key={id} title={label} aria-label={label} className={page===id?'active':''} onClick={()=>{setPage(id);setSelected(null)}}><Icon size={17}/>{label}{id==='writing'&&<span className="future">Future</span>}</button>)}</nav></>}
  <div className="v61-cloud-status" role="status">{cloudSaving?'Saving…':cloudError?<><span>{cloudError}</span><button className="secondary" onClick={()=>setCloudProjects(prev=>prev.map(p=>({...p}))) }>Retry</button></>:'Projects synced'}</div>
  </aside>
  <main className="main"><header className="topbar"><div className="breadcrumb">{project?'My Projects  /  '+project.name:'My Projects'}</div></header>
