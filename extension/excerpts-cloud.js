@@ -6,10 +6,12 @@ import {eligibleCaptures} from './captureRules.mjs';
  box.innerHTML='<h2>Project excerpts</h2><p id="cloudInfo">Sign in and choose a project to sync.</p><button id="syncLocal" type="button">Sync local excerpts to project</button><button id="loadCloud" type="button">Refresh project excerpts</button><div id="cloudList"></div>';
  $('localExcerptsSection').before(box);
  const info=$('cloudInfo'),list=$('cloudList');
- let busy=false;
+ let busy=false,loading=false;
  const message=text=>{info.textContent=text;};
  async function current(){return globalThis.nuscopeCloud.current();}
  async function load(){
+  if(loading||busy)return;
+  loading=true;
   try{
    const {project}=await current();
    const entries=await globalThis.nuscopeCloud.list(project.id);
@@ -46,7 +48,8 @@ import {eligibleCaptures} from './captureRules.mjs';
     }
     details.append(summary,body);card.append(details);list.append(card);
    }
-  }catch(error){list.replaceChildren();message(error.message);}
+  }catch(error){message('Excerpt refresh failed: '+error.message);}
+  finally{loading=false;}
  }
  $('syncLocal').addEventListener('click',async()=>{
   if(busy)return;
@@ -78,5 +81,13 @@ import {eligibleCaptures} from './captureRules.mjs';
   if(busy||box.contains(document.activeElement)&&['TEXTAREA','SELECT','INPUT'].includes(document.activeElement?.tagName))return;
   load();
  });
+ // Saved excerpts live in a separate Supabase table, not projects.data.
+ // Refresh them independently, even when the project metadata has not changed.
+ const excerptTimer=setInterval(()=>{
+  if(document.hidden||busy||loading)return;
+  if(box.contains(document.activeElement)&&['TEXTAREA','SELECT','INPUT'].includes(document.activeElement?.tagName))return;
+  load();
+ },30000);
+ window.addEventListener('pagehide',()=>clearInterval(excerptTimer));
  chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures){message('New local capture saved. Sync it to the selected project when ready.');}});
 })();
