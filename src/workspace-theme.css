@@ -2,8 +2,8 @@
    Scoped to authenticated workspace; landing/auth remain unchanged. */
 .v61-authenticated {
   --ws-bg:#F8F5EF; --ws-surface:#FFFDF9; --ws-sidebar:#F3F0E9;
-  --ws-ink:#243B53; --ws-muted:#718296; --ws-border:#E5E0D6;
-  --ws-navy:#243B53; --ws-navy-hover:#183049; --ws-orange:#D78348;
+  --ws-ink:#173B5D; --ws-muted:#687E91; --ws-border:#E5E0D6;
+  --ws-navy:#073B73; --ws-navy-hover:#0B518D; --ws-orange:#F58200;
   background:var(--ws-bg);color:var(--ws-ink);
 }
 .v61-authenticated .app,.v61-authenticated .main{background:var(--ws-bg);color:var(--ws-ink)}
