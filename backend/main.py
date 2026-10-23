@@ -635,11 +635,16 @@ def _analyse_job(job, req):
         sha=paper_sha(req.paper_id)
         model=active_model()
         # Smaller calls bound latency; the cache fingerprint includes the batch content.
-        batch_size=max(5,min(36,int(os.getenv('HIGHLIGHT_BATCH_BLOCKS','12'))))
+        # Short PDFs should not incur multiple avoidable sequential model requests.
+        with get_doc(req.paper_id) as doc:
+            page_count=len(doc)
+        configured_size=int(os.getenv('HIGHLIGHT_BATCH_BLOCKS','12'))
+        batch_size=max(5,min(36,max(configured_size,24) if page_count<=2 else configured_size))
         total=max(1,math.ceil(len(blocks)/batch_size))
         _set_job(job,total_batches=total,status='running',message='Analysing PDF for all themes together')
         all_matches=[]
         failed_batches=[]
+        batch_timings=[]
         for index,start in enumerate(range(0,len(blocks),batch_size)):
             if job['cancel_event'].is_set():
                 _set_job(job,status='cancelled',message='Analysis stopped; completed batches are cached')
@@ -648,8 +653,9 @@ def _analyse_job(job, req):
             compact=[{'id':b['id'],'page':b['page'],'text':b['text'][:1200]} for b in batch]
             batch_key=fingerprint(HIGHLIGHT_ENGINE_VERSION,sha,req.question.strip(),themes,model,index,compact)
             result=cache_get('multi_highlight_cache',batch_key)
+            cache_hit=result is not None
+            started_at=time.monotonic()
             if result is None:
-                started_at=time.monotonic()
                 _set_job(job,message=f'Analysing batch {index+1} of {total}',batch_started_at=time.time())
                 try:
                     data=ask([
@@ -699,7 +705,8 @@ def _analyse_job(job, req):
                 cache_put('multi_highlight_cache',batch_key,result,req.paper_id)
             if job['cancel_event'].is_set():return
             all_matches.extend(result)
-            _set_job(job,completed_batches=index+1,matches=list(all_matches),batch_started_at=None,failed_batches=list(failed_batches),message=f'{index+1} of {total} batches completed')
+            batch_timings.append({'batch':index+1,'seconds':round(time.monotonic()-started_at,2),'cached':cache_hit})
+            _set_job(job,completed_batches=index+1,matches=list(all_matches),batch_timings=list(batch_timings),batch_started_at=None,failed_batches=list(failed_batches),message=f'{index+1} of {total} batches completed')
         if job['cancel_event'].is_set():
             _set_job(job,status='cancelled',message='Analysis stopped; completed batches are cached')
         else:
