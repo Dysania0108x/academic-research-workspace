@@ -4,7 +4,7 @@ import {themeChipStyle} from './themePalette.mjs';
 (() => {
  const $=id=>document.getElementById(id);
  const themesBox=$('pdfThemes'),results=$('pdfHighlights'),notice=$('pdfNotice');
- let selectedThemes=new Set(),activeJob=null,pollTimer=null,lookupVersion=0,lastJobSignature='';
+ let selectedThemes=new Set(),activeJob=null,pollTimer=null,lookupVersion=0,lastJobSignature='',cachedJob=null,cachedPaperId=null;
  const clearPoll=()=>{lookupVersion++;if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}activeJob=null;$('cancelPdfAnalysis').hidden=true;};
  function refreshThemes(){
   clearPoll();results.replaceChildren();
@@ -17,13 +17,14 @@ import {themeChipStyle} from './themePalette.mjs';
   for(const theme of themes){
    const label=document.createElement('label');label.className='pdf-theme';
    const input=document.createElement('input');input.type='checkbox';input.checked=true;
-   input.addEventListener('change',()=>{input.checked?selectedThemes.add(theme):selectedThemes.delete(theme);loadExisting();});
+   input.addEventListener('change',()=>{input.checked?selectedThemes.add(theme):selectedThemes.delete(theme);syncReaderThemes();if(cachedJob&&cachedPaperId===$('pdfPaper').value)render(cachedJob);else loadExisting();});
    Object.assign(label.style,themeChipStyle(themes,theme));
    label.append(input,document.createTextNode(' '+theme));themesBox.append(label);
   }
  }
+ async function syncReaderThemes(){const project=globalThis.nuscopeCloud?.selectedProject?.();const paperId=$('pdfPaper').value;if(!project||!paperId)return;const {nuscopePdfHighlights:previous}=await chrome.storage.local.get('nuscopePdfHighlights');if(previous?.projectId===project.id&&previous?.paperId===paperId)await chrome.storage.local.set({nuscopePdfHighlights:{...previous,themes:[...selectedThemes]}});}
  async function loadExisting(silent=false){
-  if(!silent){clearPoll();results.replaceChildren();lastJobSignature='';}
+  if(!silent){clearPoll();results.replaceChildren();lastJobSignature='';cachedJob=null;cachedPaperId=null;}
   const version=lookupVersion;
   if(silent&&activeJob)return;
   const project=globalThis.nuscopeCloud?.selectedProject?.();
@@ -57,14 +58,16 @@ import {themeChipStyle} from './themePalette.mjs';
    return !(project?.data?.rejected||[]).includes(key);
   });
   await chrome.storage.local.set({nuscopePdfHighlights:{
-   projectId:project.id,paperId,themes:project.data?.topics||[],matches
+   projectId:project.id,paperId,themes:[...selectedThemes],matches
   }});
  }
  function render(job){
+  cachedJob=job;cachedPaperId=$('pdfPaper').value;
   results.replaceChildren();
-  const count=document.createElement('p');count.className='meta';count.textContent=(job.matches||[]).length+' AI highlight candidate(s) · Not verified';
+  const visibleMatches=(job.matches||[]).filter(m=>selectedThemes.has(m.theme));
+  const count=document.createElement('p');count.className='meta';count.textContent=visibleMatches.length+' of '+(job.matches||[]).length+' AI highlight candidate(s) · Not verified';
   results.append(count);
-  for(const m of job.matches||[]){
+  for(const m of visibleMatches){
    const card=document.createElement('article');card.className='item';
    const meta=document.createElement('strong');meta.textContent=(m.theme||'Uncategorised')+' · Page '+(m.page||'?');
    Object.assign(meta.style,themeChipStyle(globalThis.nuscopeCloud.selectedProject()?.data?.topics||[],m.theme));
