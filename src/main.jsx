@@ -608,7 +608,7 @@ function App({user}){
  const nav=[['overview','Overview',LayoutDashboard],['papers','Paper Library',BookOpen],['map','Evidence Map',Network],['writing','Academic Writing',FilePenLine],['settings','Project Settings',Settings]];
  if(!syncReady)return <div className="v61-auth-loading"><div><p>{cloudError||'Loading your cloud projects…'}</p>{cloudError&&<button className="secondary" onClick={()=>setCloudRetry(x=>x+1)}>Retry Cloud Load</button>}</div></div>;
  return <div className="app">
- <aside className="sidebar"><div className="brand"><div className="brandmark"><Network size={20}/></div><div><strong>Research Workspace</strong><small>V6.0</small></div></div>
+ <aside className="sidebar"><div className="brand"><div className="brandmark"><img src="/nuscope-mark.svg" alt="" /></div><div><strong>NUScope</strong><small>Research Workspace</small></div></div>
  <button className="all-projects" onClick={()=>{setProjectId(null);setCreating(false)}}><ArrowLeft size={16}/> All projects</button>
  {project&&<><div className="project-chip"><span className="eyebrow">CURRENT PROJECT</span><strong>{project.name}</strong><small>{project.papers.length} papers · {project.evidence.length} verified</small></div><div className="nav-label">WORKSPACE</div><nav>{nav.map(([id,label,Icon])=><button key={id} className={page===id?'active':''} onClick={()=>{setPage(id);setSelected(null)}}><Icon size={17}/>{label}{id==='writing'&&<span className="future">Future</span>}</button>)}</nav></>}
  <div className="v61-cloud-status" role="status">{cloudSaving?'Saving to cloud…':cloudError?<><span>{cloudError}</span><button className="secondary" onClick={()=>setCloudProjects(prev=>prev.map(p=>({...p}))) }>Retry Save</button></>:'Cloud Projects · '+user.email}</div>
