@@ -323,7 +323,6 @@ function App({user}){
  },[user.id,cloudRetry]);
  useEffect(()=>{if(!syncReady||!cloudPending.current.size)return;const timer=setTimeout(()=>{const ids=[...cloudPending.current];const snapshots=projects.filter(p=>ids.includes(p.id)&&!cloudDeleted.current.has(p.id));cloudPending.current.clear();if(!snapshots.length)return;setCloudSaving(true);cloudWrites.current=cloudWrites.current.catch(()=>{}).then(async()=>{for(const p of snapshots){if(cloudDeleted.current.has(p.id))continue;const {data:remote,error:readError}=await supabase.from('projects').select('data,updated_at').eq('id',p.id).eq('user_id',user.id).maybeSingle();if(readError)throw readError;if(!remote){cloudPending.current.add(p.id);throw Error('Cloud project missing; refusing to recreate it silently')}const baseline=evidenceBaseline.current.get(p.id);
  const remoteEvidence=JSON.stringify(remote.data?.evidence||[]);
- const localEvidence=JSON.stringify(p.evidence||[]);
  if(baseline===undefined){cloudPending.current.add(p.id);throw Error('Evidence baseline unavailable; reload before saving.');}
  if(remoteEvidence!==baseline){
   cloudPending.current.add(p.id);
