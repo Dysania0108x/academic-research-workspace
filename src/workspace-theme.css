@@ -97,3 +97,20 @@
  .v61-authenticated .sidebar .project-chip{display:none}
  .v61-authenticated .main{min-width:0}
 }
+
+/* Replace legacy lilac chrome with brand navy/cream; preserve six theme swatches. */
+.v61-authenticated .account-pill,.v61-authenticated .pill:not([style]),
+.v61-authenticated .v5-settings-list,.v61-authenticated .v5-settings-nav,
+.v61-authenticated .v7-evidence-workspace,.v61-authenticated .evidence-modal{
+ --legacy-purple:#073B73;
+}
+.v61-authenticated .account-pill{display:none}
+.v61-authenticated .v61-cloud-status{writing-mode:horizontal-tb;overflow-wrap:normal}
+.v61-authenticated .v7-evidence-workspace .v7-workspace-heading h2{color:#073B73}
+.v61-authenticated .v7-evidence-workspace button.secondary,
+.v61-authenticated .evidence-modal button.secondary{color:#073B73;border-color:#E5DCCD}
+.v61-authenticated .evidence-modal h2,.v61-authenticated .evidence-modal label{color:#073B73}
+@media(max-width:800px){
+ .v61-authenticated .sidebar .v61-cloud-status{display:none}
+ .v61-authenticated .sidebar .sidebar-bottom{display:none}
+}
