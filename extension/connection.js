@@ -81,6 +81,26 @@ import {themeChipStyle} from './themePalette.mjs';
   // Never expose access tokens to content scripts or ordinary web pages.
   globalThis.nuscopeCloud={
     selectedProject(){return projects.find(p=>p.id===el('projectSelect').value)||null;},
+    async refreshSharedProject(){
+      if(!session?.access_token||!el('projectSelect').value)return false;
+      await validSession();
+      const id=el('projectSelect').value;
+      const rows=await request('/rest/v1/projects?id=eq.'+encodeURIComponent(id)+'&select=id,name,research_question,data',{
+        headers:{Authorization:'Bearer '+session.access_token}
+      });
+      const updated=rows?.[0];
+      if(!updated)return false;
+      const index=projects.findIndex(p=>p.id===id);
+      if(index<0)return false;
+      if(JSON.stringify(projects[index])===JSON.stringify(updated))return false;
+      projects[index]=updated;
+      const selectedPaper=el('pdfPaper').value;
+      displayProject();
+      if([...el('pdfPaper').options].some(option=>option.value===selectedPaper))el('pdfPaper').value=selectedPaper;
+      document.dispatchEvent(new CustomEvent('nuscope-shared-project-updated',{detail:{projectId:id}}));
+      return true;
+    },
+
     async current(){
       await validSession();
       const id=el('projectSelect').value;
@@ -193,6 +213,18 @@ import {themeChipStyle} from './themePalette.mjs';
     if(!paperId||!projectId){el('pdfNotice').textContent='Select a project PDF first.';return;}
     chrome.tabs.create({url:chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId)});
   });
+  // Read-only sync: never invokes the AI analysis endpoint.
+  let syncBusy=false;
+  async function refreshIfVisible(){
+    if(syncBusy||document.hidden||!session?.access_token)return;
+    syncBusy=true;
+    try{await globalThis.nuscopeCloud.refreshSharedProject();}
+    catch(error){status.textContent='Background sync unavailable: '+error.message;}
+    finally{syncBusy=false;}
+  }
+  const syncInterval=setInterval(refreshIfVisible,15000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshIfVisible();});
+  window.addEventListener('pagehide',()=>clearInterval(syncInterval));
   settings().then(()=>document.dispatchEvent(new Event('nuscope-connection-ready'))).catch(error=>{status.textContent='Initialization error: '+error.message;});
 
 })();
