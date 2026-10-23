@@ -565,7 +565,7 @@ function App({user}){
  const loadSavedExcerpts=async()=>{
   if(!projectId||!supabase)return;
   setExcerptsLoading(true);setExcerptsError('');
-  const {data,error}=await supabase.from('saved_excerpts').select('id,project_id,quote,note,source_title,source_url,captured_at').eq('project_id',projectId).order('captured_at',{ascending:false}).limit(200);
+  const {data,error}=await supabase.from('saved_excerpts').select('id,project_id,quote,note,source_title,source_url,captured_at') .eq('project_id',projectId).eq('user_id',user.id).order('captured_at',{ascending:false}).limit(200);
   if(error){setExcerptsError(error.message);setSavedExcerpts([]);}
   else setSavedExcerpts(data||[]);
   setExcerptsLoading(false);
