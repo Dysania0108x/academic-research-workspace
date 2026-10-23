@@ -114,3 +114,9 @@
  .v61-authenticated .sidebar .v61-cloud-status{display:none}
  .v61-authenticated .sidebar .sidebar-bottom{display:none}
 }
+
+.v61-authenticated .evidence-entry-modes{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.v61-authenticated .evidence-entry-modes button{flex:1 1 150px}
+.v61-authenticated .saved-excerpt-picker{background:#F8F2E8;border:1px solid #E5DCCD;border-radius:12px;padding:12px;margin:12px 0}
+.v61-authenticated .saved-excerpt-picker p{font-size:12px;color:#61758B;margin:8px 0}
+.v61-authenticated .saved-excerpt-picker select{max-width:100%}
