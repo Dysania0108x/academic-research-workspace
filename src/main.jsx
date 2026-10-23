@@ -583,6 +583,7 @@ function App({user}){
   const d=manualEvidence;
   const excerpt=evidenceEntryMode==='excerpts'?savedExcerpts.find(x=>x.id===selectedExcerptId):null;
   if(evidenceEntryMode==='excerpts'&&!excerpt){toast('Select a saved excerpt first.');return;}
+  if(excerpt&&(excerpt.project_id!==projectId)){toast('This excerpt belongs to another project.');return;}
   if(excerpt&&(project.evidence||[]).some(e=>e.savedExcerptId===excerpt.id)){toast('This excerpt is already in the Evidence Map.');return;}
   if(!d.quote.trim()||!d.theme){toast('Enter evidence text and select a theme.');return;}
   if(d.sourceUrl.trim()){
