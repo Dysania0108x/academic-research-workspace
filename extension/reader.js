@@ -4,7 +4,7 @@ pdfjs.GlobalWorkerOptions.workerSrc=chrome.runtime.getURL('vendor/pdf.worker.mjs
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
 const projectId=params.get('project'),paperId=params.get('paper');
-let documentPdf=null,page=1,renderTask=null,epoch=0;
+let documentPdf=null,page=1,renderTask=null,epoch=0,pageGeometry=null;
 const message=text=>{$('message').textContent=text;};
 function sourceRange(root,start,end){
  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
@@ -18,26 +18,56 @@ function sourceRange(root,start,end){
  if(!first||!last)return null;
  const range=document.createRange();range.setStart(first.node,first.at);range.setEnd(last.node,last.at);return range;
 }
+const PALETTE=['#E8B844','#67A7E8','#A783E8','#47B99A','#E48C98','#7D89D9'];
+function selectionThemes(){return window.readerSelection?.nuscopePdfHighlights?.themes||[];}
+function themeColor(theme,themes){
+ const names=[...new Set([...themes,theme].filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ return PALETTE[names.indexOf(theme)%PALETTE.length];
+}
+// Backend rects come from PyMuPDF's verified source search. Use only on
+// unrotated, uncropped pages with matching top-left page coordinates.
+function drawSourceRects(match,overlay,themes){
+ const geometry=pageGeometry,rects=match.rects;
+ if(!geometry||!Array.isArray(rects)||!rects.length||geometry.rotation!==0||geometry.x!==0||geometry.y!==0)return false;
+ const {width,height,renderWidth,renderHeight}=geometry;
+ if(!width||!height)return false;
+ const valid=rects.filter(r=>Array.isArray(r)&&r.length===4&&r.every(Number.isFinite)&&r[0]>=0&&r[1]>=0&&r[2]>r[0]&&r[3]>r[1]&&r[2]<=width+.5&&r[3]<=height+.5);
+ if(valid.length!==rects.length)return false;
+ for(const r of valid){
+  const marker=document.createElement('div');marker.className='mark';
+  marker.style.left=(r[0]/width*renderWidth)+'px';
+  marker.style.top=(r[1]/height*renderHeight)+'px';
+  marker.style.width=((r[2]-r[0])/width*renderWidth)+'px';
+  marker.style.height=((r[3]-r[1])/height*renderHeight)+'px';
+  marker.style.background=themeColor(match.theme,themes)+'77';
+  overlay.append(marker);
+ }
+ return valid.length>0;
+}
 function drawHighlights(){
  const layer=$('textLayer'),over=$('highlightLayer');
  let located=0,unmatched=0;
  over.replaceChildren();
  const text=layer.textContent||'';
+ const themes=selectionThemes();
  const {nuscopePdfHighlights:selection}=window.readerSelection||{};
  if(!selection||selection.paperId!==paperId||selection.projectId!==projectId)return;
  for(const m of selection.matches||[]){
   if(Number(m.page)!==page)continue;
   const offsets=locateQuote(text,m.quote||m.text||'');
-  if(!offsets){unmatched++;continue;}
+  if(!offsets){
+   if(drawSourceRects(m,over,themes)){located++;continue;}
+   unmatched++;continue;
+  }
   const range=sourceRange(layer,offsets.start,offsets.end);
-  if(!range){unmatched++;continue;}
+  if(!range){if(drawSourceRects(m,over,themes)){located++;continue;}unmatched++;continue;}
   const parent=layer.getBoundingClientRect();
   located++;
   for(const rect of range.getClientRects()){
    if(rect.width<1||rect.height<1)continue;
    const marker=document.createElement('div');marker.className='mark';
    marker.style.left=(rect.left-parent.left)+'px';marker.style.top=(rect.top-parent.top)+'px';
-   marker.style.width=rect.width+'px';marker.style.height=rect.height+'px';over.append(marker);
+   marker.style.width=rect.width+'px';marker.style.height=rect.height+'px';marker.style.background=themeColor(m.theme,themes)+'55';over.append(marker);
   }
  }
  const summary=$('highlightStatus');
@@ -56,6 +86,8 @@ async function render(){
   const pdfPage=await documentPdf.getPage(page);
   if(id!==epoch)return;
   const viewport=pdfPage.getViewport({scale:1.35});
+  const [x0,y0,x1,y1]=pdfPage.view;
+  pageGeometry={x:x0,y:y0,width:x1-x0,height:y1-y0,renderWidth:viewport.width,renderHeight:viewport.height,rotation:viewport.rotation};
   const ratio=Math.min(devicePixelRatio||1,2);
   const canvas=$('pageCanvas');canvas.width=Math.ceil(viewport.width*ratio);canvas.height=Math.ceil(viewport.height*ratio);
   canvas.style.width=viewport.width+'px';canvas.style.height=viewport.height+'px';
