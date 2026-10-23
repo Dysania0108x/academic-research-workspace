@@ -45,3 +45,19 @@
 .v61-authenticated .v61-local-warning{background:#F9F1E6;color:#76573F;border-color:#EBD8C0}
 .v61-authenticated :focus-visible{outline-color:var(--ws-orange)}
 /* Preserve distinct semantic evidence / highlight / theme colors. */
+
+/* Official NUScope symbol in the authenticated workspace sidebar. */
+.v61-authenticated .sidebar .brandmark {
+  width:48px;min-width:48px;height:44px;border-radius:0;
+  background:transparent url('/nuscope-symbol.svg') center/contain no-repeat;
+  box-shadow:none;
+}
+.v61-authenticated .sidebar .brandmark > svg {display:none}
+.v61-authenticated .sidebar .brand strong {font-size:0}
+.v61-authenticated .sidebar .brand strong::after {
+  content:'NUScope';font-size:18px;font-weight:750;letter-spacing:-.025em;color:#243B53;
+}
+.v61-authenticated .sidebar .brand small {font-size:0}
+.v61-authenticated .sidebar .brand small::after {
+  content:'Research Workspace';font-size:11px;color:#718296;
+}
