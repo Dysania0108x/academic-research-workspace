@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import './style.css';
 import { EvitlasLanding, EvitlasAuth } from './Evitlas.jsx';
 import PdfJsPreview from './PdfJsPreview.jsx';
+import {evidenceSaveConflict} from './evidenceConflict.js';
 
 const supabaseUrl=import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -321,12 +322,12 @@ function App({user}){
   })();
   return()=>{alive=false};
  },[user.id,cloudRetry]);
- useEffect(()=>{if(!syncReady||!cloudPending.current.size)return;const timer=setTimeout(()=>{const ids=[...cloudPending.current];const snapshots=projects.filter(p=>ids.includes(p.id)&&!cloudDeleted.current.has(p.id));cloudPending.current.clear();if(!snapshots.length)return;setCloudSaving(true);cloudWrites.current=cloudWrites.current.catch(()=>{}).then(async()=>{for(const p of snapshots){if(cloudDeleted.current.has(p.id))continue;const {data:remote,error:readError}=await supabase.from('projects').select('data,updated_at').eq('id',p.id).eq('user_id',user.id).maybeSingle();if(readError)throw readError;if(!remote){cloudPending.current.add(p.id);throw Error('Cloud project missing; refusing to recreate it silently')}const baseline=evidenceBaseline.current.get(p.id);
- const remoteEvidence=JSON.stringify(remote.data?.evidence||[]);
- if(baseline===undefined){cloudPending.current.add(p.id);throw Error('Evidence baseline unavailable; reload before saving.');}
- if(remoteEvidence!==baseline){
+ useEffect(()=>{if(!syncReady||!cloudPending.current.size)return;const timer=setTimeout(()=>{const ids=[...cloudPending.current];const snapshots=projects.filter(p=>ids.includes(p.id)&&!cloudDeleted.current.has(p.id));cloudPending.current.clear();if(!snapshots.length)return;setCloudSaving(true);cloudWrites.current=cloudWrites.current.catch(()=>{}).then(async()=>{for(const p of snapshots){if(cloudDeleted.current.has(p.id))continue;const {data:remote,error:readError}=await supabase.from('projects').select('data,updated_at').eq('id',p.id).eq('user_id',user.id).maybeSingle();if(readError)throw readError;if(!remote){cloudPending.current.add(p.id);throw Error('Cloud project missing; refusing to recreate it silently')}const conflict=evidenceSaveConflict(evidenceBaseline.current.get(p.id),remote.data?.evidence);
+ if(conflict){
   cloudPending.current.add(p.id);
-  throw Error('Evidence changed in another window. Copy any unsaved edits, then reload before retrying.');
+  throw Error(conflict==='missing-baseline'
+   ?'Evidence baseline unavailable; reload before saving.'
+   :'Evidence changed in another window. Copy any unsaved edits, then reload before retrying.');
  }
  const merged={...p,
   papers:[...new Map([...(remote.data?.papers||[]),...(p.papers||[])].map(item=>[item.id,item])).values()]};const {data:saved,error}=await supabase.from('projects').update({name:merged.name,research_question:merged.question||'',data:merged,updated_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',user.id).eq('updated_at',remote.updated_at).select('id').maybeSingle();if(error||!saved){cloudPending.current.add(p.id);throw Error(error?.message||'Concurrent cloud update; retry after reloading')}evidenceBaseline.current.set(p.id,JSON.stringify(merged.evidence||[]))}}).then(()=>{setCloudError('');setCloudSaving(false)}).catch(e=>{setCloudError('Cloud save failed: '+e.message);setCloudSaving(false)})},650);return()=>clearTimeout(timer)},[projects,syncReady,user.id]);
