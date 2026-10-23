@@ -146,3 +146,37 @@
  .v61-authenticated .paper-item>button:first-child{font-size:14px}
  .v61-authenticated .paper-filename{-webkit-line-clamp:3;line-clamp:3}
 }
+
+/* Collapsible NUScope workspace navigation, preserving reading width. */
+.v61-authenticated .sidebar{position:relative;transition:width .2s ease,padding .2s ease}
+.v61-authenticated .sidebar-collapse-toggle{display:flex;align-items:center;justify-content:center;align-self:flex-end;width:36px;height:36px;flex:0 0 36px;border:1px solid #E5DCCD;border-radius:9px;background:#FFFDF9;color:#073B73;margin:0 3px 8px;cursor:pointer}
+.v61-authenticated .sidebar-collapse-toggle:hover{background:#E5EDF4}
+.v61-authenticated .sidebar-collapse-toggle:focus-visible{outline:3px solid #F58200;outline-offset:2px}
+.v61-authenticated .sidebar-is-collapsed .sidebar{width:76px;min-width:76px;padding:15px 9px}
+.v61-authenticated .sidebar-is-collapsed .sidebar-collapse-toggle{align-self:center;margin:0 0 10px}
+.v61-authenticated .sidebar-is-collapsed .sidebar .brand{justify-content:center;padding:3px 0 14px}
+.v61-authenticated .sidebar-is-collapsed .sidebar .brand>div:last-child,
+.v61-authenticated .sidebar-is-collapsed .sidebar .project-chip,
+.v61-authenticated .sidebar-is-collapsed .sidebar .nav-label,
+.v61-authenticated .sidebar-is-collapsed .sidebar .sidebar-bottom,
+.v61-authenticated .sidebar-is-collapsed .sidebar .v61-cloud-status,
+.v61-authenticated .sidebar-is-collapsed .sidebar .future{display:none}
+.v61-authenticated .sidebar-is-collapsed .sidebar .all-projects,
+.v61-authenticated .sidebar-is-collapsed .sidebar nav button{width:48px;min-height:46px;padding:12px;justify-content:center;font-size:0;gap:0;white-space:nowrap;overflow:hidden}
+.v61-authenticated .sidebar-is-collapsed .sidebar nav button svg,
+.v61-authenticated .sidebar-is-collapsed .sidebar .all-projects svg{width:20px;height:20px;flex:0 0 20px}
+.v61-authenticated .sidebar-is-collapsed .main{min-width:0;flex:1}
+@media(max-width:800px){
+ .v61-authenticated .sidebar{width:68px;min-width:68px;padding:14px 8px}
+ .v61-authenticated .sidebar .sidebar-collapse-toggle{align-self:center}
+ .v61-authenticated .sidebar .all-projects,.v61-authenticated .sidebar nav button{width:48px;justify-content:center;font-size:0;gap:0;overflow:hidden}
+ .v61-authenticated .sidebar .all-projects svg,.v61-authenticated .sidebar nav button svg{flex:0 0 20px}
+ .v61-authenticated .sidebar-is-collapsed .sidebar{width:68px;min-width:68px}
+}
+@media(prefers-reduced-motion:reduce){.v61-authenticated .sidebar{transition:none}}
+
+/* Evidence Details: match the existing outline action buttons. */
+.v61-authenticated .evidence-modal .evidence-source-link{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;white-space:nowrap;text-decoration:none;border:1px solid #E5DCCD;border-radius:9px;background:#FFFDF9;color:#073B73;padding:8px 12px;font-size:12px;font-weight:650;margin-left:auto}
+.v61-authenticated .evidence-modal .evidence-source-link:hover{background:#F8F2E8;color:#073B73}
+.v61-authenticated .v5-network-scroll svg{max-width:100%;display:block;margin:0 auto}
+.v61-authenticated .v5-network-tools{flex-wrap:wrap}
