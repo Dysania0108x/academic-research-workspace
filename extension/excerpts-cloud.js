@@ -16,15 +16,20 @@ import {eligibleCaptures} from './captureRules.mjs';
    list.replaceChildren();
    message(entries.length+' saved excerpt(s) in '+project.name+'.');
    for(const entry of entries){
-    const card=document.createElement('article');card.className='item';
+    const card=document.createElement('article');card.className='item excerpt-compact';
+    const details=document.createElement('details');
+    const summary=document.createElement('summary');
     const title=document.createElement('strong');title.textContent=entry.source_title||'Untitled';
     const quote=document.createElement('blockquote');quote.textContent=entry.quote;
     const note=document.createElement('p');note.className='note';note.textContent=entry.note||'';
     const source=document.createElement('a');source.textContent='View original source ↗';
     try{const url=new URL(entry.source_url||'');if(url.protocol==='https:'||url.protocol==='http:'){source.href=url.href;source.target='_blank';source.rel='noopener noreferrer';}}catch{}
     const label=document.createElement('p');label.className='meta';label.textContent=entry.evidence_id?'Added to Evidence Map':'Not added to Evidence Map';
-    card.append(title,quote,note,label);
-    if(source.href)card.append(source);
+    const preview=document.createElement('span');preview.className='excerpt-preview';preview.textContent=entry.quote||'';
+    const body=document.createElement('div');body.className='excerpt-body';
+    summary.append(title,preview,label);
+    body.append(quote,note);
+    if(source.href)body.append(source);
     if(!entry.evidence_id){
      const theme=document.createElement('select');theme.setAttribute('aria-label','Evidence theme');
      theme.add(new Option('Choose theme',''));
@@ -37,9 +42,9 @@ import {eligibleCaptures} from './captureRules.mjs';
       try{await globalThis.nuscopeCloud.promote(entry.id,theme.value,interpretation.value);await load();}
       catch(error){message('Could not add evidence: '+error.message);button.disabled=false;}
      });
-     card.append(theme,interpretation,button);
+     body.append(theme,interpretation,button);
     }
-    list.append(card);
+    details.append(summary,body);card.append(details);list.append(card);
    }
   }catch(error){list.replaceChildren();message(error.message);}
  }
