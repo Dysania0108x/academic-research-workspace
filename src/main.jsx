@@ -567,7 +567,7 @@ function App({user}){
   setExcerptsLoading(true);setExcerptsError('');
   const {data,error}=await supabase.from('saved_excerpts').select('id,project_id,quote,note,source_title,source_url,captured_at') .eq('project_id',projectId).eq('user_id',user.id).order('captured_at',{ascending:false}).limit(200);
   if(error){setExcerptsError(error.message);setSavedExcerpts([]);}
-  else setSavedExcerpts(data||[]);
+  else {setSavedExcerpts(data||[]);setSelectedExcerptId(current=>(data||[]).some(x=>x.id===current)?current:'');}
   setExcerptsLoading(false);
  };
  useEffect(()=>{
