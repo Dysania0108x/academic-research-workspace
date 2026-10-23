@@ -13,7 +13,7 @@
    const url=new URL(raw);
    if(url.protocol!=='https:')throw Error('Only public HTTPS PDF URLs are supported.');
    if(url.username||url.password)throw Error('PDF URLs containing credentials are not supported.');
-   if(!url.pathname.toLowerCase().endsWith('.pdf')&&!/\/doi\/pdf\//i.test(url.pathname))throw Error('Cannot confirm a direct PDF link. Download the PDF and upload it in NUScope Web App.');
+   if(!url.pathname.toLowerCase().endsWith('.pdf')&&!/\/doi\/pdf\//i.test(url.pathname)&&!(/^arxiv\.org$/i.test(url.hostname)&&/^\/pdf\/[0-9]{4}\.[0-9]{4,5}(?:v[0-9]+)?\/?$/i.test(url.pathname)))throw Error('Cannot confirm a direct PDF link. Download the PDF and upload it in NUScope Web App.');
    if(/libproxy\d*\./i.test(url.hostname))throw Error('NUS library proxy PDFs may require a browser session. Download the PDF and upload it through NUScope Web App instead.');
    if(!globalThis.nuscopeCloud.selectedProject())throw Error('Select a project first.');
    candidate=url.href;
