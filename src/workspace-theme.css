@@ -1,0 +1,47 @@
+/* NUScope Workspace Beta — visual-only warm academic palette.
+   Scoped to authenticated workspace; landing/auth remain unchanged. */
+.v61-authenticated {
+  --ws-bg:#F8F5EF; --ws-surface:#FFFDF9; --ws-sidebar:#F3F0E9;
+  --ws-ink:#243B53; --ws-muted:#718296; --ws-border:#E5E0D6;
+  --ws-navy:#243B53; --ws-navy-hover:#183049; --ws-orange:#D78348;
+  background:var(--ws-bg);color:var(--ws-ink);
+}
+.v61-authenticated .app,.v61-authenticated .main{background:var(--ws-bg);color:var(--ws-ink)}
+.v61-authenticated .sidebar{background:var(--ws-sidebar);border-right-color:var(--ws-border)}
+.v61-authenticated .topbar{background:var(--ws-surface);border-bottom-color:var(--ws-border)}
+.v61-authenticated .brandmark{background:var(--ws-navy);color:#FFFDF9}
+.v61-authenticated .brand strong,.v61-authenticated .heading h1,
+.v61-authenticated .panel h2,.v61-authenticated .panel h3{color:var(--ws-ink)}
+.v61-authenticated .breadcrumb,.v61-authenticated .heading p,
+.v61-authenticated .panel p,.v61-authenticated .hint{color:var(--ws-muted)}
+.v61-authenticated .project-chip{background:#EAEFEF;border-color:#D8E1E2}
+.v61-authenticated .eyebrow,.v61-authenticated .nav-label{color:#5E7B8F}
+.v61-authenticated .sidebar nav button{color:#536779}
+.v61-authenticated .sidebar nav button.active,
+.v61-authenticated .v5-settings-nav button.active{background:#DCE7EC;color:#174E70}
+.v61-authenticated .primary{background:var(--ws-navy);color:#fff;border-color:var(--ws-navy)}
+.v61-authenticated .primary:hover{background:var(--ws-navy-hover)}
+.v61-authenticated .secondary{background:var(--ws-surface);color:var(--ws-ink);border-color:var(--ws-border)}
+.v61-authenticated .secondary:hover{background:#F0EEE8}
+.v61-authenticated .panel,.v61-authenticated .stat,.v61-authenticated .project-card,
+.v61-authenticated .map-card,.v61-authenticated .modal{background:var(--ws-surface);border-color:var(--ws-border)}
+.v61-authenticated .project-card:hover{border-color:#9DB5C2;box-shadow:0 8px 24px rgba(36,59,83,.07)}
+.v61-authenticated .folder-icon{background:#E6EDF0;color:#315F7D}
+.v61-authenticated .stat strong{color:var(--ws-navy)}
+.v61-authenticated .pill,.v61-authenticated .tag{background:#EAF0F1;color:#365D72;border-color:#D8E4E7}
+.v61-authenticated .text-link{color:#245D80}
+.v61-authenticated .tabs button.on{color:#245D80;border-bottom-color:var(--ws-orange)}
+.v61-authenticated .theme-column{background:#F6F3ED;border-color:var(--ws-border)}
+.v61-authenticated .chosen,.v61-authenticated .notice,
+.v61-authenticated .assistant blockquote{background:#F2F0E9}
+.v61-authenticated .assistant blockquote{border-left-color:var(--ws-orange)}
+.v61-authenticated input,.v61-authenticated textarea,
+.v61-authenticated select{background:#FFFEFB;color:var(--ws-ink);border-color:#D8DCD9}
+.v61-authenticated input:focus,.v61-authenticated textarea:focus,
+.v61-authenticated select:focus{border-color:#6F9BB4;box-shadow:0 0 0 3px rgba(111,155,180,.16)}
+.v61-authenticated .toast{background:var(--ws-navy)}
+.v61-authenticated .modal-backdrop{background:rgba(25,44,60,.44)}
+.v61-authenticated .v61-session-bar{background:#F1F2ED;color:var(--ws-ink);border-color:var(--ws-border)}
+.v61-authenticated .v61-local-warning{background:#F9F1E6;color:#76573F;border-color:#EBD8C0}
+.v61-authenticated :focus-visible{outline-color:var(--ws-orange)}
+/* Preserve distinct semantic evidence / highlight / theme colors. */
