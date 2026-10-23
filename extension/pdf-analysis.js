@@ -101,7 +101,17 @@ import {themeChipStyle} from './themePalette.mjs';
    const elapsed=job.batch_started_at?Math.max(0,Math.round(Date.now()/1000-job.batch_started_at)):null;
    notice.textContent=(job.message||job.status||'Analysing')+' · '+(job.completed_batches||0)+'/'+(job.total_batches||'?')+' batches'+(elapsed!==null?' · current batch '+elapsed+'s':'')+(last?' · previous '+last.seconds+'s'+(last.cached?' (cached)':''):'');
    // Keep the review form stable while background batches are still arriving.
-   if(!['queued','running'].includes(job.status))render(job);
+   if(!['queued','running'].includes(job.status)){
+    render(job);
+    const project=globalThis.nuscopeCloud.selectedProject();
+    const matches=(job.matches||[]).filter(m=>{
+      const key=[paperId,m.page,(m.quote||m.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
+      return !(project?.data?.rejected||[]).includes(key);
+    });
+    await chrome.storage.local.set({nuscopePdfHighlights:{
+      projectId:project?.id,paperId,themes:project?.data?.topics||[],matches
+    }});
+   }
    if(['queued','running'].includes(job.status)){
     pollTimer=setTimeout(()=>poll(jobId,paperId),2500);
    }else{activeJob=null;$('cancelPdfAnalysis').hidden=true;notice.textContent='Analysis '+job.status+'. '+(job.matches||[]).length+' candidate(s). Review before adding evidence.';}
