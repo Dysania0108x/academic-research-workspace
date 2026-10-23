@@ -1,14 +1,17 @@
 {
   "manifest_version": 3,
   "name": "NUScope Floating Assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Capture research excerpts without leaving the page.",
   "permissions": [
     "storage",
     "sidePanel",
-    "activeTab"
+    "activeTab",
+    "permissions"
   ],
-  "host_permissions": [],
+  "host_permissions": [
+    "https://*.supabase.co/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -29,5 +32,8 @@
       ],
       "run_at": "document_idle"
     }
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
   ]
 }

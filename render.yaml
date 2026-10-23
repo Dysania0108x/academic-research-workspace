@@ -20,6 +20,8 @@ services:
         value: bailian
       - key: BAILIAN_MODEL
         value: deepseek-v4.1-flash
+      - key: DEEPSEEK_API_KEY
+        sync: false
       - key: DASHSCOPE_API_KEY
         sync: false
       - key: AI_MOCK_MODE

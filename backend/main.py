@@ -284,18 +284,21 @@ def mock_mode():
 
 def ai_provider():
     provider=os.getenv('AI_PROVIDER','bailian').strip().lower()
-    if provider not in ('bailian','qwen','deepseek'):
-        raise HTTPException(503,'AI_PROVIDER must be bailian, qwen or deepseek')
+    if provider not in ('bailian','deepseek','qwen'):
+        raise HTTPException(503,'AI_PROVIDER must be bailian, deepseek or qwen')
     return provider
 
 def active_model():
     if mock_mode():return 'mock-deterministic-v1'
-    if ai_provider()=='bailian':return os.getenv('BAILIAN_MODEL') or os.getenv('QWEN_MODEL') or 'deepseek-v4.1-flash'
-    if ai_provider()=='deepseek':return os.getenv('DEEPSEEK_MODEL','deepseek-chat')
+    provider=ai_provider()
+    if provider=='bailian':
+        return os.getenv('BAILIAN_MODEL') or os.getenv('QWEN_MODEL') or 'deepseek-v4.1-flash'
+    if provider=='deepseek':return os.getenv('DEEPSEEK_MODEL','deepseek-chat')
     return os.getenv('QWEN_MODEL','qwen-plus')
 
 def ai_client_config():
-    if ai_provider() in ('bailian','qwen'):
+    provider=ai_provider()
+    if provider in ('bailian','qwen'):
         key=os.getenv('DASHSCOPE_API_KEY')
         if not key:raise HTTPException(503,'Set DASHSCOPE_API_KEY on the backend server')
         return key,os.getenv('QWEN_BASE_URL','https://dashscope-intl.aliyuncs.com/compatible-mode/v1')
@@ -420,7 +423,7 @@ def usage_stats(project_id: str | None = None, authorization: str | None = Heade
             'scope':'project','durable':True}
 
 @app.get('/api/health')
-def health(): return {'ok':True,'ai_configured':(bool(os.getenv('DEEPSEEK_API_KEY')) if ai_provider()=='deepseek' else bool(os.getenv('DASHSCOPE_API_KEY'))) or mock_mode(),'mock_mode':mock_mode(),'ai_provider':ai_provider(),'ai_model':active_model()}
+def health(): return {'ok':True,'ai_configured':(bool(os.getenv('DEEPSEEK_API_KEY')) if ai_provider()=='deepseek' else bool(os.getenv('DASHSCOPE_API_KEY'))) or mock_mode(),'ai_provider':ai_provider(),'ai_model':active_model(),'mock_mode':mock_mode()}
 
 def extract_paper_metadata(doc):
     """Conservative PDF metadata: no guessed journal, author, or publication year."""
@@ -635,7 +638,8 @@ def _analyse_job(job, req):
         sha=paper_sha(req.paper_id)
         model=active_model()
         # Smaller calls bound latency; the cache fingerprint includes the batch content.
-        # Short PDFs should not incur multiple avoidable sequential model requests.
+        # Short PDFs otherwise incur several sequential model round trips.
+        # Keep the limit bounded; larger batches can raise model latency and token use.
         with get_doc(req.paper_id) as doc:
             page_count=len(doc)
         configured_size=int(os.getenv('HIGHLIGHT_BATCH_BLOCKS','12'))
@@ -768,8 +772,7 @@ def get_analysis_job(job_id:str, authorization: str | None = Header(default=None
             saved=_load_job(job_id,owner_id)
             if saved is None:raise HTTPException(404,'Analysis job not found')
             return saved
-        if job.get('owner_id')!=owner_id:
-            raise HTTPException(404,'Analysis job not found')
+        if job.get('owner_id')!=owner_id:raise HTTPException(404,'Analysis job not found')
         return _job_snapshot(job)
 
 @app.post('/api/analyse/jobs/{job_id}/cancel')
