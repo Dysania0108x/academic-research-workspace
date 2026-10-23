@@ -4,8 +4,8 @@ import {themeChipStyle} from './themePalette.mjs';
 (() => {
  const $=id=>document.getElementById(id);
  const themesBox=$('pdfThemes'),results=$('pdfHighlights'),notice=$('pdfNotice');
- let selectedThemes=new Set(),activeJob=null,pollTimer=null;
- const clearPoll=()=>{if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}activeJob=null;$('cancelPdfAnalysis').hidden=true;};
+ let selectedThemes=new Set(),activeJob=null,pollTimer=null,lookupVersion=0;
+ const clearPoll=()=>{lookupVersion++;if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}activeJob=null;$('cancelPdfAnalysis').hidden=true;};
  function refreshThemes(){
   clearPoll();results.replaceChildren();
   const projectId=$('projectSelect').value;
@@ -17,10 +17,43 @@ import {themeChipStyle} from './themePalette.mjs';
   for(const theme of themes){
    const label=document.createElement('label');label.className='pdf-theme';
    const input=document.createElement('input');input.type='checkbox';input.checked=true;
-   input.addEventListener('change',()=>{input.checked?selectedThemes.add(theme):selectedThemes.delete(theme);clearPoll();results.replaceChildren();});
+   input.addEventListener('change',()=>{input.checked?selectedThemes.add(theme):selectedThemes.delete(theme);loadExisting();});
    Object.assign(label.style,themeChipStyle(themes,theme));
    label.append(input,document.createTextNode(' '+theme));themesBox.append(label);
   }
+ }
+ async function loadExisting(){
+  clearPoll();results.replaceChildren();
+  const version=lookupVersion;
+  const project=globalThis.nuscopeCloud?.selectedProject?.();
+  const paperId=$('pdfPaper').value;
+  if(!project||!paperId)return;
+  const themes=[...selectedThemes];
+  if(!themes.length){notice.textContent='Choose at least one theme.';return;}
+  notice.textContent='Checking NUScope for existing highlights…';
+  try{
+   const job=await globalThis.nuscopeCloud.existingAnalysis(paperId,themes);
+   if(version!==lookupVersion||$('pdfPaper').value!==paperId||globalThis.nuscopeCloud.selectedProject()?.id!==project.id)return;
+   if(!job){notice.textContent='No previous analysis for these themes. Click AI Highlight PDF to analyse.';return;}
+   if(['queued','running'].includes(job.status)){
+    activeJob=job.id;$('cancelPdfAnalysis').hidden=false;
+    notice.textContent='Resuming existing analysis from NUScope…';
+    await poll(job.id,paperId);
+   }else{
+    render(job);
+    await publishHighlights(job,paperId,project);
+    notice.textContent=(job.matches||[]).length+' existing highlight(s) loaded from NUScope · '+job.status+'.';
+   }
+  }catch(error){if(version===lookupVersion)notice.textContent='Could not load previous analysis: '+error.message;}
+ }
+ async function publishHighlights(job,paperId,project){
+  const matches=(job.matches||[]).filter(m=>{
+   const key=[paperId,m.page,(m.quote||m.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
+   return !(project?.data?.rejected||[]).includes(key);
+  });
+  await chrome.storage.local.set({nuscopePdfHighlights:{
+   projectId:project.id,paperId,themes:project.data?.topics||[],matches
+  }});
  }
  function render(job){
   results.replaceChildren();
@@ -104,13 +137,7 @@ import {themeChipStyle} from './themePalette.mjs';
    if(!['queued','running'].includes(job.status)){
     render(job);
     const project=globalThis.nuscopeCloud.selectedProject();
-    const matches=(job.matches||[]).filter(m=>{
-      const key=[paperId,m.page,(m.quote||m.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
-      return !(project?.data?.rejected||[]).includes(key);
-    });
-    await chrome.storage.local.set({nuscopePdfHighlights:{
-      projectId:project?.id,paperId,themes:project?.data?.topics||[],matches
-    }});
+    if(project)await publishHighlights(job,paperId,project);
    }
    if(['queued','running'].includes(job.status)){
     pollTimer=setTimeout(()=>poll(jobId,paperId),2500);
@@ -142,8 +169,8 @@ import {themeChipStyle} from './themePalette.mjs';
   }catch(error){notice.textContent='Cancellation failed: '+error.message;}
   finally{$('cancelPdfAnalysis').disabled=false;}
  });
- $('pdfPaper').addEventListener('change',()=>{clearPoll();results.replaceChildren();});
- document.addEventListener('nuscope-project-changed',refreshThemes);
- document.addEventListener('nuscope-connection-ready',refreshThemes);
+ $('pdfPaper').addEventListener('change',loadExisting);
+ document.addEventListener('nuscope-project-changed',()=>{refreshThemes();loadExisting();});
+ document.addEventListener('nuscope-connection-ready',()=>{refreshThemes();loadExisting();});
  window.addEventListener('pagehide',clearPoll);
 })();
