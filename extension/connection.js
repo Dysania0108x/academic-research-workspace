@@ -50,8 +50,10 @@ import {themeChipStyle} from './themePalette.mjs';
   function displayProject(){
     const project=projects.find(p=>p.id===el('projectSelect').value);
     const pdfSection=el('pdfProject'),paperSelect=el('pdfPaper');
+    const previousPaper=paperSelect.value;
     pdfSection.hidden=!project;paperSelect.replaceChildren(new Option('Select a PDF',''));
     for(const paper of project?.data?.papers||[])paperSelect.add(new Option(paper.name||paper.title||'Untitled PDF',paper.id));
+    if([...paperSelect.options].some(option=>option.value===previousPaper))paperSelect.value=previousPaper;
     el('pdfNotice').textContent=project?(paperSelect.options.length-1)+' project paper(s) available.':'';
     el('researchQuestion').textContent=project?'Research question: '+(project.data?.question||project.research_question||'Not set'):'Select a project created in the NUScope Web App.';
     el('projectThemes').replaceChildren();
