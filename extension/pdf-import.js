@@ -29,7 +29,6 @@
    const response=await chrome.runtime.sendMessage({type:'FETCH_PUBLIC_PDF',url});
    if(response?.error)throw Error(response.error);
    if(!response?.ok)throw Error('Unable to fetch this PDF.');
-   if(!response.ok)throw Error('PDF download failed (HTTP '+response.status+').');
    const bytes=Uint8Array.from(atob(response.base64),c=>c.charCodeAt(0)).buffer;
    if(bytes.byteLength>20*1024*1024||new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-')throw Error('The downloaded file is not a valid PDF header or exceeds 20 MB.');
    info.textContent='Uploading to NUScope Project…';
