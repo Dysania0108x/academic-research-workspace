@@ -217,3 +217,28 @@
  .v61-authenticated .library-layout,.v61-authenticated .library-layout.without-assistant,.v61-authenticated .library-layout.library-collapsed{grid-template-columns:minmax(0,1fr)}
  .v61-authenticated .library-layout>.assistant{grid-column:1}
 }
+
+/* Project picker is a standalone home, not an empty workspace shell. */
+.v61-authenticated:has(.projects-home) .v61-session-bar{position:absolute;right:24px;top:16px;z-index:2;background:transparent;border:0;padding:0;width:auto;min-height:0;gap:12px}
+.v61-authenticated:has(.projects-home) .v61-session-bar>span{display:none}
+.v61-authenticated .projects-home>.sidebar,.v61-authenticated .projects-home .compact-workspace-topbar{display:none}
+.v61-authenticated .projects-home>.main{width:100%;min-width:0}
+.v61-authenticated .projects-home .content{max-width:1500px;margin:0 auto;padding:80px clamp(20px,5vw,72px) 56px}
+.v61-authenticated .projects-home .heading{margin-bottom:26px}
+.v61-authenticated .projects-home .heading .eyebrow{display:none}
+.v61-authenticated .projects-home .heading h1{margin:0 0 8px}
+.v61-authenticated .projects-home .heading p{margin:0}
+.v61-authenticated .compact-project-link{border:0;background:transparent;color:#073B73;font:inherit;font-weight:700;cursor:pointer;padding:5px 2px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v61-authenticated .compact-project-link:hover{text-decoration:underline;text-underline-offset:4px}
+.v61-authenticated .compact-project-link:focus-visible{outline:2px solid #F58200;outline-offset:3px}
+.v61-authenticated .compact-all-projects{background:transparent;border:0;color:#61758B;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:12px;margin-left:12px;white-space:nowrap}
+.v61-authenticated .v5-highlight-manager>.v5-section-heading{margin-bottom:20px;align-items:center;gap:16px;flex-wrap:wrap}
+.v61-authenticated .v5-highlight-manager .highlight-reader-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;background:#073B73;color:#FFFDF9;white-space:nowrap}
+.v61-authenticated .v5-highlight-manager .highlight-reader-cta:hover{background:#12528D}
+@media(max-width:760px){
+ .v61-authenticated .projects-home .content{padding:70px 18px 30px}
+ .v61-authenticated:has(.projects-home) .v61-session-bar{top:12px;right:14px}
+ .v61-authenticated .compact-all-projects{display:none}
+ .v61-authenticated .compact-project-link{max-width:140px}
+ .v61-authenticated .v5-highlight-manager .highlight-reader-cta{width:100%}
+}
