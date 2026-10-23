@@ -55,9 +55,12 @@
 .v61-authenticated .sidebar .brandmark > svg {display:none}
 .v61-authenticated .sidebar .brand strong {font-size:0}
 .v61-authenticated .sidebar .brand strong::after {
-  content:'NUScope';font-size:18px;font-weight:750;letter-spacing:-.025em;color:#243B53;
+  content:'NUScope';font-size:18px;font-weight:750;letter-spacing:-.025em;color:var(--ws-navy);
 }
 .v61-authenticated .sidebar .brand small {font-size:0}
 .v61-authenticated .sidebar .brand small::after {
-  content:'Research Workspace';font-size:11px;color:#718296;
+  content:'Research Workspace';font-size:11px;color:var(--ws-muted);
 }
+
+.v61-authenticated .sidebar nav button.active,.v61-authenticated .v5-settings-nav button.active{background:#E5EDF4;color:var(--ws-navy)}
+.v61-authenticated .text-link,.v61-authenticated .tabs button.on{color:var(--ws-navy)}
