@@ -172,5 +172,18 @@ import {themeChipStyle} from './themePalette.mjs';
  $('pdfPaper').addEventListener('change',loadExisting);
  document.addEventListener('nuscope-project-changed',()=>{refreshThemes();loadExisting();});
  document.addEventListener('nuscope-connection-ready',()=>{refreshThemes();loadExisting();});
+ document.addEventListener('nuscope-shared-project-updated',()=>{
+  // Do not interrupt an active analysis or discard an interpretation being edited.
+  if(activeJob)return;
+  if(results.querySelector('textarea:focus'))return;
+  const project=globalThis.nuscopeCloud.selectedProject();
+  const nextThemes=project?.data?.topics||[];
+  const previous=[...selectedThemes];
+  if(previous.some(t=>!nextThemes.includes(t))||nextThemes.some(t=>!previous.includes(t))){
+   refreshThemes();
+  }
+  loadExisting();
+ });
+
  window.addEventListener('pagehide',clearPoll);
 })();
