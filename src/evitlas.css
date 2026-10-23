@@ -219,3 +219,7 @@
 .ev-auth .ev-outline-mark{color:#003D7C}
 @media(max-width:850px){.ev-midnight-v8 .ev-nav{height:90px;padding:0 5%}.ev-midnight-v8 .ev-brand{font-size:24px!important}.ev-outline-mark{width:30px;height:30px}.ev-nav-actions button{padding:10px 14px;font-size:12px!important}.ev-v8-hero{min-height:auto;display:flex;flex-direction:column;gap:24px;padding:45px 5% 80px}.ev-v8-copy{justify-content:center}.ev-v8-title-group h1{font-size:clamp(48px,10vw,75px);margin-bottom:30px}.ev-v8-stage{height:min(91vw,510px);width:100%}.ev-v8-visual{width:100%}.ev-v8-caption{font-size:19px;gap:9px;margin-top:-12px}.ev-v8-caption:before,.ev-v8-caption:after{width:14px}}
 @media(prefers-reduced-motion:reduce){.ev-v8-slide{transition:none}}
+
+/* Use the same orange NUScope vector across landing, auth and Workspace. */
+.ev-brand img.ev-outline-mark{display:block;width:43px;height:39px;object-fit:contain;flex:none}
+@media(max-width:850px){.ev-brand img.ev-outline-mark{width:34px;height:31px}}
