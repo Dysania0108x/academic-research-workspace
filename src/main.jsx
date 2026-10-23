@@ -196,6 +196,11 @@ function App({user}){
  const [libraryOpen,setLibraryOpen]=useState(false);
  const [evidenceEditor,setEvidenceEditor]=useState(null);
  const [manualEvidenceOpen,setManualEvidenceOpen]=useState(false);
+ const [evidenceEntryMode,setEvidenceEntryMode]=useState('manual');
+ const [savedExcerpts,setSavedExcerpts]=useState([]);
+ const [excerptsLoading,setExcerptsLoading]=useState(false);
+ const [excerptsError,setExcerptsError]=useState('');
+ const [selectedExcerptId,setSelectedExcerptId]=useState('');
  const [manualEvidence,setManualEvidence]=useState({sourceType:'web',sourceTitle:'',sourceUrl:'',quote:'',analysis:'',theme:'',relationship:'Unclassified'});
  const [evidenceDraft,setEvidenceDraft]=useState('');
  const [insightLimit,setInsightLimit]=useState(3);
