@@ -6,7 +6,7 @@ const scenes=[
  {caption:'Trace the evidence',color:'#F7F2E9',image:'/evitlas/02.svg'},
  {caption:'Connect the insights',color:'#B8DDEB',image:'/evitlas/03.svg'}
 ];
-const Mark=()=> <svg className="ev-outline-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M11 31C9 14 22 8 35 12C49 16 52 31 46 42C40 54 22 53 15 43" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><path d="M25 22C33 15 48 22 48 33C48 45 36 49 28 43C21 38 20 29 25 22Z" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/><path d="M23 35C30 29 37 31 40 36" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"/></svg>;
+const Mark=()=> <img className="ev-outline-mark" src="/nuscope-symbol.svg" alt="" aria-hidden="true"/>;
 export function EvitlasMark({onClick}){return <button className="ev-brand" type="button" onClick={onClick} aria-label="NUScope home"><Mark/><span>NUScope</span></button>}
 export function EvitlasLanding({onEnter,onSignIn,onSignUp}) {
  const [active,setActive]=useState(0);
