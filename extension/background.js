@@ -2,10 +2,11 @@
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
  if(message?.type!=='FETCH_PUBLIC_PDF')return;
  (async()=>{
+  if(typeof message.url!=='string'||!message.url.trim())throw Error('No PDF URL was detected. Please reopen the PDF tab and retry.');
   const url=new URL(message.url);
-  if(url.protocol!=='https:'||!url.pathname.toLowerCase().endsWith('.pdf')||url.username||url.password)throw Error('Only direct public HTTPS PDFs are supported.');
+  if(url.protocol!=='https:'||!(url.pathname.toLowerCase().endsWith('.pdf')||(url.hostname==='arxiv.org'&&/^\/pdf\/[0-9]{4}\.[0-9]{4,5}(?:v[0-9]+)?\/?$/i.test(url.pathname))||/\/doi\/pdf\//i.test(url.pathname))||url.username||url.password)throw Error('Only direct public HTTPS PDFs are supported.');
   const tabs=await chrome.tabs.query({active:true,currentWindow:true});
-  if(!tabs.some(t=>t.url===url.href))throw Error('Open this PDF in the active tab before importing.');
+  if(!tabs.some(t=>{try{return new URL(t.url||t.pendingUrl).href===url.href;}catch{return false;}}))throw Error('Open this PDF in the active tab before importing.');
   const allowed=await chrome.permissions.contains({origins:[url.origin+'/*']});
   if(!allowed)throw Error('Permission required for the PDF website.');
   const response=await fetch(url.href,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30000)});
