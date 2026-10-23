@@ -36,14 +36,13 @@ import {eligibleCaptures} from './captureRules.mjs';
     if(source.href)body.append(source);
     if(!entry.evidence_id){
      const theme=document.createElement('select');theme.setAttribute('aria-label','Evidence theme');
-     theme.add(new Option('Choose theme',''));
+     theme.add(new Option('Uncategorised (choose later)','Uncategorised'));
      for(const t of project.data?.topics||[])theme.add(new Option(t,t));
      const interpretation=document.createElement('textarea');interpretation.placeholder='Interpretation (optional)';interpretation.value=entry.note||'';
      const button=document.createElement('button');button.className='remove';button.textContent='Add to Evidence Map';
      button.addEventListener('click',async()=>{
-      if(!theme.value){message('Choose a theme first.');return;}
       button.disabled=true;
-      try{await globalThis.nuscopeCloud.promote(entry.id,theme.value,interpretation.value);await load(true);}
+      try{await globalThis.nuscopeCloud.promote(entry.id,theme.value||'Uncategorised',interpretation.value);await load(true);message('Evidence added. You can assign a theme later in NUScope.');}
       catch(error){message('Could not add evidence: '+error.message);button.disabled=false;}
      });
      body.append(theme,interpretation,button);
