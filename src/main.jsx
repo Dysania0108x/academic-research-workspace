@@ -340,7 +340,7 @@ function App({user}){
 
  const project=projects.find(p=>p.id===projectId);
  const resetReader=()=>{setLegacyReader(false);passageRequestRef.current++;sourceRequestRef.current++;sourceNavigationRef.current=null;setPaperId(null);setBlocks([]);setPageSizes([]);setMatches([]);setSelected(null);setFocusedHighlight(null);setSourceFocus(null);setAiDetails(null);setAnalysisJob(null);setCacheMessage('');setAiError('');setPageNumber(1);setEditing('');setBusy(false);setAssistantTab('highlights')};
- const enterProject=(id)=>{resetReader();setProjectId(id);setPage('overview')};
+ const enterProject=(id)=>{resetReader();setManualEvidenceOpen(false);setEvidenceEntryMode('manual');setSelectedExcerptId('');setSavedExcerpts([]);setExcerptsError('');setProjectId(id);setPage('overview')};
  // Poll independently for each paper in the active project. The server owns the job lifecycle.
  const paperIds=project?.papers.map(p=>p.id).join('|')||'';
  const themeSignature=JSON.stringify(project?.topics||[]);
