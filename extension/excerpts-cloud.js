@@ -9,8 +9,8 @@ import {eligibleCaptures} from './captureRules.mjs';
  let busy=false,loading=false;
  const message=text=>{info.textContent=text;};
  async function current(){return globalThis.nuscopeCloud.current();}
- async function load(){
-  if(loading||busy)return;
+ async function load(force=false){
+  if(loading||busy&&!force)return;
   loading=true;
   try{
    const {project}=await current();
@@ -41,7 +41,7 @@ import {eligibleCaptures} from './captureRules.mjs';
      button.addEventListener('click',async()=>{
       if(!theme.value){message('Choose a theme first.');return;}
       button.disabled=true;
-      try{await globalThis.nuscopeCloud.promote(entry.id,theme.value,interpretation.value);await load();}
+      try{await globalThis.nuscopeCloud.promote(entry.id,theme.value,interpretation.value);await load(true);}
       catch(error){message('Could not add evidence: '+error.message);button.disabled=false;}
      });
      body.append(theme,interpretation,button);
@@ -69,7 +69,7 @@ import {eligibleCaptures} from './captureRules.mjs';
      if(!/409|duplicate key/i.test(error.message)){message('Synced '+synced+'; stopped: '+error.message);return;}
     }
    }
-   await load();message('Local excerpts synced to '+project.name+'. Originals remain on this device.');
+   await load(true);message('Local excerpts synced to '+project.name+'. Originals remain on this device.');
   }catch(error){message(error.message);}
   finally{busy=false;$('syncLocal').disabled=false;}
  });
