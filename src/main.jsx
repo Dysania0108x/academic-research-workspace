@@ -195,6 +195,8 @@ function App({user}){
  const [zoom,setZoom]=useState(100);
  const [libraryOpen,setLibraryOpen]=useState(false);
  const [evidenceEditor,setEvidenceEditor]=useState(null);
+ const [manualEvidenceOpen,setManualEvidenceOpen]=useState(false);
+ const [manualEvidence,setManualEvidence]=useState({sourceType:'web',sourceTitle:'',sourceUrl:'',quote:'',analysis:'',theme:'',relationship:'Unclassified'});
  const [evidenceDraft,setEvidenceDraft]=useState('');
  const [insightLimit,setInsightLimit]=useState(3);
  const [relationship,setRelationship]=useState('Unclassified');
