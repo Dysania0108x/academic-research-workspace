@@ -616,6 +616,7 @@ function App({user}){
 
  const themeMatches=(e,t)=>evidenceThemes(e).includes(t);
  const hasMapFilters=!!(mapQuery.trim()||mapThemeFilter.length||mapPaperFilter||mapRelationshipFilter||mapYearFilter||mapYearTo||mapAuthorFilter.trim()||(mapView==='list'&&rqListFocus));
+ const evidenceSortTime=e=>{const time=Date.parse(e.createdAt||e.verifiedAt||'');return Number.isFinite(time)?time:Number.MAX_SAFE_INTEGER;};
  const mapRecords=(project?.evidence||[]).filter(e=>{
   const paper=project.papers.find(p=>p.id===e.paperId);
   if(mapView==='list'&&rqListFocus&&!themeMatches(e,rqListFocus))return false;
@@ -628,7 +629,7 @@ function App({user}){
   if(mapAuthorFilter&&!String(paper?.authors||'').toLowerCase().includes(mapAuthorFilter.trim().toLowerCase()))return false;
   const fields=[e.text,e.quote,e.analysis,e.theme,...evidenceThemes(e),e.relationship,e.source,paper?.name,paper?.authors,paper?.year,paper?.venue];
   return fields.some(x=>String(x||'').toLowerCase().includes(mapQuery.trim().toLowerCase()));
- }).sort((a,b)=>mapSort==='paper'?String(project.papers.find(p=>p.id===a.paperId)?.name||'').localeCompare(String(project.papers.find(p=>p.id===b.paperId)?.name||'')):mapSort==='theme'?String(a.theme||'').localeCompare(String(b.theme||'')):mapSort==='oldest'?((Date.parse(a.createdAt||a.verifiedAt||'')||Infinity)-(Date.parse(b.createdAt||b.verifiedAt||'')||Infinity)):((Date.parse(b.createdAt||b.verifiedAt||'')||-Infinity)-(Date.parse(a.createdAt||a.verifiedAt||'')||-Infinity)));
+ }).sort((a,b)=>mapSort==='paper'?String(project.papers.find(p=>p.id===a.paperId)?.name||'').localeCompare(String(project.papers.find(p=>p.id===b.paperId)?.name||'')):mapSort==='theme'?String(a.theme||'').localeCompare(String(b.theme||'')):mapSort==='oldest'?(evidenceSortTime(a)-evidenceSortTime(b)):(evidenceSortTime(b)-evidenceSortTime(a)));
  const rqDimensions=project?.researchDimensions||[];
  const rqMappedIds=dim=>new Set(dim.evidenceIds||[]);
  const rqMapEvidence=dim=>project.evidence.filter(e=>rqMappedIds(dim).has(e.id));
