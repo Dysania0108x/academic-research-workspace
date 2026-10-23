@@ -149,6 +149,7 @@ function App({user}){
  const cloudPending=useRef(new Set());
  const cloudDeleted=useRef(new Set());
  const cloudWrites=useRef(Promise.resolve());
+ const evidenceBaseline=useRef(new Map());
  const [projectId,setProjectId]=useState(null);
  const [page,setPage]=useState('overview');
  const [settingsTab,setSettingsTab]=useState('general');
@@ -313,13 +314,23 @@ function App({user}){
      }
     }
     if(!alive)return;
+    evidenceBaseline.current=new Map(rows.map(row=>[row.id,JSON.stringify(row.data?.evidence||[])]));
     setProjects(normalizeSeedPapers(rows.map(row=>({...row.data,id:row.id,name:row.name,question:row.research_question}))));
     setSyncReady(true);
    }catch(e){if(alive)setCloudError(e.message)}
   })();
   return()=>{alive=false};
  },[user.id,cloudRetry]);
- useEffect(()=>{if(!syncReady||!cloudPending.current.size)return;const timer=setTimeout(()=>{const ids=[...cloudPending.current];const snapshots=projects.filter(p=>ids.includes(p.id)&&!cloudDeleted.current.has(p.id));cloudPending.current.clear();if(!snapshots.length)return;setCloudSaving(true);cloudWrites.current=cloudWrites.current.catch(()=>{}).then(async()=>{for(const p of snapshots){if(cloudDeleted.current.has(p.id))continue;const {data:remote,error:readError}=await supabase.from('projects').select('data,updated_at').eq('id',p.id).eq('user_id',user.id).maybeSingle();if(readError)throw readError;if(!remote){cloudPending.current.add(p.id);throw Error('Cloud project missing; refusing to recreate it silently')}const merged={...p,papers:[...new Map([...(remote.data?.papers||[]),...(p.papers||[])].map(item=>[item.id,item])).values()]};const {data:saved,error}=await supabase.from('projects').update({name:merged.name,research_question:merged.question||'',data:merged,updated_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',user.id).eq('updated_at',remote.updated_at).select('id').maybeSingle();if(error||!saved){cloudPending.current.add(p.id);throw Error(error?.message||'Concurrent cloud update; retry after reloading')}}}).then(()=>{setCloudError('');setCloudSaving(false)}).catch(e=>{setCloudError('Cloud save failed: '+e.message);setCloudSaving(false)})},650);return()=>clearTimeout(timer)},[projects,syncReady,user.id]);
+ useEffect(()=>{if(!syncReady||!cloudPending.current.size)return;const timer=setTimeout(()=>{const ids=[...cloudPending.current];const snapshots=projects.filter(p=>ids.includes(p.id)&&!cloudDeleted.current.has(p.id));cloudPending.current.clear();if(!snapshots.length)return;setCloudSaving(true);cloudWrites.current=cloudWrites.current.catch(()=>{}).then(async()=>{for(const p of snapshots){if(cloudDeleted.current.has(p.id))continue;const {data:remote,error:readError}=await supabase.from('projects').select('data,updated_at').eq('id',p.id).eq('user_id',user.id).maybeSingle();if(readError)throw readError;if(!remote){cloudPending.current.add(p.id);throw Error('Cloud project missing; refusing to recreate it silently')}const baseline=evidenceBaseline.current.get(p.id);
+ const remoteEvidence=JSON.stringify(remote.data?.evidence||[]);
+ const localEvidence=JSON.stringify(p.evidence||[]);
+ if(baseline===undefined){cloudPending.current.add(p.id);throw Error('Evidence baseline unavailable; reload before saving.');}
+ if(remoteEvidence!==baseline&&localEvidence!==baseline){
+  cloudPending.current.add(p.id);
+  throw Error('Evidence changed in another window. Copy any unsaved edits, then reload before retrying.');
+ }
+ const merged={...p,evidence:localEvidence===baseline?(remote.data?.evidence||[]):p.evidence,
+  papers:[...new Map([...(remote.data?.papers||[]),...(p.papers||[])].map(item=>[item.id,item])).values()]};const {data:saved,error}=await supabase.from('projects').update({name:merged.name,research_question:merged.question||'',data:merged,updated_at:new Date().toISOString()}).eq('id',p.id).eq('user_id',user.id).eq('updated_at',remote.updated_at).select('id').maybeSingle();if(error||!saved){cloudPending.current.add(p.id);throw Error(error?.message||'Concurrent cloud update; retry after reloading')}evidenceBaseline.current.set(p.id,JSON.stringify(merged.evidence||[]))}}).then(()=>{setCloudError('');setCloudSaving(false)}).catch(e=>{setCloudError('Cloud save failed: '+e.message);setCloudSaving(false)})},650);return()=>clearTimeout(timer)},[projects,syncReady,user.id]);
  const setCloudProjects=(fn)=>setProjects(prev=>{const next=typeof fn==='function'?fn(prev):fn;for(const p of next){const before=prev.find(x=>x.id===p.id);if(before!==p)cloudPending.current.add(p.id)}return next});
  useEffect(()=>()=>Object.values(pdfUrls).forEach(url=>URL.revokeObjectURL(url)),[]);
  useEffect(()=>{
