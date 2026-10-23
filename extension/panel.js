@@ -21,7 +21,7 @@ document.getElementById('export').addEventListener('click',async()=>{
   const a=document.createElement('a');a.href=url;a.download='nuscope-captures.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   status.textContent='Exported your local captures.';
 });
-document.getElementById('openApp').addEventListener('click',()=>chrome.tabs.create({url:'https://github.com/Dysania0108x/academic-research-workspace'}));
+document.getElementById('openApp').addEventListener('click',()=>chrome.tabs.create({url:'https://academic-research-workspace.vercel.app'}));
 chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures)render();});
 render().catch(()=>{status.textContent='Unable to load local captures.';});
 
