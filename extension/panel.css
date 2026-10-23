@@ -55,3 +55,9 @@
 .excerpt-body{padding:12px;border-top:1px solid #e3e8ed}
 .excerpt-body textarea,.excerpt-body select{display:block;width:100%;margin:8px 0;padding:8px;border:1px solid #c8d2da;border-radius:8px}
 .excerpts-workspace .toolbar{flex-wrap:wrap}
+
+.pdf-import{padding:12px;border:1px dashed #b7c8d6;border-radius:12px;background:#f5f9fc;margin:10px 0 14px}
+.pdf-import>strong{font-size:13px;color:#073b73}
+.pdf-import p{font-size:12px;overflow-wrap:anywhere}
+.pdf-import button:disabled{opacity:.45;cursor:not-allowed}
+#currentPdfInfo{font-size:11px;line-height:1.5;overflow-wrap:anywhere}
