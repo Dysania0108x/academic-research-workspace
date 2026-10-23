@@ -23,3 +23,26 @@
 .highlight-details[open] .highlight-summary{border-bottom:1px solid #e7edf1;background:#f9fbfd}
 .highlight-expanded{padding:12px}
 .highlight-expanded blockquote{margin:0 0 10px;padding-left:9px;border-left:3px solid #f58200;line-height:1.45}
+
+/* Responsive hybrid research workspace. Chrome owns side-panel width. */
+.workspace-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.workspace-left,.workspace-right{min-width:0}
+.highlight-workspace{min-height:130px}
+.highlight-workspace #pdfHighlights:empty::after{content:'Run AI Highlight PDF to review evidence here.';display:block;color:#73869a;font-size:12px;padding:10px 0}
+#connection #projectSection>strong{display:block;margin-top:10px}
+#connection #projectThemes{margin-top:8px}
+#connection #refreshProjects{font-size:12px;padding:7px 10px}
+#connection #logout{font-size:12px;padding:7px 10px}
+@media(min-width:620px){
+ main{padding:18px 18px 95px}
+ main>h1{font-size:23px}
+ .intro{margin-bottom:14px}
+ .workspace-grid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);align-items:start;gap:14px}
+ .workspace-right{position:relative}
+ .connection{margin-bottom:14px}
+ .workspace-right .highlight-workspace{max-height:calc(100vh - 190px);overflow-y:auto}
+ #pdfHighlights .highlight-compact{margin-bottom:7px}
+ footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 18px}
+ footer p{margin:0;max-width:60%}
+ #openApp{width:auto;min-width:155px}
+}
