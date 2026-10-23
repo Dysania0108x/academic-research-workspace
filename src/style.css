@@ -575,3 +575,38 @@
 .pdfjs-first-reader .pdfjs-toolbar strong{flex:1 0 100%;margin:0;text-align:left}
 .pdfjs-first-reader .pdfjs-toolbar button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:36px}
 .pdfjs-first-reader .pdfjs-toolbar span{white-space:nowrap}
+
+
+/* NUScope brand refresh v1 — palette only, layout and research theme colors preserved.
+   Ink #09131C | Navy #073B73 | Orange #FF7900 | Cream #F7F2E9 */
+:root{--ns-ink:#09131C;--ns-navy:#073B73;--ns-orange:#FF7900;--ns-orange-hover:#E96C00;--ns-cream:#F7F2E9;--ns-paper:#FFFDF9;--ns-border:#E5E0D9;--ns-muted:#6D7780;color:var(--ns-ink);background:#FAF8F4}
+body{background:#FAF8F4}
+.app{background:#FAF8F4;color:var(--ns-ink)}
+.app .sidebar{background:var(--ns-paper);border-right-color:var(--ns-border)}
+.app .brand{align-items:center}
+.app .brandmark{background:transparent;border-radius:0;width:40px;height:40px}
+.app .brandmark img{width:100%;height:100%;object-fit:contain}
+.app .brand strong{font-size:19px;letter-spacing:-.045em;color:var(--ns-ink)}
+.app .brand small{font-size:11px;color:var(--ns-muted);letter-spacing:.02em}
+.app .topbar{background:var(--ns-paper);border-bottom-color:var(--ns-border)}
+.app .breadcrumb,.app .heading p,.app .panel p{color:var(--ns-muted)}
+.app .heading h1,.app h2,.app h3{color:var(--ns-ink)}
+.app .sidebar nav button,.app .all-projects{color:#4D5A64}
+.app .sidebar nav button:hover,.app .all-projects:hover{background:#FFF0E1;color:#8B4000}
+.app .sidebar nav button.active{background:#FFF0E1;color:#A54A00}
+.app .nav-label,.app .eyebrow{color:#8B5C38}
+.app .project-chip{background:#FFF2E4;border-color:#F1D7BF}
+.app .project-chip strong{color:var(--ns-ink)}
+.app .primary{background:var(--ns-orange);color:#09131C;border-color:var(--ns-orange)}
+.app .primary:hover{background:var(--ns-orange-hover);border-color:var(--ns-orange-hover);color:#fff}
+.app .secondary{background:var(--ns-paper);border-color:var(--ns-border);color:var(--ns-navy)}
+.app .secondary:hover{background:#FFF2E4;border-color:#EAC7A4}
+.app .pill{background:#FFF2E4;border-color:#F0D9C3;color:#995000}
+.app .project-card,.app .panel{background:var(--ns-paper);border-color:var(--ns-border)}
+.app .project-card:hover{border-color:#F2A85A;box-shadow:0 6px 24px #9B500014}
+.app .folder-icon{background:#FFF0DE;color:#A85000}
+.app input:focus-visible,.app textarea:focus-visible,.app select:focus-visible,.app button:focus-visible{outline:2px solid var(--ns-orange);outline-offset:2px}
+.app a{accent-color:var(--ns-orange)}
+.app input[type="checkbox"],.app input[type="radio"]{accent-color:var(--ns-orange)}
+.app .modal,.app .modal-backdrop .modal{color:var(--ns-ink)}
+/* Keep per-theme highlight colors, relationship statuses, and evidence semantics intact. */
