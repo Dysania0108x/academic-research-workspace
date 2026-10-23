@@ -24,13 +24,11 @@
   try{
    const url=candidate;
    info.textContent='Downloading public PDF…';
-   const response=await fetch(url,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30000)});
+   const response=await chrome.runtime.sendMessage({type:'FETCH_PUBLIC_PDF',url});
+   if(response?.error)throw Error(response.error);
+   if(!response?.ok)throw Error('Unable to fetch this PDF.');
    if(!response.ok)throw Error('PDF download failed (HTTP '+response.status+').');
-   const size=Number(response.headers.get('content-length')||0);
-   if(size>20*1024*1024)throw Error('PDF exceeds 20 MB.');
-   const type=(response.headers.get('content-type')||'').toLowerCase();
-   if(type&&!type.includes('pdf')&&!type.includes('octet-stream'))throw Error('The URL did not return a PDF.');
-   const bytes=await response.arrayBuffer();
+   const bytes=Uint8Array.from(atob(response.base64),c=>c.charCodeAt(0)).buffer;
    if(bytes.byteLength>20*1024*1024||new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-')throw Error('The downloaded file is not a valid PDF header or exceeds 20 MB.');
    info.textContent='Uploading to NUScope Project…';
    const paper=await globalThis.nuscopeCloud.importPublicPdf(bytes,url);
