@@ -562,6 +562,23 @@ function App({user}){
  },[sourceFocus,paperId,pageNumber,pageSizes,zoom,page]);
  useEffect(()=>{if(!projectId)return;if(paperId&&!project?.papers.some(p=>p.id===paperId)){resetReader()}},[projectId,paperId,project?.papers]);
  const evidenceThemes=e=>Array.from(new Set((Array.isArray(e.themes)&&e.themes.length?e.themes:[e.theme]).filter(Boolean)));
+ const loadSavedExcerpts=async()=>{
+  if(!projectId||!supabase)return;
+  setExcerptsLoading(true);setExcerptsError('');
+  const {data,error}=await supabase.from('saved_excerpts').select('id,project_id,quote,note,source_title,source_url,captured_at').eq('project_id',projectId).order('captured_at',{ascending:false}).limit(200);
+  if(error){setExcerptsError(error.message);setSavedExcerpts([]);}
+  else setSavedExcerpts(data||[]);
+  setExcerptsLoading(false);
+ };
+ useEffect(()=>{
+  if(manualEvidenceOpen&&evidenceEntryMode==='excerpts')loadSavedExcerpts();
+ },[manualEvidenceOpen,evidenceEntryMode,projectId]);
+ const selectSavedExcerpt=id=>{
+  setSelectedExcerptId(id);
+  const excerpt=savedExcerpts.find(x=>x.id===id);
+  if(!excerpt)return;
+  setManualEvidence(p=>({...p,sourceType:'web',sourceTitle:excerpt.source_title||'',sourceUrl:excerpt.source_url||'',quote:excerpt.quote||'',analysis:excerpt.note||''}));
+ };
  const createManualEvidence=()=>{
   const d=manualEvidence;
   if(!d.quote.trim()||!d.theme){toast('Enter evidence text and select a theme.');return;}
