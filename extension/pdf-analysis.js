@@ -68,14 +68,27 @@ import {themeChipStyle} from './themePalette.mjs';
    focus.addEventListener('click',async()=>{
      const projectId=$('projectSelect').value;
      await chrome.storage.local.set({nuscopePdfHighlights:{
-       projectId,paperId,page:Number(m.page),matches:(job.matches||[]).filter(x=>{
+       projectId,paperId,page:Number(m.page),themes:globalThis.nuscopeCloud.selectedProject()?.data?.topics||[],matches:(job.matches||[]).filter(x=>{
          const k=[paperId,x.page,(x.quote||x.text||'').trim().replace(/\s+/g,' ').toLowerCase()].join('|');
          return !(globalThis.nuscopeCloud.selectedProject()?.data?.rejected||[]).includes(k);
        })
      }});
      await chrome.tabs.create({url:chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId)});
    });
-   card.append(meta,quote,reason,state,note,focus,actions);results.append(card);
+   const details=document.createElement('details');details.className='highlight-details';
+   const summary=document.createElement('summary');summary.className='highlight-summary';
+   const excerpt=document.createElement('span');excerpt.className='highlight-excerpt';
+   excerpt.textContent=(m.quote||m.text||'').trim();
+   const status=document.createElement('span');status.className='highlight-status';
+   status.textContent=state.textContent;
+   const expanded=document.createElement('div');expanded.className='highlight-expanded';
+   expanded.append(quote,reason,state,note,focus,actions);
+   summary.append(meta,excerpt,status);
+   details.append(summary,expanded);
+   card.classList.add('highlight-compact');
+   card.append(details);results.append(card);
+   const observer=new MutationObserver(()=>{status.textContent=state.textContent;});
+   observer.observe(state,{childList:true,characterData:true,subtree:true});
   }
  }
  async function poll(jobId,paperId){
