@@ -32,3 +32,14 @@ Confirm the production NUScope URL, implement secure extension authentication (n
 - `content.js`: isolated floating button and mini capture window.
 - `background.js`: opens the Chrome side panel.
 - `panel.html`, `panel.css`, `panel.js`: capture review and JSON export.
+
+
+## Cloud excerpts integration (v0.2)
+
+The packaged extension now supports NUScope Supabase email/password sign-in, authenticated project selection, theme display, explicit upload of local captures to the selected project, and listing of cloud excerpts. Project captures from other projects are excluded; older unassigned captures require confirmation before upload. Local copies remain on-device and can be exported as JSON.
+
+Build from GitHub Actions **Package NUScope Chrome Extension** on the integration branch. Repository Actions variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` must be set to public client values. Never use the Supabase service-role key. The packaging script generates `extension/config.js` and pins host permissions to the configured Supabase origin. The checked-in config is intentionally empty.
+
+Cloud excerpts require `public.saved_excerpts` with owner-only RLS and the `add_excerpt_evidence` RPC if the Evidence Map action is used. See `supabase/check_saved_excerpts.sql` and `docs/saved-excerpts-rollout.md`. SQL committed to GitHub does **not** apply itself to Supabase.
+
+This focused integration intentionally does not include PDF import, PDF Reader or AI Highlight. Those remain in draft PR #66. The existing extension ID/storage must be preserved during updates to keep local captures.

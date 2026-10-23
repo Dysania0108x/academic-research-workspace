@@ -26,6 +26,10 @@ jobs:
           node --check extension/panel.js
           node --check extension/connection.js
           node --check extension/config.js
+          node --check extension/excerpts-cloud.js
+          node --check extension/captureRules.mjs
+          node --check extension/themePalette.mjs
+          node --test tests/extensionSyncRules.test.js
       - name: Package unpacked extension
         run: |
           cd extension

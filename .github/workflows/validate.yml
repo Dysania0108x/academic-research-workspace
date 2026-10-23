@@ -17,6 +17,10 @@ jobs:
       - run: node --test tests/pdfGeometry.test.js
       - run: node --test tests/evidenceConflict.test.js
       - run: node --test tests/extensionSyncRules.test.js
+      - run: node --check extension/connection.js
+      - run: node --check extension/excerpts-cloud.js
+      - run: node --check extension/panel.js
+      - run: node --check scripts/build-extension-config.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
