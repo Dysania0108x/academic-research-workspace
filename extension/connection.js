@@ -137,7 +137,7 @@ import {themeChipStyle} from './themePalette.mjs';
       const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
       if(!apiBase)throw Error('AI API is not configured.');
       if(!(bytes instanceof ArrayBuffer)||bytes.byteLength<5||bytes.byteLength>20*1024*1024)throw Error('PDF must be smaller than 20 MB.');
-      const filename=decodeURIComponent(new URL(sourceUrl).pathname.split('/').pop()||'imported-paper.pdf').slice(0,150);
+      const filename=(new URL(sourceUrl).pathname.split('/').pop()||'imported-paper.pdf').slice(0,150);
       const file=new File([bytes],filename.toLowerCase().endsWith('.pdf')?filename:filename+'.pdf',{type:'application/pdf'});
       const form=new FormData();form.append('file',file);
       await validSession();
