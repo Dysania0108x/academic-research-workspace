@@ -13,6 +13,8 @@
    if(url.username||url.password)throw Error('PDF URLs containing credentials are not supported.');
    if(!url.pathname.toLowerCase().endsWith('.pdf'))throw Error('This tab is not a direct .pdf URL. Open the PDF file URL first.');
    if(!globalThis.nuscopeCloud.selectedProject())throw Error('Select a project first.');
+   const permitted=await chrome.permissions.request({origins:[url.origin+'/*']});
+   if(!permitted)throw Error('Website permission was not granted.');
    candidate=url.href;
    button.disabled=false;
    info.textContent='Ready: '+url.pathname.split('/').pop()+'. Click Import to save it to the selected project.';
