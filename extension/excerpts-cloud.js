@@ -73,5 +73,10 @@ import {eligibleCaptures} from './captureRules.mjs';
  $('loadCloud').addEventListener('click',load);
  document.addEventListener('nuscope-project-changed',load);
  document.addEventListener('nuscope-connection-ready',load);
+ document.addEventListener('nuscope-shared-project-updated',()=>{
+  // Preserve draft interpretations and theme selections while user is editing.
+  if(busy||box.contains(document.activeElement)&&['TEXTAREA','SELECT','INPUT'].includes(document.activeElement?.tagName))return;
+  load();
+ });
  chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures){message('New local capture saved. Sync it to the selected project when ready.');}});
 })();
