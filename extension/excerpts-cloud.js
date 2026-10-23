@@ -2,9 +2,9 @@ import {eligibleCaptures} from './captureRules.mjs';
 // Local captures remain intact; cloud sync is explicit and project-scoped.
 (() => {
  const $=id=>document.getElementById(id);
- const box=document.createElement('section');box.className='connection';
+ const box=document.createElement('section');box.className='connection excerpts-workspace';
  box.innerHTML='<h2>Project excerpts</h2><p id="cloudInfo">Sign in and choose a project to sync.</p><button id="syncLocal" type="button">Sync local excerpts to project</button><button id="loadCloud" type="button">Refresh project excerpts</button><div id="cloudList"></div>';
- $('items').parentNode.insertBefore(box,$('items'));
+ $('localExcerptsSection').before(box);
  const info=$('cloudInfo'),list=$('cloudList');
  let busy=false;
  const message=text=>{info.textContent=text;};
