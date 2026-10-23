@@ -557,6 +557,20 @@ function App({user}){
  },[sourceFocus,paperId,pageNumber,pageSizes,zoom,page]);
  useEffect(()=>{if(!projectId)return;if(paperId&&!project?.papers.some(p=>p.id===paperId)){resetReader()}},[projectId,paperId,project?.papers]);
  const evidenceThemes=e=>Array.from(new Set((Array.isArray(e.themes)&&e.themes.length?e.themes:[e.theme]).filter(Boolean)));
+ const createManualEvidence=()=>{
+  const d=manualEvidence;
+  if(!d.quote.trim()||!d.theme){toast('Enter evidence text and select a theme.');return;}
+  if(d.sourceUrl.trim()){
+   try{const url=new URL(d.sourceUrl);if(!['https:','http:'].includes(url.protocol))throw Error();}
+   catch{toast('Source URL must be an HTTP(S) link.');return;}
+  }
+  const record={id:crypto.randomUUID(),sourceType:d.sourceType,sourceTitle:d.sourceTitle.trim(),sourceUrl:d.sourceUrl.trim(),quote:d.quote.trim(),text:d.quote.trim(),analysis:d.analysis.trim(),theme:d.theme,themes:[d.theme],relationship:d.relationship,verificationStatus:'unverified',status:'unverified',verified:false,createdAt:new Date().toISOString()};
+  update(p=>({...p,evidence:[...(p.evidence||[]),record]}));
+  setManualEvidenceOpen(false);
+  setManualEvidence({sourceType:'web',sourceTitle:'',sourceUrl:'',quote:'',analysis:'',theme:'',relationship:'Unclassified'});
+  setMapView('list');setMapTheme(null);toast('Unverified evidence added to this project.');
+ };
+
  const themeMatches=(e,t)=>evidenceThemes(e).includes(t);
  const hasMapFilters=!!(mapQuery.trim()||mapThemeFilter.length||mapPaperFilter||mapRelationshipFilter||mapYearFilter||mapYearTo||mapAuthorFilter.trim()||(mapView==='list'&&rqListFocus));
  const mapRecords=(project?.evidence||[]).filter(e=>{
