@@ -18,7 +18,15 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: node scripts/build-extension-config.mjs
+      - name: Bundle PDF.js reader dependencies
+        run: |
+          npm install --no-save --package-lock=false pdfjs-dist@4.10.38
+          mkdir -p extension/vendor
+          cp node_modules/pdfjs-dist/build/pdf.mjs extension/vendor/pdf.mjs
+          cp node_modules/pdfjs-dist/build/pdf.worker.mjs extension/vendor/pdf.worker.mjs
+          cp node_modules/pdfjs-dist/web/pdf_viewer.css extension/vendor/pdf_viewer.css
       - name: Check JavaScript syntax
         run: |
           node --check extension/background.js
@@ -29,6 +37,12 @@ jobs:
           node --check extension/excerpts-cloud.js
           node --check extension/captureRules.mjs
           node --check extension/themePalette.mjs
+          node --check extension/pdf-analysis.js
+          node --check extension/pdf-import.js
+          node --check extension/reader.js
+          node --check extension/quoteMatch.mjs
+          test -s extension/vendor/pdf.mjs
+          test -s extension/vendor/pdf.worker.mjs
           node --test tests/extensionSyncRules.test.js
       - name: Package unpacked extension
         run: |
