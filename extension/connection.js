@@ -110,6 +110,23 @@ import {themeChipStyle} from './themePalette.mjs';
       if(!response.ok)throw Error(result.detail||'AI analysis failed (HTTP '+response.status+')');
       return result;
     },
+    async existingAnalysis(paperId,themes){
+      const {project}=await this.current();
+      if(!(project.data?.papers||[]).some(p=>p.id===paperId))throw Error('PDF is not in the selected project.');
+      const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
+      if(!apiBase)throw Error('AI API is not configured.');
+      await validSession();
+      const params=new URLSearchParams({
+        question:project.data?.question||project.research_question||'',
+        themes:JSON.stringify(themes)
+      });
+      const response=await fetch(apiBase+'/api/analyse/papers/'+encodeURIComponent(paperId)+'/job?'+params,{
+        headers:{Authorization:'Bearer '+session.access_token}
+      });
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(result.detail||'Unable to load existing analysis (HTTP '+response.status+')');
+      return result.job||null;
+    },
     async analysisJob(jobId){
       const apiBase=String(packaged.apiBase||'').replace(/\/$/,'');
       if(!apiBase)throw Error('AI API not configured.');
