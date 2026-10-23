@@ -46,21 +46,31 @@
 .v61-authenticated :focus-visible{outline-color:var(--ws-orange)}
 /* Preserve distinct semantic evidence / highlight / theme colors. */
 
-/* Official NUScope symbol in the authenticated workspace sidebar. */
-.v61-authenticated .sidebar .brandmark {
-  width:48px;min-width:48px;height:44px;border-radius:0;
-  background:transparent url('/nuscope-symbol.svg') center/contain no-repeat;
-  box-shadow:none;
-}
-.v61-authenticated .sidebar .brandmark > svg {display:none}
-.v61-authenticated .sidebar .brand strong {font-size:0}
-.v61-authenticated .sidebar .brand strong::after {
-  content:'NUScope';font-size:18px;font-weight:750;letter-spacing:-.025em;color:var(--ws-navy);
-}
-.v61-authenticated .sidebar .brand small {font-size:0}
-.v61-authenticated .sidebar .brand small::after {
-  content:'Research Workspace';font-size:11px;color:var(--ws-muted);
-}
+/* Canonical orange NUScope symbol. */
+.v61-authenticated .sidebar .brandmark{width:48px;min-width:48px;height:44px;border-radius:0;background:transparent url('/nuscope-symbol.svg') center/contain no-repeat;box-shadow:none}
+.v61-authenticated .sidebar .brandmark>svg{display:none}
+.v61-authenticated .sidebar .brand strong{font-size:0}
+.v61-authenticated .sidebar .brand strong::after{content:'NUScope';font-size:18px;font-weight:750;color:var(--ws-navy)}
+.v61-authenticated .sidebar .brand small{font-size:0}
+.v61-authenticated .sidebar .brand small::after{content:'Research Workspace';font-size:11px;color:var(--ws-muted)}
 
-.v61-authenticated .sidebar nav button.active,.v61-authenticated .v5-settings-nav button.active{background:#E5EDF4;color:var(--ws-navy)}
+/* Override legacy lavender surfaces only inside the authenticated workspace. */
+.v61-authenticated .v5-settings-nav,.v61-authenticated .v5-settings-panel,
+.v61-authenticated .v61-cloud-status{background:var(--ws-surface);border-color:var(--ws-border);color:var(--ws-ink)}
+.v61-authenticated .v5-settings-nav button{color:var(--ws-ink)}
+.v61-authenticated .v5-settings-nav button.active{background:#E5EDF4;color:var(--ws-navy)}
+.v61-authenticated .sidebar nav button.active{background:#E5EDF4;color:var(--ws-navy)}
 .v61-authenticated .text-link,.v61-authenticated .tabs button.on{color:var(--ws-navy)}
+.v61-authenticated .project-card strong,.v61-authenticated .panel h2,
+.v61-authenticated .panel h3{color:var(--ws-navy)}
+.v61-authenticated .pill,.v61-authenticated .tag{background:#EAF1F5;color:var(--ws-navy);border-color:#D5E1EA}
+.v61-authenticated .v61-cloud-status{overflow-wrap:break-word;word-break:normal}
+@media(max-width:800px){
+ .v61-authenticated .sidebar{width:70px;min-width:70px;padding:15px 8px}
+ .v61-authenticated .sidebar .brand{padding:4px 0 18px;justify-content:center}
+ .v61-authenticated .sidebar .brandmark{width:48px;min-width:48px;height:44px}
+ .v61-authenticated .sidebar .brand>div:last-child{display:none}
+ .v61-authenticated .sidebar .v61-cloud-status{display:none}
+ .v61-authenticated .main{min-width:0}
+ .v61-authenticated .content{min-width:0}
+}
