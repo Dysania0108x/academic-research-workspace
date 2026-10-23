@@ -8,10 +8,13 @@
   reset();info.textContent='Checking the active tab…';
   try{
    const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-   const url=new URL(tab?.url||'');
+   const raw=tab?.url||tab?.pendingUrl||'';
+   if(!raw||raw.startsWith('chrome-extension:'))throw Error('Chrome PDF viewer does not expose a direct public PDF URL here. Use a direct HTTPS PDF link or download and upload it in NUScope Web App.');
+   const url=new URL(raw);
    if(url.protocol!=='https:')throw Error('Only public HTTPS PDF URLs are supported.');
    if(url.username||url.password)throw Error('PDF URLs containing credentials are not supported.');
-   if(!url.pathname.toLowerCase().endsWith('.pdf'))throw Error('This tab is not a direct .pdf URL. Open the PDF file URL first.');
+   if(!url.pathname.toLowerCase().endsWith('.pdf')&&!/\/doi\/pdf\//i.test(url.pathname))throw Error('Cannot confirm a direct PDF link. Download the PDF and upload it in NUScope Web App.');
+   if(/libproxy\d*\./i.test(url.hostname))throw Error('NUS library proxy PDFs may require a browser session. Download the PDF and upload it through NUScope Web App instead.');
    if(!globalThis.nuscopeCloud.selectedProject())throw Error('Select a project first.');
    candidate=url.href;
    button.disabled=false;

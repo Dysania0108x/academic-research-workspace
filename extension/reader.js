@@ -53,7 +53,7 @@ function drawHighlights(){
  const {nuscopePdfHighlights:selection}=window.readerSelection||{};
  if(!selection||selection.paperId!==paperId||selection.projectId!==projectId)return;
  for(const m of selection.matches||[]){
-  if(Number(m.page)!==page)continue;
+  if(!themes.includes(m.theme)||Number(m.page)!==page)continue;
   if(drawSourceRects(m,over,themes)){located++;continue;}
   const offsets=locateQuote(text,m.quote||m.text||'');
   if(!offsets){
