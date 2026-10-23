@@ -35,6 +35,7 @@ jobs:
           node --check extension/connection.js
           node --check extension/pdf-analysis.js
           node --check extension/reader.js
+          node --check extension/pdf-import.js
           node --check extension/quoteMatch.mjs
           test -s extension/vendor/pdf.mjs
           test -s extension/vendor/pdf.worker.mjs
