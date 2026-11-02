@@ -1,95 +1,129 @@
-# Academic Research Workspace v0.4
+# NUScope
 
-A locally run prototype based on the user's v0.3 project. This release adds SQLite-backed project records, paper deletion, duplicate detection, editable map themes and evidence, theme-specific line highlights, and a less cluttered Overview/Reader.
+**Make sense of more.**
 
-## Run on macOS (VS Code)
+NUScope is an AI-assisted academic research workspace for collecting papers, reviewing source-grounded highlights, organising evidence around a research question, and connecting findings. It combines a **React web app**, a **FastAPI analysis backend**, **Supabase authentication/storage**, and a companion **Chrome Floating Assistant**.
 
-Terminal 1:
+> **Project status (2 November 2026):** Working research prototype / MVP, not a production-validated research service. This README describes the merged `main` branch. Experimental PDF Import, AI Highlight, and PDF Reader features for the Chrome extension are still in open PRs [#96](https://github.com/Dysania0108x/academic-research-workspace/pull/96) and [#97](https://github.com/Dysania0108x/academic-research-workspace/pull/97); they are **not** part of the packaged `main` extension.
+
+## Try the web app
+
+**Web:** https://academic-research-workspace.vercel.app
+
+Create an account or sign in with an existing one. `Start exploring` leads to Sign in; use Sign up only to create an account. Create a project, enter a research question and themes, upload a text-based PDF, and review the resulting AI suggestions. **AI-generated highlights are candidates, not verified evidence.** Verify quotations against the original PDF before promoting them.
+
+The deployed interface can lag behind GitHub `main`; a successful GitHub merge does not itself confirm that Vercel Production deployed that commit.
+
+## Features
+
+| Area | Current scope on `main` |
+| --- | --- |
+| Accounts and projects | Supabase email/password auth, project-specific research questions and themes, cloud-backed project records |
+| Paper Library | Upload/manage private PDFs, embedded reader, AI Highlight workflow and review controls |
+| Evidence Workspace | Manually add evidence, review/edit interpretations, organise by theme/paper, relate findings to the research question |
+| Evidence Network | Reviewed connections, interactive graph, zoom and Fit to view; graph layout and usability still need browser QA |
+| Saved Excerpts | Capture webpage text through the Chrome extension, explicitly sync to a selected project, review in the web workspace and promote to evidence |
+| Floating Assistant (v0.2) | Account sign-in, project picker, themes, local excerpt capture/JSON export, cloud excerpts and Evidence Map promotion |
+| Academic Writing | Placeholder / future feature, not a finished writing assistant |
+
+Evidence can be **Uncategorised** (no research theme assigned) and **Unclassified** (relationship to the research question not yet assessed). These are different concepts. Saved excerpts require deliberate promotion and should not be presented as automatically verified.
+
+### Chrome extension
+
+The **current `main` package is v0.2**, focused on capture and sync. For install, packaging, limitations and planned PDF support, see [extension/README.md](extension/README.md).
+
+To build a distributable ZIP, run the [Package NUScope Chrome Extension](https://github.com/Dysania0108x/academic-research-workspace/actions/workflows/package-extension.yml) workflow against `main`, then download its `nuscope-extension` artifact. The artifact is a developer-mode, unpacked extension package, not a Chrome Web Store release.
+
+**PDF integration is in progress:** PR #96 restores PDF detection/import, AI analysis and a PDF.js Reader; PR #97 addresses theme-filter synchronization and clearer failures for Chrome PDF Viewer / university proxy URLs. Neither PR should be described as shipped in `main` until merged, packaged and tested in Chrome. NUS library proxy PDFs may require authorised download and manual upload through the web app; do not assume a protected PDF URL can be imported directly.
+
+## Architecture
+
+```text
+Web App (React / Vite)  ────┐
+                           ├── Supabase Auth / Projects / private PDF Storage
+Chrome Extension (MV3) ────┘
+           |
+Web App analysis requests ───── FastAPI on Render ─── Bailian / DeepSeek model
+```
+
+- **Frontend:** React, Vite, PDF reading/highlight UI
+- **Backend:** Python FastAPI, PDF extraction and source-quote matching, AI analysis jobs
+- **Cloud:** Supabase Auth, Postgres with row-level security, private PDF Storage
+- **Hosting:** Vercel (frontend), Render (backend)
+- **Extension:** Chrome Manifest V3, Side Panel, explicit cloud sync
+
+A verified source quotation is not the same as a verified scientific claim. Users remain responsible for assessing research quality and interpretation.
+
+## Local development
+
+Requirements: Node.js 22+, Python 3.12+ and access to the project's Supabase instance and configured AI backend.
+
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
+
+If `.env.example` is unavailable in your checkout, create `.env.local` manually with the following **public frontend** settings:
+
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_PUBLISHABLE_KEY
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Start the backend in another terminal:
+
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit backend/.env locally to supply a newly generated API key and the correct endpoint.
-uvicorn main:app --reload --port 8000
+python -m uvicorn main:app --reload --port 8000
 ```
 
-Terminal 2 (project root):
+Configure `backend/.env` with the appropriate provider credentials; the checked-in example uses `AI_PROVIDER=bailian`, `BAILIAN_MODEL=deepseek-v4.1-flash` and `DASHSCOPE_API_KEY`. **Never** place provider secrets or a Supabase service-role key in `VITE_*` variables or the extension package. For offline UI development, `AI_MOCK_MODE=true` enables simulated responses, which must not be treated as real research findings.
+
+Build and validate:
+
 ```bash
-npm install
-npm run dev
+npm run build
+node --test tests/pdfGeometry.test.js tests/evidenceConflict.test.js tests/extensionSyncRules.test.js
 ```
-Open the Local URL printed by Vite (typically http://localhost:5173).
 
-## What's new
-- SQLite at `backend/research.db` for saved project JSON and PDF metadata; actual PDFs are stored under `backend/uploads/`.
-- Project deletion and paper deletion with confirmation; linked evidence is removed when deleting a paper.
-- SHA-256 duplicate PDF detection. Reuploading identical bytes returns the existing PDF ID.
-- Editable Evidence Map themes: add, rename, delete; edit/move evidence cards.
-- Research Overview replaces static Next Steps with live evidence counts per theme.
-- Reader highlights use per-line rectangles, colored by theme, with assistant visibility/filter toggles; the giant passage list beneath PDF is removed.
-- Guest Workspace label instead of pretending login is implemented.
+Backend tests run via `python -m unittest discover -s backend/tests -v` after installing its requirements. GitHub Actions runs frontend and backend validation; automated checks do not replace real browser, cloud permissions, or AI-provider testing.
 
-## Important limitations
-- Existing v0.3 projects saved only in browser localStorage are imported to SQLite when the frontend starts. Use the **same browser profile and localhost origin** to migrate them. Back up before deleting old project folders.
-- PDF uploads from v0.3 are NOT included in this download. If you need them, copy `backend/uploads/` from your original v0.3 into v0.4. Database PDF metadata for old files may be absent; files still render if their IDs are in saved projects.
-- The database is for a single local guest workspace, not secure multi-user login. Authentication remains future work.
-- Highlighting is line-level based on AI-selected text blocks, not exact phrase-level. Complex tables and layouts can still cause imprecise overlays.
-- Qwen API access is not fixed by this update; 403 AccessDenied.Unpurchased requires checking the account, model and workspace permissions.
-- PDF deletions are permanent and are not reversible. Back up your uploads first.
-- Project data is saved asynchronously to the local API. The UI also retains localStorage as a compatibility backup.
+## Saved Excerpts database setup
 
-## Security
-Never commit `backend/.env`, API keys, `backend/research.db`, or uploaded PDFs. The included `.env.example` contains placeholders only. Rotate any previously exposed API key.
+The cloud workflow depends on `public.saved_excerpts`, owner-scoped RLS, and the `add_excerpt_evidence` RPC. See [docs/saved-excerpts-rollout.md](docs/saved-excerpts-rollout.md) for a safe preflight, backup and multi-account test procedure. The optional-theme RPC update is in `supabase/migrations/20261023_optional_excerpt_theme.sql`.
 
+**Committing SQL does not execute it in Supabase.** Apply and verify migrations separately. Confirm that a second test account cannot read or promote another user's excerpts, and that repeated promotion does not duplicate evidence.
 
-## v0.5: AI efficiency
-- Persistent per-PDF, per-research-question, per-theme analysis cache in SQLite. Reopening identical analysis uses 0 new API calls.
-- Incremental theme analysis: newly added themes are analysed without repeating unchanged themes; removing a theme requires no API call. Renaming a theme changes its semantic cache key and triggers reanalysis on the next run.
-- Passage analysis is triggered only on clicking a highlight and is cached by paper, block, question, theme, model and prompt version.
-- Actual input/output/total token usage is recorded per API call in SQLite and displayed under Project Settings. This usage dashboard is global to the local backend, not per project.
-- Existing verified evidence is not overwritten by cache updates.
-- IMPORTANT: cache only works for PDFs registered in the new local database. New app installations should reupload their PDFs.
-- This version does not yet implement a dedicated analysis job queue, per-project token attribution, or sentence-precise highlights.
+## Deployment and configuration
 
+- **Web:** Vercel deploys the frontend from GitHub. Confirm the Production deployment SHA and `Ready` status; do not assume a merge has reached production.
+- **Backend:** Render serves the authenticated FastAPI API. Verify health and actual authenticated endpoints independently.
+- **Extension:** GitHub Actions packages the extension with public repository Actions variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. The unmerged PDF integration additionally requires `VITE_API_BASE_URL` and bundled PDF.js assets.
+- **Secrets:** Keep backend AI keys in backend/hosting secrets only. Never commit `.env`, credentials, private PDFs or user data.
 
-## v0.6 changes (precision highlighting prototype)
+## Known limitations and next steps
 
-- **Verified quote-based highlights:** The AI must supply an exact source quote, not a whole block. The server rejects quotes not present in the extracted text or not locatable on the PDF page with PyMuPDF `search_for`. No fallback block rectangles. Highlights may be absent if source matching fails.
-- **Reduced clutter:** Maximum five accepted quotes per theme per page, maximum four suggested quotes per batch. Duplicate identical quotes are visually consolidated. Theme selection has explicit Select All / Clear All; selecting zero themes displays zero highlights.
-- **Cache versioning:** New `v06-precise-20261020` keys prevent old v0.5 block highlights from reappearing. Existing evidence is preserved.
-- **Reading controls:** Higher resolution server-rendered pages (2.5x), zoom from 65% to 250%, scrollable reading viewport, collapsible paper list, and Open PDF in a native browser viewer for selectable text. **The embedded reader is still raster-based, not yet PDF.js.**
-- **Evidence editor:** Replace the native browser prompt with an in-app modal containing read-only source text and editable interpretation.
-- **Overview:** Limit visible verified evidence to the three latest records and link to the full Evidence Map. This is not automatic cross-paper synthesis.
+1. **PDF Import in Extension:** Direct public-PDF detection, Chrome's PDF viewer URLs, NUS library proxy access and browser permissions need robust end-to-end testing. Protected sources must respect access controls.
+2. **Theme/reader synchronization:** Verify selected themes immediately show/hide the corresponding already-loaded highlights without a new AI request.
+3. **Cross-device evidence consistency:** Validate project/PDF metadata, Saved Excerpts, promotion and refresh behavior across the Web App and extension.
+4. **Evidence Network:** Test graph readability, node positioning, dragging, zoom and Fit to view with larger datasets.
+5. **UX and responsiveness:** Continue browser QA for Paper Library, Reader, Assistant, mobile layouts and legacy purple UI elements.
+6. **Research reliability:** AI outputs can be incomplete or wrong; only human-reviewed findings should be treated as verified evidence.
 
-### Known limitations and validation
+## Repository pointers
 
-PDF matching is deliberately conservative. It can miss valid quotes when a PDF has non-standard text encoding, ligatures, or hyphenated line breaks. The model can still select too many phrases on highly topical papers; density tuning and a true PDF.js text layer are follow-up tasks. No live Qwen API calls were made during packaging. The frontend was not built in this environment because npm dependencies were unavailable offline. Run `npm install && npm run build` on your Mac to validate the UI.
+- `src/` — web application
+- `backend/` — FastAPI and analysis
+- `extension/` — Chrome Floating Assistant
+- `supabase/` — database policies and migrations
+- `.github/workflows/` — validation, extension packaging and deployment fallback
 
-### Quick verification
+---
 
-1. Run AI Highlight PDF on the supplied two-page synthetic UV paper. Old v0.5 cached block rectangles must **not** appear.
-2. Clear All themes: all highlights disappear. Select one theme: only that theme's highlights show. Select All restores all.
-3. Zoom to 150%, scroll the page, and open the original PDF in a new tab.
-4. Edit an Evidence Map card, cancel, then save a revised interpretation; verify the change persists after reload.
-5. Verify Overview shows only three recent records, not an endlessly growing list.
-
-## Offline AI Mock Mode (v0.7 development)
-
-To test the UI without a Qwen API key or token charges, set `AI_MOCK_MODE=true` in your **local** `backend/.env` and restart FastAPI. The app header displays **MOCK AI · NO TOKENS**. You can upload a text-based PDF and exercise theme suggestions, AI Highlight PDF, Passage Analysis, Reject/Restore, Evidence Map, Network proposals, and AI Overview synthesis.
-
-Mock responses are deterministic **test fixtures**, not genuine research findings. The backend does not create an OpenAI client or record token usage in this mode. Highlight quotes are taken directly from the uploaded PDF blocks and still must pass source-coordinate verification. Some PDF layouts may yield no highlight matches.
-
-Mock and real analysis caches use different model identities, so mock output should not be reused as real AI output. Do not verify mock evidence as actual research evidence. For a clean test, create a disposable project.
-
-To return to real Qwen calls, change the local setting to `AI_MOCK_MODE=false`, restart FastAPI, and check the header says **AI READY**. Never commit `backend/.env` or an API key.
-
-Automated regression checks run in GitHub Actions, but visual browser interaction and live Qwen performance still need manual validation.
-
-
-## V6.2 private PDF storage (development preview)
-
-Supabase Storage bucket `research-pdfs` must be **private**. Authenticated users upload new PDFs at `<user_id>/<project_id>/<paper_id>.pdf` with `application/pdf`. Configure INSERT, SELECT and DELETE RLS policies scoped to the first path component and authenticated UID. The cloud path is stored as `storagePath` in the paper metadata inside the owner's Supabase project JSON. Existing PDFs are not automatically migrated.
-
-**Security limitation:** The current FastAPI upload, extraction, PDF reading and AI endpoints still use local unauthenticated routes. The cloud upload is an additional backup, not a secure end-to-end multi-user PDF workflow. Cloud PDF preview is available across devices for newly uploaded PDFs through authenticated Supabase Storage download; the in-app PDF highlighting/analysis reader still depends on local backend files. Do not deploy this preview publicly or use private documents until all FastAPI paper and analysis routes validate Supabase JWTs, verify project ownership and read PDFs through authorized cloud storage. Project deletion attempts cloud PDF cleanup first, but cleanup and project-row deletion are not transactional; failed operations require manual recovery. Do not merge this PR as a complete multi-user release.
+**NUScope is a research prototype.** Do not upload sensitive or confidential papers without confirming the deployment's access controls and applicable permissions.
