@@ -662,3 +662,31 @@
 /* Neutralise old lavender decorative containers without altering semantic theme badges. */
 .app .v6-rq-card,.app .v7-rq-card,.app .v6-question-panel,.app .v6-rq-banner,
 .app .v5-settings-panel .usage-card,.app .v5-settings-panel .usage-metric{background:#FFF9F3;border-color:var(--nus-warm-border)}
+
+
+/* Targeted UI refinement: selected navigation is solid orange, no accent strip. */
+.app .sidebar nav button.active{background:#EF7C00!important;color:#fff!important;border:0!important;border-radius:9px!important}
+.app .sidebar nav button.active svg,.app .sidebar nav button.active .future{color:#fff!important}
+.app .v5-settings-nav button.active{background:#EF7C00!important;color:#fff!important;border:0!important;border-radius:8px!important}
+.app .v5-settings-nav button.active svg{color:#fff!important}
+.app .v52-rq-question{background:#FFF9F3!important;border:1px solid #F2D8BF!important;border-radius:10px!important}
+.app .v52-rq-question span{color:#B55B08!important}
+.app .v52-rq-question h3{color:#003D7C!important}
+.app .v5-summary-stat{background:#FFFDF9!important;border:1px solid #E7DFD5!important;border-radius:8px!important}
+.app .v5-summary-stat.active{background:#FFF1E4!important;border-color:#EF7C00!important}
+.app .v5-summary-stat strong{color:#003D7C!important}
+.app .v5-summary-stat span{color:#5E6E7B!important}
+.app .v5-settings-nav{border-color:#E7DFD5!important}
+.app .v7-evidence-workspace{border-color:#E7DFD5!important}
+.app .v52-theme-grid>*,.app .v52-rq-map .v52-theme-card{border-color:#E7DFD5}
+.app .v52-theme-grid .v52-evidence-preview{background:#FFFDF9;border-color:#EAE2D8}
+.app .v61-session-bar{background:#F8F4ED!important;border-color:#E7DFD5!important}
+.app .project-chip{border-color:#E7DFD5!important}
+.app .v61-cloud-status{border-color:#F2D8BF!important}
+.projects-account-email{font-size:12px!important;color:#637487!important;margin-top:12px!important}
+.projects-account-email strong{color:#003D7C}
+.v61-authenticated:has(.projects-home)>.v61-session-bar>span{visibility:hidden}
+/* Remove stacked cream/white bands in the workspace: same quiet canvas. */
+.app .main,.app .topbar,.app .content.workspace-page-content{background:#F8F4ED}
+.app .topbar{border-color:#E7DFD5}
+.app .v7-evidence-workspace,.app .v5-settings-panel{background:#FFFDF9}
