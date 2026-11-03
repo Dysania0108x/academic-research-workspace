@@ -886,3 +886,16 @@
 
 /* Overview KPI emphasis: orange numbers, neutral labels and white shared surface. */
 .app .stats .stat strong{color:#EF7C00!important}
+
+
+/* Evidence Map: breadcrumb is the page title; remove redundant panel chrome. */
+.app .v7-evidence-workspace.panel{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ border-radius:0!important;padding:0!important;
+}
+.app .v7-evidence-workspace .v7-workspace-heading{
+ display:flex;justify-content:flex-end;align-items:center;
+ margin:0 0 14px;padding:0;min-height:44px;
+}
+.app .v7-evidence-workspace .v6-search-top{margin-bottom:16px}
+.app .v7-evidence-workspace .v6-results-toolbar{padding-top:12px}
