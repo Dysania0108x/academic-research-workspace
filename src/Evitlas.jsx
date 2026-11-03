@@ -24,7 +24,7 @@ export function EvitlasAuth({mode,setMode,email,setEmail,password,setPassword,bu
   <label htmlFor="ev-email">Email address</label><input id="ev-email" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/>
   <label htmlFor="ev-password">Password</label><input id="ev-password" type="password" minLength={6} required autoComplete={mode==='signin'?'current-password':'new-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters"/>
   {error&&<p className="ev-error" role="alert">{error}</p>}{notice&&<p className="ev-notice" role="status">{notice}</p>}
-  <button className="ev-submit" disabled={busy} type="submit"><span>{busy?'Please wait…':mode==='signin'?'Sign in':'Create account'}</span><span aria-hidden="true">→</span></button>
+  <button className="ev-submit" disabled={busy||(mode==='signup'&&!!notice)} type="submit"><span>{busy?'Please wait…':mode==='signin'?'Sign in':notice?'Check your email':'Create account'}</span><span aria-hidden="true">→</span></button>
   <p className="ev-switch">{mode==='signin'?'New to NUScope?':'Already have an account? Sign in with your existing email and password.'} <button type="button" onClick={()=>setMode(mode==='signin'?'signup':'signin')}>{mode==='signin'?'Create an account':'Sign in'}</button></p>
   </form></section>
  </div>
