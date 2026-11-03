@@ -586,3 +586,7 @@
 /* Passage review: keep optional AI commentary visually separate from saving. */
 .interpretation-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; margin:12px 0 6px; border:1px solid #d9d1e6; border-radius:10px; background:#f8f6fc; color:#283d60; font-weight:650; text-align:left; }
 .interpretation-toggle:hover { background:#f0ecf8; }
+
+/* Bonnie testing: direct page navigation without removing Prev/Next. */
+.pdfjs-page-jump{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:12px}
+.pdfjs-page-jump input{width:58px;min-width:0;border:1px solid #c9d2dc;border-radius:7px;padding:5px 6px;text-align:center;background:#fff;color:inherit}
