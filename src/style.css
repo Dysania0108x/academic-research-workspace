@@ -883,3 +883,6 @@
 }
 .app .v52-rq-question button:hover{background:rgba(255,255,255,.16)!important}
 .app .v52-rq-question button:focus-visible{outline:2px solid #FFFFFF!important;outline-offset:3px}
+
+/* Overview KPI emphasis: orange numbers, neutral labels and white shared surface. */
+.app .stats .stat strong{color:#EF7C00!important}
