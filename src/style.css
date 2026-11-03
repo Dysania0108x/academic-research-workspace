@@ -868,3 +868,18 @@
 @media(max-width:640px){
  .app .v7-evidence-workspace .v6-search-top>.v6-search-input{flex-basis:100%}
 }
+
+
+/* Research Question banner: solid NUS orange with white content. */
+.app .v52-rq-question{
+ background:#EF7C00!important;border:1px solid #EF7C00!important;
+ border-radius:10px!important;box-shadow:none!important;
+}
+.app .v52-rq-question span,.app .v52-rq-question h3{color:#FFFFFF!important}
+.app .v52-rq-question button{
+ background:transparent!important;color:#FFFFFF!important;
+ border:1px solid rgba(255,255,255,.85)!important;
+ border-radius:8px!important;box-shadow:none!important;
+}
+.app .v52-rq-question button:hover{background:rgba(255,255,255,.16)!important}
+.app .v52-rq-question button:focus-visible{outline:2px solid #FFFFFF!important;outline-offset:3px}
