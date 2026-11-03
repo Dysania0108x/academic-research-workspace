@@ -932,7 +932,7 @@
  padding:10px 0;border-radius:0;
 }
 .app .v7-evidence-workspace .v6-results-toolbar>.tabs button.on{
- font-weight:650;color:#003D7C;border-bottom:0;
+ font-weight:650;color:#003D7C;border-bottom:2px solid #EF7C00;
 }
 .app .v7-evidence-workspace .v6-results-toolbar>select{flex-shrink:0}
 .app .v52-rq-question{
@@ -952,5 +952,6 @@
  .app .v7-evidence-workspace .v6-results-toolbar>.tabs{flex-basis:100%}
 }
 
-/* Evidence Map view tabs: no short active underline; keep toolbar divider. */
-.app .v7-evidence-workspace .v6-results-toolbar>.tabs button.on{border-bottom:0!important}
+/* Evidence Map: retain the orange active underline and only one grey divider. */
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs{border-bottom:0!important}
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs button.on{border-bottom:2px solid #EF7C00!important}
