@@ -77,8 +77,8 @@ function EvidenceNetwork({evidence,links,themes,storedPositions,onPosition,onNod
  const top=coords.length?Math.min(...coords.map(p=>p.y))-85:0;
  const bottom=coords.length?Math.max(...coords.map(p=>p.y))+85:height;
  const fittedBox={x:left,y:top,w:Math.max(300,right-left),h:Math.max(230,bottom-top)};
- const boxWidth=fitView?fittedBox.w:width/zoom;
- const boxHeight=fitView?fittedBox.h:height/zoom;
+ const boxWidth=fitView?fittedBox.w:Math.max(width/zoom,right-Math.min((width-width/zoom)/2,left));
+ const boxHeight=fitView?fittedBox.h:Math.max(height/zoom,bottom-Math.min((height-height/zoom)/2,top));
  const viewX=fitView?fittedBox.x:Math.min((width-boxWidth)/2,left);
  const viewY=fitView?fittedBox.y:Math.min((height-boxHeight)/2,top);
 
