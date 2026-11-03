@@ -582,3 +582,7 @@
 
 .library-layout.pdf-drop-active { outline: 3px dashed #8063bc; outline-offset: -5px; background: rgba(128,99,188,.055); border-radius: 16px; }
 .library-layout.pdf-drop-active .reader { box-shadow: inset 0 0 0 2px rgba(128,99,188,.25); }
+
+/* Passage review: keep optional AI commentary visually separate from saving. */
+.interpretation-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; margin:12px 0 6px; border:1px solid #d9d1e6; border-radius:10px; background:#f8f6fc; color:#283d60; font-weight:650; text-align:left; }
+.interpretation-toggle:hover { background:#f0ecf8; }
