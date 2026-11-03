@@ -909,3 +909,49 @@
 }
 .app .v7-evidence-workspace .v6-result-card:last-child{border-bottom:0!important}
 .app .v7-evidence-workspace .v6-result-card:hover{background:#FFF9F3!important}
+
+
+/* Evidence Map hierarchy: count/actions, search, left-aligned view navigation. */
+.app .v7-evidence-workspace .v7-workspace-heading{
+ display:flex;align-items:center;justify-content:space-between;gap:16px;
+ margin:0 0 14px;min-height:44px;
+}
+.app .v7-evidence-count{font-size:14px;color:#003D7C;line-height:1.4}
+.app .v7-evidence-count strong{font-weight:700}
+.app .v7-evidence-count span{font-size:12px;color:#637487}
+.app .v7-evidence-workspace .v6-results-toolbar{
+ display:flex;align-items:center;justify-content:space-between;gap:16px;
+ padding:0 0 14px;margin:8px 0 20px;border-bottom:1px solid #E7DFD5;
+}
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs{
+ display:flex;justify-content:flex-start;align-items:center;gap:24px;
+ margin:0;flex:1;min-width:0;overflow-x:auto;
+}
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs button{
+ font-size:14px;line-height:1.4;font-weight:500;white-space:nowrap;
+ padding:10px 0;border-radius:0;
+}
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs button.on{
+ font-weight:650;color:#003D7C;border-bottom:2px solid #EF7C00;
+}
+.app .v7-evidence-workspace .v6-results-toolbar>select{flex-shrink:0}
+.app .v52-rq-question{
+ background:#FFF1E4!important;border:1px solid #F2CBA8!important;
+ border-radius:10px!important;box-shadow:none!important;
+}
+.app .v52-rq-question span,.app .v52-rq-question h3{color:#003D7C!important}
+.app .v52-rq-question button{
+ background:#fff!important;color:#003D7C!important;
+ border:1px solid #F2CBA8!important;border-radius:8px!important;
+}
+.app .v52-rq-question button:hover{background:#FFF9F3!important}
+.app .v52-rq-question button:focus-visible{outline:2px solid #EF7C00!important}
+@media(max-width:680px){
+ .app .v7-evidence-workspace .v7-workspace-heading{flex-wrap:wrap}
+ .app .v7-evidence-workspace .v6-results-toolbar{flex-wrap:wrap}
+ .app .v7-evidence-workspace .v6-results-toolbar>.tabs{flex-basis:100%}
+}
+
+/* Evidence Map: retain the orange active underline and only one grey divider. */
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs{border-bottom:0!important}
+.app .v7-evidence-workspace .v6-results-toolbar>.tabs button.on{border-bottom:2px solid #EF7C00!important}
