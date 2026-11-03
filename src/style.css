@@ -592,3 +592,43 @@
 .pdfjs-page-jump input{width:58px;min-width:0;border:1px solid #c9d2dc;border-radius:7px;padding:5px 6px;text-align:center;background:#fff;color:inherit}
 
 #network-suggestion-review{scroll-margin-top:24px;outline:2px solid #d5e3f0;outline-offset:4px;border-radius:10px}
+
+
+/* NUScope editorial workspace: flat white surfaces, fine rules and restrained accents.
+   Scoped to the authenticated app; landing/auth screens and PDF highlight palette stay intact. */
+.app[data-workspace-theme="orange"]{--workspace-accent:#EF6C00;--workspace-accent-soft:#FFF2E8}
+.app[data-workspace-theme="blue"]{--workspace-accent:#003D7C;--workspace-accent-soft:#EAF1F8}
+.app[data-workspace-theme="graphite"]{--workspace-accent:#262626;--workspace-accent-soft:#F1F1F1}
+.app[data-workspace-theme]{background:#fff;color:#20242A}
+.app[data-workspace-theme] .sidebar{background:#fff;border-right:1px solid #E4E5E7}
+.app[data-workspace-theme] .main,.app[data-workspace-theme] .content,.app[data-workspace-theme] .topbar{background:#fff}
+.app[data-workspace-theme] .topbar{border-bottom:1px solid #E4E5E7}
+.app[data-workspace-theme] .panel{background:#fff;border:0;border-radius:0;box-shadow:none;padding:20px 22px}
+.app[data-workspace-theme] .library-layout>.panel{border-right:1px solid #E4E5E7}
+.app[data-workspace-theme] .library-layout>.panel:last-child{border-right:0}
+.app[data-workspace-theme] .sidebar nav button{border-radius:2px;color:#303943}
+.app[data-workspace-theme] .sidebar nav button.active{background:var(--workspace-accent);color:#fff;font-weight:700}
+.app[data-workspace-theme] .sidebar nav button.active svg{color:#fff}
+.app[data-workspace-theme] .sidebar nav button:not(.active):hover{background:var(--workspace-accent-soft)}
+.app[data-workspace-theme] .primary{background:var(--workspace-accent);color:#fff;border-color:var(--workspace-accent);border-radius:3px}
+.app[data-workspace-theme] .primary:hover{filter:brightness(.9)}
+.app[data-workspace-theme] .secondary{background:#fff;border:1px solid #C9CDD1;color:#263B50;border-radius:3px}
+.app[data-workspace-theme] .secondary:hover{background:var(--workspace-accent-soft)}
+.app[data-workspace-theme] .heading h1,.app[data-workspace-theme] .paper-list h2,.app[data-workspace-theme] .reader-head h2{color:#102E4E}
+.app[data-workspace-theme] .paper-item{border-bottom:1px solid #E6E8EA}
+.app[data-workspace-theme] .paper-item.chosen{background:var(--workspace-accent-soft)}
+.app[data-workspace-theme] .paper-item>button:first-child{color:#183858}
+.app[data-workspace-theme] .project-card{border-radius:2px;box-shadow:none;border:1px solid #DADDE0}
+.app[data-workspace-theme] .project-card:hover{border-color:var(--workspace-accent)}
+.app[data-workspace-theme] .interpretation-toggle{background:#fff;border:1px solid #DADDE0;border-radius:3px;color:#20354B}
+.app[data-workspace-theme] .interpretation-toggle:hover{background:var(--workspace-accent-soft)}
+.app[data-workspace-theme] .library-layout.pdf-drop-active{outline:2px dashed var(--workspace-accent);background:var(--workspace-accent-soft);border-radius:2px}
+.workspace-theme-picker{margin-top:auto;padding:14px 10px;border-top:1px solid #E4E5E7}
+.workspace-theme-picker>span{display:block;font-size:10px;letter-spacing:1.4px;font-weight:700;color:#65717C;margin-bottom:9px}
+.workspace-theme-picker>div{display:flex;gap:10px}
+.workspace-theme-picker button{width:25px;height:25px;border-radius:2px;background:var(--swatch);border:2px solid #fff;outline:1px solid #CED2D6;cursor:pointer}
+.workspace-theme-picker button.selected{outline:2px solid var(--workspace-accent);outline-offset:2px}
+.sidebar-is-collapsed .workspace-theme-picker{padding:10px 4px}
+.sidebar-is-collapsed .workspace-theme-picker>span{display:none}
+.sidebar-is-collapsed .workspace-theme-picker>div{flex-direction:column;align-items:center}
+@media(max-width:1150px){.app[data-workspace-theme] .library-layout>.panel{border-right:0;border-bottom:1px solid #E4E5E7}}
