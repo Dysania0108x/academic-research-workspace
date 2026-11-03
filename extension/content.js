@@ -91,7 +91,7 @@
     try{
       const data=await chrome.storage.local.get({nuscopeCaptures:[]});
       await chrome.storage.local.set({nuscopeCaptures:[entry,...data.nuscopeCaptures].slice(0,500)});
-      status.textContent='Saved locally. Open the full panel to review.';note.value='';
+      status.textContent='Excerpt saved on this device. It has not been synced to a NUScope project.';note.value='';
     }catch{status.textContent='Could not save. Please try again.';}
   });
   shadow.append(style,launcher,mini);
