@@ -575,3 +575,7 @@
 .pdfjs-first-reader .pdfjs-toolbar strong{flex:1 0 100%;margin:0;text-align:left}
 .pdfjs-first-reader .pdfjs-toolbar button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;min-height:36px}
 .pdfjs-first-reader .pdfjs-toolbar span{white-space:nowrap}
+
+/* User testing: make the sign-in switch clearly discoverable. */
+.ev-switch button { font-size: 1rem; font-weight: 700; min-height: 36px; padding: 4px 8px; text-decoration: underline; text-underline-offset: 3px; }
+.ev-submit:disabled { opacity: .52; cursor: not-allowed; }
