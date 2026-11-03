@@ -64,7 +64,7 @@ async def require_api_session(request, call_next):
         project_match = re.match(r"^/api/projects/([^/]+)", path)
         if project_match:
             require_project_owner(project_match.group(1), token)
-        if path == '/api/projects' or path.startswith('/api/projects/')  :
+        if (path == '/api/projects' or path.startswith('/api/projects/')) and not re.fullmatch(r'/api/projects/[^/]+/highlight-candidates', path):
             raise HTTPException(410, 'Legacy unscoped endpoint disabled')
         # Do not let paper deletion race against an unrelated user's local cache.
         # Existing files are globally named, so ownership is checked before deletion.
@@ -480,15 +480,26 @@ async def upload(file:UploadFile=File(...), project_id: str | None = None, autho
         c.execute('INSERT INTO papers VALUES(?,?,?,?,?)',(pid,file.filename,sha,pages,time.time()))
     return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False,**metadata}
 @app.get('/api/projects/{project_id}/highlight-candidates')
-def highlight_candidates(project_id:str):
+def highlight_candidates(project_id:str, authorization: str | None = Header(default=None)):
     """Return cached AI candidates for the project's papers, including after backend restart.
     Cache may contain previous research contexts; candidates are not automatically verified.
     """
+    # The caller's Supabase RLS project row is the source of truth, not legacy SQLite projects.
+    from cloud_auth import require_project_owner, _configuration
+    import httpx
+    user_id=require_project_owner(project_id, authorization)
+    url,key=_configuration()
+    with httpx.Client(timeout=8.0) as client:
+        response=client.get(url+'/rest/v1/projects',
+            params={'select':'data','id':'eq.'+project_id,'user_id':'eq.'+user_id,'limit':'1'},
+            headers={'apikey':key,'Authorization':authorization})
+    if response.status_code!=200:
+        raise HTTPException(503,'Unable to read project highlights')
+    rows=response.json()
+    if not rows:raise HTTPException(404,'Project not found')
+    project=rows[0].get('data') or {}
+    papers={str(p['id']) for p in project.get('papers',[]) if isinstance(p,dict) and p.get('id')}
     with db() as c:
-        row=c.execute('SELECT data FROM projects WHERE id=?',(project_id,)).fetchone()
-        if not row:raise HTTPException(404,'Project not found')
-        project=json.loads(row['data'])
-        papers={str(p['id']) for p in project.get('papers',[]) if p.get('id')}
         candidates={}
         if papers:
             placeholders=','.join('?' for _ in papers)
