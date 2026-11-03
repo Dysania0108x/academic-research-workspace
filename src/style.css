@@ -719,3 +719,36 @@
 
 /* Account controls live on My Projects only. Inside a project, All projects returns to the account screen. */
 .v61-authenticated:has(.app:not(.projects-home))>.v61-session-bar{display:none}
+
+
+/* User visual QA: consistent research tools, full-width workspace, NUS accents. */
+.v61-authenticated:has(.projects-home)>.v61-session-bar>span{visibility:visible!important}
+.app .pdfjs-first-reader .reader-controls{justify-content:flex-end;align-items:center;gap:8px;min-height:42px}
+.app .pdfjs-first-reader .reader-controls>.primary{height:42px;min-height:42px;padding:0 16px;order:1}
+.app .pdfjs-first-reader .reader-more-options{order:2}
+.app .reader-more-options summary{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;padding:0;border-radius:8px}
+.app .reader-more-options summary::after{content:none}
+.app .reader-more-options summary svg{color:#003D7C}
+.app .reader-more-options[open] summary{background:#FFF1E4;border-color:#EF7C00}
+.app .reader-head{align-items:flex-start}
+.app .pdfjs-first-reader .pdfjs-toolbar{align-items:center;justify-content:center;min-height:50px}
+.app .pdfjs-first-reader .pdfjs-toolbar>*{align-self:center}
+.app .pdfjs-page-jump{display:inline-flex;align-items:center;gap:8px;height:36px;line-height:36px;font-size:13px}
+.app .pdfjs-page-jump input{height:36px;line-height:normal;vertical-align:middle;appearance:textfield}
+.app .pdfjs-page-jump input::-webkit-inner-spin-button,.app .pdfjs-page-jump input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.app .v5-highlight-manager{max-width:none!important;width:100%;min-width:0}
+.app .v5-settings-layout{max-width:none!important;width:100%;min-width:0;grid-template-columns:205px minmax(0,1fr)}
+.app .v5-settings-panel{width:100%;min-width:0}
+.app .v5-review-toolbar{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) minmax(150px,1fr);gap:12px;align-items:stretch}
+.app .v5-review-toolbar input,.app .v5-review-toolbar select{box-sizing:border-box;width:100%;height:46px!important;min-height:46px!important;padding:0 13px!important;line-height:normal}
+.app .v5-highlight-row{border-color:#E7DFD5;background:#FFFDF9}
+.app .v5-highlight-row blockquote{background:#FFF8F0!important;border-left:3px solid #EF7C00!important;color:#25394C}
+.app .v5-status.pending{background:#FFF1E4;color:#A95300}
+.app .v5-status.verified{background:#EDF6F1;color:#276747}
+.app .v13-evidence-preview{background:#FFF8F0!important;border-color:#F1D9C2!important}
+.app .v13-preview-label,.app .v13-evidence-preview small{color:#92613D}
+.app .v13-evidence-preview strong{color:#003D7C}
+.app .network-review{border-color:#E7DFD5}
+.app .v13-select-grid select{height:42px}
+.app .v13-review-dialog .v13-evidence-preview{background:#FFF8F0}
+@media(max-width:850px){.app .v5-settings-layout{grid-template-columns:1fr}.app .v5-review-toolbar{grid-template-columns:1fr}}
