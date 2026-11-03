@@ -797,3 +797,27 @@
 .app .v5-network-scroll svg{display:block;width:100%;min-height:620px;cursor:grab;touch-action:none}
 .app .v5-network-scroll svg:active{cursor:grabbing}
 .app .v5-network-node,.app .v5-network-node *{cursor:move}
+
+
+/* Passage Analysis panel — editorial hierarchy without stacked orange cards. */
+.app .analysis-passage-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:10px 0 18px}
+.app .analysis-passage-meta .tag{margin:0;max-width:100%;font-size:12px}
+.app .analysis-page,.app .analysis-source{font-size:11px;color:#758190;overflow-wrap:anywhere}
+.app .analysis-locate{width:100%;justify-content:center;min-height:38px;margin:10px 0 2px}
+.app .analysis-status{font-size:11px;color:#387253;margin:10px 0 0}
+.app .analysis-section{margin-top:22px;padding-top:18px;border-top:1px solid #E7DFD5}
+.app .analysis-section h3{margin:0 0 10px}
+.app .analysis-relationship{display:block;width:100%;height:40px;box-sizing:border-box;border:1px solid #DCDDDC;border-radius:7px;padding:0 10px}
+.app .analysis-section .hint{font-size:11px;margin-top:7px;line-height:1.5}
+.app .analysis-section .interpretation-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin:0;padding:4px 0;background:transparent!important;border:0!important;border-radius:0;color:#003D7C;font-size:13px}
+.app .analysis-section .interpretation-toggle small{font-size:11px;color:#758190;font-weight:400}
+.app .analysis-interpretation-body{padding-top:12px}
+.app .analysis-interpretation-body textarea{width:100%;box-sizing:border-box}
+.app .analysis-source{margin:14px 0 0}
+.app .analysis-ai-details{margin-top:20px;padding-top:18px;border-top:1px solid #E7DFD5}
+.app .analysis-ai-details h3{margin:0 0 12px}
+.app .analysis-ai-details h3:not(:first-child){margin-top:22px}
+.app .analysis-ai-details p{margin:5px 0 0;line-height:1.6;overflow-wrap:anywhere}
+.app .analysis-relevance-item{margin-bottom:14px}
+.app .analysis-relevance-item strong{display:block;font-size:11px;color:#B45D10}
+.app .analysis-ai-details+.notice{margin-top:18px}
