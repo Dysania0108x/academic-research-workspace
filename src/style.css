@@ -899,3 +899,13 @@
 }
 .app .v7-evidence-workspace .v6-search-top{margin-bottom:16px}
 .app .v7-evidence-workspace .v6-results-toolbar{padding-top:12px}
+
+
+/* Evidence Map List: flat continuous rows, no white sheet over warm canvas. */
+.app .v7-evidence-workspace .v6-result-card{
+ background:transparent!important;box-shadow:none!important;border:0!important;
+ border-bottom:1px solid #E7DFD5!important;border-radius:0!important;
+ padding:18px 6px!important;margin:0!important;
+}
+.app .v7-evidence-workspace .v6-result-card:last-child{border-bottom:0!important}
+.app .v7-evidence-workspace .v6-result-card:hover{background:#FFF9F3!important}
