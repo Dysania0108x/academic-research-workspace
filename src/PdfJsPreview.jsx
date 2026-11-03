@@ -14,6 +14,8 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
   const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null),sourceRectRef=useRef(null);
   const [status,setStatus]=useState('Loading original PDF…'),[count,setCount]=useState(0);
   const [zoom,setZoom]=useState(1);
+  const [pageInput,setPageInput]=useState(String(page));
+  useEffect(()=>setPageInput(String(page)),[page]);
   const [rotation,setRotation]=useState(0);
   const [renderedPage,setRenderedPage]=useState(null);
   const [renderedSize,setRenderedSize]=useState(null);
@@ -85,7 +87,7 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
     <div className="pdfjs-toolbar">
       <strong>PDF Reader</strong>
       <button onClick={()=>onPageChange(Math.max(1,page-1))} disabled={page<=1}>Previous</button>
-      <span>{page} / {count||'…'}</span>
+      <label className="pdfjs-page-jump">Page <input aria-label="Jump to PDF page" inputMode="numeric" type="number" min="1" max={count||undefined} value={pageInput} onChange={e=>setPageInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const n=Number(pageInput);if(Number.isInteger(n)&&n>=1&&n<=count)onPageChange(n);else setPageInput(String(page));e.currentTarget.blur()}}} onBlur={()=>{const n=Number(pageInput);if(Number.isInteger(n)&&n>=1&&n<=count)onPageChange(n);else setPageInput(String(page))}}/> / {count||'…'}</label>
       <button onClick={()=>onPageChange(Math.min(count,page+1))} disabled={page>=count}>Next</button>
       <button type="button" aria-label="Zoom out" title="Zoom out" onClick={()=>setZoom(z=>Math.max(.7,Math.round((z-.2)*10)/10))}>−</button>
       <span aria-label="Zoom level">{Math.round(zoom*100)}%</span><button type="button" aria-label="Zoom in" title="Zoom in" onClick={()=>setZoom(z=>Math.min(2.5,Math.round((z+.2)*10)/10))}>+</button>
