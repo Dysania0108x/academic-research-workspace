@@ -788,3 +788,12 @@
 
 /* My Projects account identity: never hide the signed-in email. */
 .v61-authenticated>.v61-session-bar>span{visibility:visible!important;display:inline!important;opacity:1!important}
+
+
+/* Match Overview synthesis card rhythm to the other sections. */
+.app .overview-synthesis-panel{margin-top:18px;margin-bottom:18px}
+/* Evidence Network viewport supports panning; retain node/handle drag semantics. */
+.app .v5-network-scroll{width:100%;min-height:620px;overflow:hidden;touch-action:none}
+.app .v5-network-scroll svg{display:block;width:100%;min-height:620px;cursor:grab;touch-action:none}
+.app .v5-network-scroll svg:active{cursor:grabbing}
+.app .v5-network-node,.app .v5-network-node *{cursor:move}
