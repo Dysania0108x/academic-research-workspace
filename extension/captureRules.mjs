@@ -7,3 +7,7 @@ export function captureProjectLabel(item, projectId) {
   if (!item.projectId) return 'Legacy capture (project not assigned)';
   return item.projectId === projectId ? 'Current project' : 'Another project';
 }
+
+export function assignCaptureProject(captures,captureId,projectId){
+  return (captures||[]).map(item=>item.id===captureId&&!item.projectId?{...item,projectId}:item);
+}
