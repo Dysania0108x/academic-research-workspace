@@ -821,3 +821,19 @@
 .app .analysis-relevance-item{margin-bottom:14px}
 .app .analysis-relevance-item strong{display:block;font-size:11px;color:#B45D10}
 .app .analysis-ai-details+.notice{margin-top:18px}
+
+
+/* NUS blue/orange finishing pass: Evidence Map semantic theme swatches unchanged. */
+.app .v52-rq-question h3{color:#C75C00!important}
+.app .v52-synthesis{background:#FFF9F3!important;border-color:#F1D8C0!important}
+.app .v52-synthesis-empty{background:#fff!important;border-color:#E7D6C6!important}
+.app .v13-review-launch{background:#FFF9F3!important;border-color:#F1D8C0!important}
+.app .v13-review-launch p{color:#657487!important}
+.app .v52-evidence-row{background:#FFFDF9!important;border-color:#E7DFD5!important;color:#35495C!important}
+.app .v52-evidence-row:hover,.app .v52-evidence-row:focus-visible{background:#FFF1E4!important;border-color:#EF7C00!important}
+.app .v52-theme-card{background:#fff!important;border-color:#E7DFD5!important}
+.app .v52-theme-card:hover{border-color:#EF7C00!important}
+.app .v52-theme-preview{background:transparent!important}
+.app .v52-theme-meta{color:#637487}
+.app .v52-theme-grid .v52-evidence-row{background:#FFFDF9!important;border-color:#E7DFD5!important}
+.app .v52-theme-grid .v52-evidence-row:hover{background:#FFF1E4!important;border-color:#EF7C00!important}
