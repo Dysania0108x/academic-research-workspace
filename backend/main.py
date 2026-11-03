@@ -791,10 +791,10 @@ def passage(req:PassageRequest):
     with get_doc(req.paper_id) as doc:blocks=blocks_for(doc)
     block=next((b for b in blocks if b['id']==req.block_id),None)
     if not block:raise HTTPException(404,'Original source block not found')
-    key=fingerprint('passage',PROMPT_VERSION,paper_sha(req.paper_id),req.block_id,block['text'],req.question.strip(),req.theme,active_model())
+    key=fingerprint('passage-v2-value-add',PROMPT_VERSION,paper_sha(req.paper_id),req.block_id,block['text'],req.question.strip(),req.theme,active_model())
     cached=cache_get('passage_cache',key)
     if cached is not None:return {**cached,'cache_hit':True}
-    data=ask([{'role':'system','content':'Analyse the provided original academic passage cautiously. Do not invent results, statistics, authors or related papers. Return JSON object with fields interpretation, relevance, limitations. Keep each concise.'},{'role':'user','content':json.dumps({'question':req.question,'theme':req.theme,'original_passage':block['text']})}],task_type='passage',paper_id=req.paper_id)
+    data=ask([{'role':'system','content':'Analyse the original academic passage for a postgraduate researcher. Return a JSON object with interpretation, relevance, limitations. Interpretation must add research value: explain the claim, method, mechanism, or implication where supported by the passage, rather than copying or rephrasing it. Explain relevance to the supplied research question AND research theme separately when appropriate; foundational background may be useful even if it does not directly answer the question. Limitations must identify uncertainty or missing context. Do not begin with filler such as The passage states or The passage describes. Do not invent results, statistics, authors, or related papers. If the passage provides no substantive insight, say so briefly instead of manufacturing one. Keep each field concise.'},{'role':'user','content':json.dumps({'question':req.question,'theme':req.theme,'original_passage':block['text']})}],task_type='passage',paper_id=req.paper_id)
     result={'source':block,'interpretation':str(data.get('interpretation','')),'relevance':str(data.get('relevance','')),'limitations':str(data.get('limitations',''))}
     cache_put('passage_cache',key,result,req.paper_id)
     return {**result,'cache_hit':False}
