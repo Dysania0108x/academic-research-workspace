@@ -79,8 +79,8 @@ function EvidenceNetwork({evidence,links,themes,storedPositions,onPosition,onNod
  const fittedBox={x:left,y:top,w:Math.max(300,right-left),h:Math.max(230,bottom-top)};
  const boxWidth=fitView?fittedBox.w:width/zoom;
  const boxHeight=fitView?fittedBox.h:height/zoom;
- const viewX=fitView?fittedBox.x:(width-boxWidth)/2;
- const viewY=fitView?fittedBox.y:(height-boxHeight)/2;
+ const viewX=fitView?fittedBox.x:Math.min((width-boxWidth)/2,left);
+ const viewY=fitView?fittedBox.y:Math.min((height-boxHeight)/2,top);
 
  const connectRef=useRef(null);
  const dragRef=useRef(null);
@@ -95,7 +95,7 @@ function EvidenceNetwork({evidence,links,themes,storedPositions,onPosition,onNod
   const drag=dragRef.current;
   if(Math.hypot(p.x-drag.startX,p.y-drag.startY)>4)dragMoved.current=true;
   if(!dragMoved.current)return;
-  const next={x:Math.max(110,Math.min(width-110,p.x-drag.dx)),y:Math.max(65,Math.min(height-65,p.y-drag.dy))};
+  const next={x:p.x-drag.dx,y:p.y-drag.dy};
   setPositions(old=>({...old,[drag.id]:next}));
  };
  const stop=event=>{
