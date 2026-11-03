@@ -685,7 +685,7 @@
 .app .v61-cloud-status{border-color:#F2D8BF!important}
 .projects-account-email{font-size:12px!important;color:#637487!important;margin-top:12px!important}
 .projects-account-email strong{color:#003D7C}
-.v61-authenticated:has(.projects-home)>.v61-session-bar>span{visibility:hidden}
+.v61-authenticated>.v61-session-bar>span{visibility:visible}
 /* Remove stacked cream/white bands in the workspace: same quiet canvas. */
 .app .main,.app .topbar,.app .content.workspace-page-content{background:#F8F4ED}
 .app .topbar{border-color:#E7DFD5}
@@ -785,3 +785,6 @@
   font-size:13px!important;background-color:#fff!important;
 }
 @media(max-width:850px){.app .v5-review-toolbar{grid-template-columns:1fr}}
+
+/* My Projects account identity: never hide the signed-in email. */
+.v61-authenticated>.v61-session-bar>span{visibility:visible!important;display:inline!important;opacity:1!important}
