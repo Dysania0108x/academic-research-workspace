@@ -71,6 +71,14 @@ import {eligibleCaptures} from './captureRules.mjs';
        if(!cloud)throw error;
       }
      }
+     // Bind an older unassigned local capture to its first saved project.
+     // Otherwise the same UUID appears eligible in every project on later syncs.
+     if(!entry.projectId){
+      const {nuscopeCaptures:latest=[]}=await chrome.storage.local.get({nuscopeCaptures:[]});
+      const updated=latest.map(item=>item.id===entry.id&&!item.projectId?{...item,projectId:project.id}:item);
+      await chrome.storage.local.set({nuscopeCaptures:updated});
+      entry.projectId=project.id;
+     }
      if(!cloud?.evidence_id){
       await globalThis.nuscopeCloud.promote(entry.id,'Uncategorised',entry.note||'');
       added++;
