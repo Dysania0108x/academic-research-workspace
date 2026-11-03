@@ -772,3 +772,16 @@
 .app .v5-network{overflow:visible}
 .app .v5-network-scroll{overflow:auto;min-height:520px;max-height:none;border:0;border-radius:0;background:radial-gradient(#E7E2D8 1px,transparent 1px) 0 0/22px 22px}
 .app .v5-network-scroll svg{width:100%;min-height:520px;height:auto}
+
+
+/* Highlight Manager: pixel-consistent search and filter baseline. */
+.app .v5-review-toolbar{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) minmax(150px,1fr);gap:12px;align-items:center}
+.app .v5-review-toolbar>input,.app .v5-review-toolbar>select{
+  display:block!important;position:static!important;align-self:center!important;
+  box-sizing:border-box!important;width:100%!important;height:48px!important;
+  min-height:48px!important;max-height:48px!important;margin:0!important;
+  padding:0 14px!important;border:1px solid #DCDDDC!important;
+  border-radius:9px!important;line-height:normal!important;
+  font-size:13px!important;background-color:#fff!important;
+}
+@media(max-width:850px){.app .v5-review-toolbar{grid-template-columns:1fr}}
