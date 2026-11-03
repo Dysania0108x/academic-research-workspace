@@ -841,3 +841,30 @@
 /* By Theme / By Paper tiles: NUS orange hover and selected states. */
 .app .evidence-theme-tile:hover,.app .evidence-theme-tile:focus-visible{background:#FFF1E4!important;border-color:#EF7C00!important}
 .app .evidence-theme-tile.active,.app .evidence-theme-tile.selected,.app .evidence-theme-tile[aria-selected="true"]{background:#FFF1E4!important;border-color:#EF7C00!important}
+
+
+/* Evidence Map search: single focus ring and same control height as Filters. */
+.app .v7-evidence-workspace .v6-search-top{align-items:stretch;gap:12px}
+.app .v7-evidence-workspace .v6-search-top>.v6-search-input{
+  height:44px;min-height:44px;box-sizing:border-box;padding:0 12px;
+  border:1px solid #DCDDDC;border-radius:9px;box-shadow:none;
+  outline:none;background:#fff;align-self:stretch;
+}
+.app .v7-evidence-workspace .v6-search-top>.v6-search-input:focus-within{
+  border-color:#EF7C00;outline:none;box-shadow:0 0 0 1px #EF7C00;
+}
+.app .v7-evidence-workspace .v6-search-top>.v6-search-input>input,
+.app .v7-evidence-workspace .v6-search-top>.v6-search-input>input:focus,
+.app .v7-evidence-workspace .v6-search-top>.v6-search-input>input:focus-visible{
+  display:block;flex:1;min-width:0;height:100%;min-height:0;
+  margin:0;padding:0;border:0!important;border-radius:0;
+  outline:none!important;box-shadow:none!important;background:transparent;
+}
+.app .v7-evidence-workspace .v6-search-top>.secondary{
+  height:44px;min-height:44px;box-sizing:border-box;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  margin:0;padding:0 16px;white-space:nowrap;
+}
+@media(max-width:640px){
+ .app .v7-evidence-workspace .v6-search-top>.v6-search-input{flex-basis:100%}
+}
