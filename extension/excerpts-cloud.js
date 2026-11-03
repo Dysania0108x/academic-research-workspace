@@ -3,7 +3,7 @@ import {eligibleCaptures} from './captureRules.mjs';
 (() => {
  const $=id=>document.getElementById(id);
  const box=document.createElement('section');box.className='connection excerpts-workspace';
- box.innerHTML='<h2>Project excerpts</h2><p id="cloudInfo">Sign in and choose a project to sync.</p><button id="syncLocal" type="button">Sync local excerpts to project</button><button id="loadCloud" type="button">Refresh project excerpts</button><div id="cloudList"></div>';
+ box.innerHTML='<h2>Project excerpts</h2><p id="cloudInfo">Sign in and choose a project to save your captured passages.</p><button id="syncLocal" type="button">Save to Project & Evidence Map</button><button id="loadCloud" type="button">Refresh project excerpts</button><div id="cloudList"></div>';
  $('localExcerptsSection').before(box);
  const info=$('cloudInfo'),list=$('cloudList');
  let busy=false,loading=false;
@@ -34,19 +34,6 @@ import {eligibleCaptures} from './captureRules.mjs';
     summary.append(title,preview,label);
     body.append(quote,note);
     if(source.href)body.append(source);
-    if(!entry.evidence_id){
-     const theme=document.createElement('select');theme.setAttribute('aria-label','Evidence theme');
-     theme.add(new Option('Uncategorised (choose later)','Uncategorised'));
-     for(const t of project.data?.topics||[])theme.add(new Option(t,t));
-     const interpretation=document.createElement('textarea');interpretation.placeholder='Interpretation (optional)';interpretation.value=entry.note||'';
-     const button=document.createElement('button');button.className='remove';button.textContent='Add to Evidence Map';
-     button.addEventListener('click',async()=>{
-      button.disabled=true;
-      try{await globalThis.nuscopeCloud.promote(entry.id,theme.value||'Uncategorised',interpretation.value);await load(true);message('Evidence added. You can assign a theme later in NUScope.');}
-      catch(error){message('Could not add evidence: '+error.message);button.disabled=false;}
-     });
-     body.append(theme,interpretation,button);
-    }
     details.append(summary,body);card.append(details);list.append(card);
    }
   }catch(error){message('Excerpt refresh failed: '+error.message);}
@@ -61,16 +48,41 @@ import {eligibleCaptures} from './captureRules.mjs';
    const eligible=eligibleCaptures(nuscopeCaptures,project.id);
    const legacy=eligible.filter(e=>!e.projectId).length;
    if(!eligible.length){message('No excerpts for this project. Captures from other projects are excluded.');return;}
-   if(!confirm('Upload '+eligible.length+' excerpt(s) to "'+project.name+'"?'+(legacy?' Includes '+legacy+' older unassigned capture(s).':'')))return;
-   let synced=0;
+   if(!confirm('Save '+eligible.length+' captured passage(s) to "'+project.name+'"?'+(legacy?' Includes '+legacy+' older unassigned capture(s).':'')))return;
+   // Save each capture first, then promote the same excerpt to evidence.
+   // A retry must not duplicate either record if the first operation succeeded.
+   let saved=0,added=0,failed=0;
+   let existing=await globalThis.nuscopeCloud.list(project.id);
+   const byId=new Map(existing.map(e=>[e.id,e]));
    for(const entry of eligible){
-    try{await globalThis.nuscopeCloud.save(entry,project.id,userId);synced++;}
-    catch(error){
-     // Already synced excerpts remain unchanged; other errors are reported.
-     if(!/409|duplicate key/i.test(error.message)){message('Synced '+synced+'; stopped: '+error.message);return;}
+    try{
+     let cloud=byId.get(entry.id);
+     if(!cloud){
+      try{
+       const created=await globalThis.nuscopeCloud.save(entry,project.id,userId);
+       cloud=Array.isArray(created)?created[0]:created;
+       saved++;
+      }catch(error){
+       // A previously saved capture may exist after an interrupted request.
+       existing=await globalThis.nuscopeCloud.list(project.id);
+       cloud=existing.find(e=>e.id===entry.id);
+       if(!cloud)throw error;
+      }
+     }
+     if(!cloud?.evidence_id){
+      await globalThis.nuscopeCloud.promote(entry.id,'Uncategorised',entry.note||'');
+      added++;
+     }
+     byId.set(entry.id,{...cloud,evidence_id:cloud?.evidence_id||'promoted'});
+    }catch(error){
+     failed++;
+     message('Saved '+saved+' excerpt(s), added '+added+' to Evidence Map; '+failed+' failed. '+error.message);
     }
    }
-   await load(true);message('Local excerpts synced to '+project.name+'. Originals remain on this device.');
+   await load(true);
+   if(!failed)message('Saved to '+project.name+' and Evidence Map. '+added+' new evidence record(s); existing entries were not duplicated.');
+   else message('Partially completed: '+added+' added to Evidence Map, '+failed+' failed. Retry to finish without duplicating saved excerpts.');
+
   }catch(error){message(error.message);}
   finally{busy=false;$('syncLocal').disabled=false;}
  });
@@ -90,5 +102,5 @@ import {eligibleCaptures} from './captureRules.mjs';
   load();
  },30000);
  window.addEventListener('pagehide',()=>clearInterval(excerptTimer));
- chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures){message('New local capture saved. Sync it to the selected project when ready.');}});
+ chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.nuscopeCaptures){message('New passage captured locally. Choose Save to Project & Evidence Map when ready.');}});
 })();
