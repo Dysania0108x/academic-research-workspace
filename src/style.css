@@ -752,3 +752,23 @@
 .app .v13-select-grid select{height:42px}
 .app .v13-review-dialog .v13-evidence-preview{background:#FFF8F0}
 @media(max-width:850px){.app .v5-settings-layout{grid-template-columns:1fr}.app .v5-review-toolbar{grid-template-columns:1fr}}
+
+
+/* Nov 3 visual fixes: reader actions, consistent evidence rows, expanding network. */
+.app .pdfjs-first-reader .reader-controls{display:flex;width:100%;justify-content:flex-end!important;align-items:center!important;padding:8px 0!important;margin:0!important;gap:8px}
+.app .pdfjs-first-reader .reader-controls>.primary{order:1;height:42px}
+.app .pdfjs-first-reader .reader-more-options{order:2;margin:0}
+.app .reader-head>button:last-child{margin-left:auto}
+.app .pdfjs-first-reader .pdfjs-toolbar{display:flex;align-items:center!important;justify-content:center;gap:8px}
+.app .pdfjs-first-reader .pdfjs-toolbar button,.app .pdfjs-first-reader .pdfjs-toolbar .pdfjs-page-jump{height:38px!important;min-height:38px!important;align-self:center!important;vertical-align:middle}
+.app .pdfjs-page-jump{display:inline-flex!important;align-items:center!important;line-height:1!important}
+.app .pdfjs-page-jump input{display:inline-block;height:38px!important;min-height:38px!important;padding:0 8px!important;line-height:38px!important;box-sizing:border-box}
+.app .v5-bulk-bar{width:100%;box-sizing:border-box;background:#FFF8F0;border-color:#F0D8BF;border-radius:9px}
+.app .evidence-detail-list.v8-detail-list{display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;align-items:stretch!important}
+.app .v8-evidence-row{width:100%;box-sizing:border-box;flex:0 0 auto;padding:18px 14px;border-bottom:1px solid #E7DFD5}
+.app .v8-evidence-row-top,.app .v8-evidence-row-bottom{width:100%;box-sizing:border-box}
+.app .v8-evidence-row .v8-evidence-text{width:100%;max-width:none;overflow-wrap:anywhere}
+.app .v8-evidence-row-bottom .v8-row-actions{margin-left:auto}
+.app .v5-network{overflow:visible}
+.app .v5-network-scroll{overflow:auto;min-height:520px;max-height:none;border:0;border-radius:0;background:radial-gradient(#E7E2D8 1px,transparent 1px) 0 0/22px 22px}
+.app .v5-network-scroll svg{width:100%;min-height:520px;height:auto}
