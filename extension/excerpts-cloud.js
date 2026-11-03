@@ -5,6 +5,8 @@ import {eligibleCaptures} from './captureRules.mjs';
  const box=document.createElement('section');box.className='connection excerpts-workspace';
  box.innerHTML='<h2>Project excerpts</h2><p id="cloudInfo">Sign in and choose a project to save your captured passages.</p><button id="syncLocal" type="button">Save to Project & Evidence Map</button><button id="loadCloud" type="button">Refresh project excerpts</button><div id="cloudList"></div>';
  $('localExcerptsSection').before(box);
+ // Keep the primary save action beside Open NUScope, as requested in user testing.
+ $('openApp').before($('syncLocal'));
  const info=$('cloudInfo'),list=$('cloudList');
  let busy=false,loading=false;
  const message=text=>{info.textContent=text;};
