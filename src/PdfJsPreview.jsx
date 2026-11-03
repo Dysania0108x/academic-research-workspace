@@ -10,7 +10,7 @@ function loadPdfjs(){
   if(!loader)loader=import(/* @vite-ignore */ LIB).then(lib=>{lib.GlobalWorkerOptions.workerSrc=WORKER;return lib});
   return loader;
 }
-export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,pageSize,highlights=[],sourceFocus,onHighlightClick,selectedQuote=''}){
+export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,pageSize,highlights=[],sourceFocus,onHighlightClick,onTextSelection,selectedQuote=''}){
   const canvas=useRef(null),textLayer=useRef(null),documentRef=useRef(null),sourceRectRef=useRef(null);
   const [status,setStatus]=useState('Loading original PDF…'),[count,setCount]=useState(0);
   const [zoom,setZoom]=useState(1);
@@ -95,7 +95,7 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
     </div>
     {status&&<p role="status">{status}</p>}
     {rotation!==0&&<p role="status">Highlight overlays are disabled for rotated pages until coordinate transforms are verified.</p>}
-    <div className="pdfjs-scroll"><div className="pdfjs-page"><canvas ref={canvas}/><div ref={textLayer} className="pdfjs-text-layer textLayer"/>
+    <div className="pdfjs-scroll" onMouseUp={()=>{const text=window.getSelection()?.toString().trim()||"";if(text)onTextSelection?.(text.slice(0,10000))}} onKeyUp={()=>{const text=window.getSelection()?.toString().trim()||"";if(text)onTextSelection?.(text.slice(0,10000))}}><div className="pdfjs-page"><canvas ref={canvas}/><div ref={textLayer} className="pdfjs-text-layer textLayer"/>
       {canOverlay&&<div className="pdfjs-highlight-layer">
         {highlights.flatMap((highlight,index)=>(highlight.rects||[]).map((rect,rectIndex)=>{
           const style=rectStyle(rect);
