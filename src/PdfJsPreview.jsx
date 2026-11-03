@@ -85,7 +85,6 @@ export default function PdfJsPreview({paper,supabase,page,onPageChange,onClose,p
   useEffect(()=>{if(canOverlay&&sourceFocus?.rects?.length)sourceRectRef.current?.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'})},[canOverlay,sourceFocus,page]);
   return <section className="pdfjs-preview">
     <div className="pdfjs-toolbar">
-      <strong>PDF Reader</strong>
       <button onClick={()=>onPageChange(Math.max(1,page-1))} disabled={page<=1}>Previous</button>
       <label className="pdfjs-page-jump">Page <input aria-label="Jump to PDF page" inputMode="numeric" type="number" min="1" max={count||undefined} value={pageInput} onChange={e=>setPageInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const n=Number(pageInput);if(Number.isInteger(n)&&n>=1&&n<=count)onPageChange(n);else setPageInput(String(page));e.currentTarget.blur()}}} onBlur={()=>{const n=Number(pageInput);if(Number.isInteger(n)&&n>=1&&n<=count)onPageChange(n);else setPageInput(String(page))}}/> / {count||'…'}</label>
       <button onClick={()=>onPageChange(Math.min(count,page+1))} disabled={page>=count}>Next</button>

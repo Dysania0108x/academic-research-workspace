@@ -592,3 +592,208 @@
 .pdfjs-page-jump input{width:58px;min-width:0;border:1px solid #c9d2dc;border-radius:7px;padding:5px 6px;text-align:center;background:#fff;color:inherit}
 
 #network-suggestion-review{scroll-margin-top:24px;outline:2px solid #d5e3f0;outline-offset:4px;border-radius:10px}
+
+
+
+
+/* NUScope brand consistency pass: preserve existing layouts and semantic theme colors.
+   NUS blue #003D7C and NUS orange #EF7C00; orange tint replaces decorative lavender. */
+:root{--nus-blue:#003D7C;--nus-orange:#EF7C00;--nus-orange-pale:#FFF1E4;--nus-orange-border:#F5CBA7}
+.app .sidebar nav button.active{background:var(--nus-orange-pale);color:var(--nus-blue);border-left:3px solid var(--nus-orange)}
+.app .sidebar nav button.active svg{color:var(--nus-orange)}
+.app .project-chip{background:#F7F8F8;border-color:#DCE3E7}
+.app .v61-cloud-status{background:#FFF8F1!important;border-color:var(--nus-orange-border)!important;color:var(--nus-blue)!important}
+.app .primary{background:var(--nus-blue);color:#fff}
+.app .primary:hover{background:#002E5E}
+.app .paper-item .seed-toggle.seed-active,.app .seed-active{background:var(--nus-orange-pale)!important;border-color:var(--nus-orange-border)!important;color:#B85400!important}
+.app .seed-settings,.app .saved-evidence-notice{background:#FFF8F1!important;border-color:var(--nus-orange-border)!important}
+.app .seed-settings strong{color:var(--nus-blue)}
+.app .interpretation-toggle{background:#FFF8F1;border-color:var(--nus-orange-border);color:var(--nus-blue)}
+.app .interpretation-toggle:hover{background:var(--nus-orange-pale)}
+.app .v9-modal-section .v9-section-note,.app .v9-modal-section .hint{color:#66788A}
+.app .v9-modal-section .theme-swatch{border-color:transparent}
+.app .v9-modal-section input:checked{accent-color:var(--nus-orange)}
+.app .v9-modal-section label:has(input:checked){border-color:var(--nus-orange)!important;background:#FFF8F1!important}
+.app .v9-modal-section .v9-section-heading strong{color:var(--nus-blue)}
+.app .v7-evidence-workspace .v7-workspace-heading .primary,
+.app .v7-evidence-workspace .v7-workspace-heading .secondary{min-height:42px;box-sizing:border-box;align-items:center;justify-content:center;padding:10px 16px;margin:0}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap{display:flex;align-items:center;gap:10px}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>button{flex-shrink:0}
+.app .network-review{border-color:var(--nus-orange-border)}
+.app .cache-indicator{color:#B85400}
+.app .pdfjs-source-rect{outline-color:var(--nus-orange)}
+/* The six distinct research-theme swatches are deliberately unchanged. */
+
+
+/* NUScope visual QA pass 2 — unify decorative surfaces and controls.
+   Preserve research theme swatch colors: they encode user-defined categories. */
+:root{--nus-line:#E5E2DD;--nus-ink:#003D7C;--nus-warm:#FFF3E7;--nus-warm-border:#F2CBA8}
+.v61-session-bar{background:#FFFDF9;border-color:var(--nus-line);color:var(--nus-ink)}
+.v61-session-bar strong{color:var(--nus-ink)}
+.v61-session-bar .secondary{border-color:var(--nus-line);background:#fff;color:var(--nus-ink)}
+.app .sidebar nav button.active,.app .v5-settings-nav button.active{background:var(--nus-warm)!important;color:var(--nus-ink)!important;border-color:var(--nus-orange)!important}
+.app .sidebar nav button.active svg{color:var(--nus-orange)!important}
+.app .project-chip{background:#FFFDF9!important;border:1px solid var(--nus-line)!important}
+.app .v61-cloud-status{background:var(--nus-warm)!important;border:1px solid var(--nus-warm-border)!important;color:var(--nus-ink)!important}
+.app .v5-settings-nav,.app .v5-settings-panel{border-color:var(--nus-line)}
+.app .v5-settings-nav button{color:#526579}
+.app .v5-settings-nav button:not(.active):hover{background:var(--nus-warm)}
+.app .v5-settings-panel .stat,.app .v5-settings-panel .usage-stat{background:#FFFDF9;border-color:var(--nus-line)}
+.app .v7-manage-menu{border-color:var(--nus-line);box-shadow:0 8px 22px #173B5D12}
+.app .v7-manage-menu button:hover{background:var(--nus-warm)}
+.app .v7-evidence-workspace .v6-results-toolbar{border-color:var(--nus-line)}
+.app .v7-filter-panel .v6-theme-filter,.app .v7-filter-panel{border-color:var(--nus-line)}
+.app .v6-search-input,.app input:not([type="checkbox"]):not([type="radio"]),.app textarea,.app select{border-color:#DCDDDC}
+.app input:focus-visible,.app textarea:focus-visible,.app select:focus-visible,.app button:focus-visible{outline:2px solid var(--nus-orange);outline-offset:2px}
+.app .v7-evidence-workspace .v6-search-input:focus-within{border-color:var(--nus-orange)}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap{display:flex;align-items:stretch;gap:10px}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>.primary,
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>.secondary{height:44px;min-height:44px;padding:0 17px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>.secondary{border-color:var(--nus-line)}
+.app .v9-modal-section .v9-section-heading,.app .v9-modal-section{border-color:var(--nus-line)}
+.app .v9-modal-section .v9-section-note{background:var(--nus-warm);color:#985000}
+.app .v9-modal-section label:has(input:checked){border-color:var(--nus-orange)!important;background:var(--nus-warm)!important}
+.app .v9-modal-section input[type="checkbox"]{accent-color:var(--nus-orange)}
+.app .v9-modal-section blockquote,.app .v9-modal-section .original-passage{background:#FFF9F3;border-left-color:var(--nus-orange)}
+.app .interpretation-toggle,.app .saved-evidence-notice,.app .seed-settings{background:var(--nus-warm)!important;border-color:var(--nus-warm-border)!important}
+.app .paper-item .seed-toggle.seed-active{background:var(--nus-warm)!important;color:#995000!important}
+.app .tabs button.active{border-bottom-color:var(--nus-orange);color:var(--nus-ink)}
+.app .tabs button:hover{color:var(--nus-ink)}
+/* Neutralise old lavender decorative containers without altering semantic theme badges. */
+.app .v6-rq-card,.app .v7-rq-card,.app .v6-question-panel,.app .v6-rq-banner,
+.app .v5-settings-panel .usage-card,.app .v5-settings-panel .usage-metric{background:#FFF9F3;border-color:var(--nus-warm-border)}
+
+
+/* Targeted UI refinement: selected navigation is solid orange, no accent strip. */
+.app .sidebar nav button.active{background:#EF7C00!important;color:#fff!important;border:0!important;border-radius:9px!important}
+.app .sidebar nav button.active svg,.app .sidebar nav button.active .future{color:#fff!important}
+.app .v5-settings-nav button.active{background:#EF7C00!important;color:#fff!important;border:0!important;border-radius:8px!important}
+.app .v5-settings-nav button.active svg{color:#fff!important}
+.app .v52-rq-question{background:#FFF9F3!important;border:1px solid #F2D8BF!important;border-radius:10px!important}
+.app .v52-rq-question span{color:#B55B08!important}
+.app .v52-rq-question h3{color:#003D7C!important}
+.app .v5-summary-stat{background:#FFFDF9!important;border:1px solid #E7DFD5!important;border-radius:8px!important}
+.app .v5-summary-stat.active{background:#FFF1E4!important;border-color:#EF7C00!important}
+.app .v5-summary-stat strong{color:#003D7C!important}
+.app .v5-summary-stat span{color:#5E6E7B!important}
+.app .v5-settings-nav{border-color:#E7DFD5!important}
+.app .v7-evidence-workspace{border-color:#E7DFD5!important}
+.app .v52-theme-grid>*,.app .v52-rq-map .v52-theme-card{border-color:#E7DFD5}
+.app .v52-theme-grid .v52-evidence-preview{background:#FFFDF9;border-color:#EAE2D8}
+.app .v61-session-bar{background:#F8F4ED!important;border-color:#E7DFD5!important}
+.app .project-chip{border-color:#E7DFD5!important}
+.app .v61-cloud-status{border-color:#F2D8BF!important}
+.projects-account-email{font-size:12px!important;color:#637487!important;margin-top:12px!important}
+.projects-account-email strong{color:#003D7C}
+.v61-authenticated>.v61-session-bar>span{visibility:visible}
+/* Remove stacked cream/white bands in the workspace: same quiet canvas. */
+.app .main,.app .topbar,.app .content.workspace-page-content{background:#F8F4ED}
+.app .topbar{border-color:#E7DFD5}
+.app .v7-evidence-workspace,.app .v5-settings-panel{background:#FFFDF9}
+
+
+/* Layout polish: one account bar, flatter overview, and compact reader controls. */
+.v61-authenticated:has(.projects-home)>.v61-session-bar>span{visibility:visible!important}
+.v61-session-bar{min-height:48px;align-items:center}
+.v61-session-bar>span{line-height:1.3}
+.projects-account-email{display:none!important}
+.app .stats{gap:0;background:#FFFDF9;border:1px solid #E7DFD5;border-radius:12px;overflow:hidden;margin-bottom:20px}
+.app .stats .stat{border:0;border-right:1px solid #E7DFD5;border-radius:0;background:transparent;box-shadow:none;padding:20px 24px;min-height:130px}
+.app .stats .stat:last-child{border-right:0}
+.app .two-cols{gap:16px}
+.app .two-cols>.panel{box-shadow:none}
+.app .reader-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.app .reader-head .reader-title{display:flex;align-items:center;gap:12px}
+.app .reader-head h2{margin:0}
+.app .pdfjs-first-reader .reader-controls{justify-content:flex-end;gap:8px;padding:8px 0}
+.app .pdfjs-first-reader .pdfjs-toolbar{justify-content:center;gap:8px;border-bottom:1px solid #E7DFD5}
+.app .pdfjs-first-reader .pdfjs-toolbar strong{display:none}
+.app .pdfjs-first-reader .pdfjs-toolbar button{min-width:34px;min-height:34px}
+.app .reader-more-options{position:relative;order:2}
+.app .reader-more-options summary{list-style:none;cursor:pointer;border:1px solid #E7DFD5;background:#fff;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:650;color:#003D7C}
+.app .reader-more-options summary::-webkit-details-marker{display:none}
+.app .reader-more-options summary::after{content:" ▾";color:#EF7C00}
+.app .reader-more-options[open]>div{position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:flex;flex-direction:column;gap:7px;width:max-content;min-width:180px;padding:10px;background:#fff;border:1px solid #E7DFD5;border-radius:9px;box-shadow:0 8px 20px #003D7C16}
+.app .reader-more-options[open]>div button{justify-content:flex-start}
+@media(max-width:760px){.app .stats{display:grid;grid-template-columns:1fr}.app .stats .stat{border-right:0;border-bottom:1px solid #E7DFD5}.app .stats .stat:last-child{border-bottom:0}.app .reader-head .reader-title{flex-wrap:wrap}}
+
+/* Account controls live on My Projects only. Inside a project, All projects returns to the account screen. */
+.v61-authenticated:has(.app:not(.projects-home))>.v61-session-bar{display:none}
+
+
+/* User visual QA: consistent research tools, full-width workspace, NUS accents. */
+.v61-authenticated:has(.projects-home)>.v61-session-bar>span{visibility:visible!important}
+.app .pdfjs-first-reader .reader-controls{justify-content:flex-end;align-items:center;gap:8px;min-height:42px}
+.app .pdfjs-first-reader .reader-controls>.primary{height:42px;min-height:42px;padding:0 16px;order:1}
+.app .pdfjs-first-reader .reader-more-options{order:2}
+.app .reader-more-options summary{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;padding:0;border-radius:8px}
+.app .reader-more-options summary::after{content:none}
+.app .reader-more-options summary svg{color:#003D7C}
+.app .reader-more-options[open] summary{background:#FFF1E4;border-color:#EF7C00}
+.app .reader-head{align-items:flex-start}
+.app .pdfjs-first-reader .pdfjs-toolbar{align-items:center;justify-content:center;min-height:50px}
+.app .pdfjs-first-reader .pdfjs-toolbar>*{align-self:center}
+.app .pdfjs-page-jump{display:inline-flex;align-items:center;gap:8px;height:36px;line-height:36px;font-size:13px}
+.app .pdfjs-page-jump input{height:36px;line-height:normal;vertical-align:middle;appearance:textfield}
+.app .pdfjs-page-jump input::-webkit-inner-spin-button,.app .pdfjs-page-jump input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.app .v5-highlight-manager{max-width:none!important;width:100%;min-width:0}
+.app .v5-settings-layout{max-width:none!important;width:100%;min-width:0;grid-template-columns:205px minmax(0,1fr)}
+.app .v5-settings-panel{width:100%;min-width:0}
+.app .v5-review-toolbar{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) minmax(150px,1fr);gap:12px;align-items:stretch}
+.app .v5-review-toolbar input,.app .v5-review-toolbar select{box-sizing:border-box;width:100%;height:46px!important;min-height:46px!important;padding:0 13px!important;line-height:normal}
+.app .v5-highlight-row{border-color:#E7DFD5;background:#FFFDF9}
+.app .v5-highlight-row blockquote{background:#FFF8F0!important;border-left:3px solid #EF7C00!important;color:#25394C}
+.app .v5-status.pending{background:#FFF1E4;color:#A95300}
+.app .v5-status.verified{background:#EDF6F1;color:#276747}
+.app .v13-evidence-preview{background:#FFF8F0!important;border-color:#F1D9C2!important}
+.app .v13-preview-label,.app .v13-evidence-preview small{color:#92613D}
+.app .v13-evidence-preview strong{color:#003D7C}
+.app .network-review{border-color:#E7DFD5}
+.app .v13-select-grid select{height:42px}
+.app .v13-review-dialog .v13-evidence-preview{background:#FFF8F0}
+@media(max-width:850px){.app .v5-settings-layout{grid-template-columns:1fr}.app .v5-review-toolbar{grid-template-columns:1fr}}
+
+
+/* Nov 3 visual fixes: reader actions, consistent evidence rows, expanding network. */
+.app .pdfjs-first-reader .reader-controls{display:flex;width:100%;justify-content:flex-end!important;align-items:center!important;padding:8px 0!important;margin:0!important;gap:8px}
+.app .pdfjs-first-reader .reader-controls>.primary{order:1;height:42px}
+.app .pdfjs-first-reader .reader-more-options{order:2;margin:0}
+.app .reader-head>button:last-child{margin-left:auto}
+.app .pdfjs-first-reader .pdfjs-toolbar{display:flex;align-items:center!important;justify-content:center;gap:8px}
+.app .pdfjs-first-reader .pdfjs-toolbar button,.app .pdfjs-first-reader .pdfjs-toolbar .pdfjs-page-jump{height:38px!important;min-height:38px!important;align-self:center!important;vertical-align:middle}
+.app .pdfjs-page-jump{display:inline-flex!important;align-items:center!important;line-height:1!important}
+.app .pdfjs-page-jump input{display:inline-block;height:38px!important;min-height:38px!important;padding:0 8px!important;line-height:38px!important;box-sizing:border-box}
+.app .v5-bulk-bar{width:100%;box-sizing:border-box;background:#FFF8F0;border-color:#F0D8BF;border-radius:9px}
+.app .evidence-detail-list.v8-detail-list{display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;align-items:stretch!important}
+.app .v8-evidence-row{width:100%;box-sizing:border-box;flex:0 0 auto;padding:18px 14px;border-bottom:1px solid #E7DFD5}
+.app .v8-evidence-row-top,.app .v8-evidence-row-bottom{width:100%;box-sizing:border-box}
+.app .v8-evidence-row .v8-evidence-text{width:100%;max-width:none;overflow-wrap:anywhere}
+.app .v8-evidence-row-bottom .v8-row-actions{margin-left:auto}
+.app .v5-network{overflow:visible}
+.app .v5-network-scroll{overflow:auto;min-height:520px;max-height:none;border:0;border-radius:0;background:radial-gradient(#E7E2D8 1px,transparent 1px) 0 0/22px 22px}
+.app .v5-network-scroll svg{width:100%;min-height:520px;height:auto}
+
+
+/* Highlight Manager: pixel-consistent search and filter baseline. */
+.app .v5-review-toolbar{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) minmax(150px,1fr);gap:12px;align-items:center}
+.app .v5-review-toolbar>input,.app .v5-review-toolbar>select{
+  display:block!important;position:static!important;align-self:center!important;
+  box-sizing:border-box!important;width:100%!important;height:48px!important;
+  min-height:48px!important;max-height:48px!important;margin:0!important;
+  padding:0 14px!important;border:1px solid #DCDDDC!important;
+  border-radius:9px!important;line-height:normal!important;
+  font-size:13px!important;background-color:#fff!important;
+}
+@media(max-width:850px){.app .v5-review-toolbar{grid-template-columns:1fr}}
+
+/* My Projects account identity: never hide the signed-in email. */
+.v61-authenticated>.v61-session-bar>span{visibility:visible!important;display:inline!important;opacity:1!important}
+
+
+/* Match Overview synthesis card rhythm to the other sections. */
+.app .overview-synthesis-panel{margin-top:18px;margin-bottom:18px}
+/* Evidence Network viewport supports panning; retain node/handle drag semantics. */
+.app .v5-network-scroll{width:100%;min-height:620px;overflow:hidden;touch-action:none}
+.app .v5-network-scroll svg{display:block;width:100%;min-height:620px;cursor:grab;touch-action:none}
+.app .v5-network-scroll svg:active{cursor:grabbing}
+.app .v5-network-node,.app .v5-network-node *{cursor:move}
