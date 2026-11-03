@@ -1,4 +1,4 @@
-import {eligibleCaptures} from './captureRules.mjs';
+import {eligibleCaptures,assignCaptureProject} from './captureRules.mjs';
 // Local captures remain intact; cloud sync is explicit and project-scoped.
 (() => {
  const $=id=>document.getElementById(id);
@@ -75,7 +75,7 @@ import {eligibleCaptures} from './captureRules.mjs';
      // Otherwise the same UUID appears eligible in every project on later syncs.
      if(!entry.projectId){
       const {nuscopeCaptures:latest=[]}=await chrome.storage.local.get({nuscopeCaptures:[]});
-      const updated=latest.map(item=>item.id===entry.id&&!item.projectId?{...item,projectId:project.id}:item);
+      const updated=assignCaptureProject(latest,entry.id,project.id);
       await chrome.storage.local.set({nuscopeCaptures:updated});
       entry.projectId=project.id;
      }
