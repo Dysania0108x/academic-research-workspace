@@ -623,3 +623,42 @@
 .app .cache-indicator{color:#B85400}
 .app .pdfjs-source-rect{outline-color:var(--nus-orange)}
 /* The six distinct research-theme swatches are deliberately unchanged. */
+
+
+/* NUScope visual QA pass 2 — unify decorative surfaces and controls.
+   Preserve research theme swatch colors: they encode user-defined categories. */
+:root{--nus-line:#E5E2DD;--nus-ink:#003D7C;--nus-warm:#FFF3E7;--nus-warm-border:#F2CBA8}
+.v61-session-bar{background:#FFFDF9;border-color:var(--nus-line);color:var(--nus-ink)}
+.v61-session-bar strong{color:var(--nus-ink)}
+.v61-session-bar .secondary{border-color:var(--nus-line);background:#fff;color:var(--nus-ink)}
+.app .sidebar nav button.active,.app .v5-settings-nav button.active{background:var(--nus-warm)!important;color:var(--nus-ink)!important;border-color:var(--nus-orange)!important}
+.app .sidebar nav button.active svg{color:var(--nus-orange)!important}
+.app .project-chip{background:#FFFDF9!important;border:1px solid var(--nus-line)!important}
+.app .v61-cloud-status{background:var(--nus-warm)!important;border:1px solid var(--nus-warm-border)!important;color:var(--nus-ink)!important}
+.app .v5-settings-nav,.app .v5-settings-panel{border-color:var(--nus-line)}
+.app .v5-settings-nav button{color:#526579}
+.app .v5-settings-nav button:not(.active):hover{background:var(--nus-warm)}
+.app .v5-settings-panel .stat,.app .v5-settings-panel .usage-stat{background:#FFFDF9;border-color:var(--nus-line)}
+.app .v7-manage-menu{border-color:var(--nus-line);box-shadow:0 8px 22px #173B5D12}
+.app .v7-manage-menu button:hover{background:var(--nus-warm)}
+.app .v7-evidence-workspace .v6-results-toolbar{border-color:var(--nus-line)}
+.app .v7-filter-panel .v6-theme-filter,.app .v7-filter-panel{border-color:var(--nus-line)}
+.app .v6-search-input,.app input:not([type="checkbox"]):not([type="radio"]),.app textarea,.app select{border-color:#DCDDDC}
+.app input:focus-visible,.app textarea:focus-visible,.app select:focus-visible,.app button:focus-visible{outline:2px solid var(--nus-orange);outline-offset:2px}
+.app .v7-evidence-workspace .v6-search-input:focus-within{border-color:var(--nus-orange)}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap{display:flex;align-items:stretch;gap:10px}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>.primary,
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>.secondary{height:44px;min-height:44px;padding:0 17px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}
+.app .v7-evidence-workspace .v7-workspace-heading .v7-manage-wrap>.secondary{border-color:var(--nus-line)}
+.app .v9-modal-section .v9-section-heading,.app .v9-modal-section{border-color:var(--nus-line)}
+.app .v9-modal-section .v9-section-note{background:var(--nus-warm);color:#985000}
+.app .v9-modal-section label:has(input:checked){border-color:var(--nus-orange)!important;background:var(--nus-warm)!important}
+.app .v9-modal-section input[type="checkbox"]{accent-color:var(--nus-orange)}
+.app .v9-modal-section blockquote,.app .v9-modal-section .original-passage{background:#FFF9F3;border-left-color:var(--nus-orange)}
+.app .interpretation-toggle,.app .saved-evidence-notice,.app .seed-settings{background:var(--nus-warm)!important;border-color:var(--nus-warm-border)!important}
+.app .paper-item .seed-toggle.seed-active{background:var(--nus-warm)!important;color:#995000!important}
+.app .tabs button.active{border-bottom-color:var(--nus-orange);color:var(--nus-ink)}
+.app .tabs button:hover{color:var(--nus-ink)}
+/* Neutralise old lavender decorative containers without altering semantic theme badges. */
+.app .v6-rq-card,.app .v7-rq-card,.app .v6-question-panel,.app .v6-rq-banner,
+.app .v5-settings-panel .usage-card,.app .v5-settings-panel .usage-metric{background:#FFF9F3;border-color:var(--nus-warm-border)}
