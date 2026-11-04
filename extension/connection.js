@@ -255,7 +255,7 @@ import {themeChipStyle} from './themePalette.mjs';
   el('openProjectPdf').addEventListener('click',()=>{
     const paperId=el('pdfPaper').value,projectId=el('projectSelect').value;
     if(!paperId||!projectId){el('pdfNotice').textContent='Select a project PDF first.';return;}
-    chrome.tabs.create({url:'https://academic-research-workspace.vercel.app'});
+    globalThis.nuscopeCloud.pdfLink(paperId).then(url=>chrome.tabs.create({url})).catch(error=>{el('pdfNotice').textContent='Cannot open PDF: '+error.message;});
   });
   // Read-only sync: never invokes the AI analysis endpoint.
   let syncBusy=false;
