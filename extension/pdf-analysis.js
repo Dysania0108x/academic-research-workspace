@@ -114,7 +114,7 @@ import {themeChipStyle} from './themePalette.mjs';
          return !(globalThis.nuscopeCloud.selectedProject()?.data?.rejected||[]).includes(k);
        })
      }});
-     try { const url=new URL('https://academic-research-workspace.vercel.app/'); url.searchParams.set('nuscopeProject',projectId); url.searchParams.set('nuscopePaper',paperId); await chrome.tabs.create({url:url.toString()}); } catch(error) { notice.textContent='Cannot open NUScope Reader: '+error.message; }
+     try { await chrome.tabs.create({url:chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId)}); } catch(error) { notice.textContent='Cannot open Extension Reader: '+error.message; }
    });
    const details=document.createElement('details');details.className='highlight-details';
    const summary=document.createElement('summary');summary.className='highlight-summary';
