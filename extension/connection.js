@@ -255,10 +255,8 @@ import {themeChipStyle} from './themePalette.mjs';
   el('openProjectPdf').addEventListener('click',()=>{
     const paperId=el('pdfPaper').value,projectId=el('projectSelect').value;
     if(!paperId||!projectId){el('pdfNotice').textContent='Select a project PDF first.';return;}
-    const url=new URL('https://academic-research-workspace.vercel.app/');
-    url.searchParams.set('nuscopeProject',projectId);
-    url.searchParams.set('nuscopePaper',paperId);
-    chrome.tabs.create({url:url.toString()}).catch(error=>{el('pdfNotice').textContent='Cannot open NUScope Reader: '+error.message;});
+    const url=chrome.runtime.getURL('reader.html')+'?project='+encodeURIComponent(projectId)+'&paper='+encodeURIComponent(paperId);
+    chrome.tabs.create({url}).catch(error=>{el('pdfNotice').textContent='Cannot open Extension Reader: '+error.message;});
   });
   // Read-only sync: never invokes the AI analysis endpoint.
   let syncBusy=false;
