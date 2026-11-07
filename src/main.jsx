@@ -434,7 +434,7 @@ function App({user}){
     if(!disposed)setPaperJobs(prev=>{const next={...prev};for(const [key,job] of entries){if(job===null)delete next[key];else if(job)next[key]=job}return next});
    }finally{fetching=false}
   };
-  refresh();const timer=setInterval(refresh,1400);
+  refresh();const timer=setInterval(()=>{if(!document.hidden)refresh()},6000);
   return ()=>{disposed=true;clearInterval(timer)};
  },[projectId,paperIds,project?.question,themeSignature]);
  useEffect(()=>{

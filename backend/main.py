@@ -34,15 +34,7 @@ app=FastAPI(title='Research Workspace API')
 # Set FRONTEND_ORIGINS to comma-separated exact HTTPS origins in production.
 # Never combine credentialed CORS with a wildcard origin.
 frontend_origins=[origin.strip().rstrip('/') for origin in os.getenv('FRONTEND_ORIGINS','').split(',') if origin.strip()]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
-    # Project-scoped Vercel Preview domains change with each deployment.
-    # CORS is not authentication: all protected routes still require JWT ownership checks.
-    allow_origin_regex=r'^https://academic-research-workspace(?:-[a-z0-9-]+)?[.]vercel[.]app$',
-    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allow_headers=['Authorization','Content-Type'],
-)
+
 # V6.3: all API calls except the non-sensitive health probe require a valid
 # Supabase access token. Project/paper ownership enforcement is a separate
 # requirement before multi-user release.
@@ -64,7 +56,7 @@ async def require_api_session(request, call_next):
         project_match = re.match(r"^/api/projects/([^/]+)", path)
         if project_match:
             require_project_owner(project_match.group(1), token)
-        if path == '/api/projects' or path.startswith('/api/projects/')  :
+        if path == '/api/projects' or (path.startswith('/api/projects/') and not (request.method == 'GET' and re.fullmatch(r'/api/projects/[^/]+/highlight-candidates', path))):
             raise HTTPException(410, 'Legacy unscoped endpoint disabled')
         # Do not let paper deletion race against an unrelated user's local cache.
         # Existing files are globally named, so ownership is checked before deletion.
@@ -171,6 +163,14 @@ async def require_api_session(request, call_next):
         return await call_next(request)
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail":exc.detail})
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173','http://127.0.0.1:5173',*frontend_origins],
+    allow_origin_regex=r'^https://academic-research-workspace(?:-[a-z0-9-]+)?[.]vercel[.]app$',
+    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allow_headers=['Authorization','Content-Type'],
+)
 
 class ProjectPayload(BaseModel):
     id: str
@@ -480,14 +480,27 @@ async def upload(file:UploadFile=File(...), project_id: str | None = None, autho
         c.execute('INSERT INTO papers VALUES(?,?,?,?,?)',(pid,file.filename,sha,pages,time.time()))
     return {'id':pid,'name':file.filename,'pages':pages,'blocks':len(blocks),'duplicate':False,**metadata}
 @app.get('/api/projects/{project_id}/highlight-candidates')
-def highlight_candidates(project_id:str):
-    """Return cached AI candidates for the project's papers, including after backend restart.
-    Cache may contain previous research contexts; candidates are not automatically verified.
+def highlight_candidates(project_id:str, authorization: str | None = Header(default=None)):
+    """Return locally cached suggestions only for papers in the caller's RLS-owned project.
+    Missing ephemeral cache is a normal empty result after a Render restart.
     """
+    import httpx
+    from cloud_auth import _configuration, require_project_owner
+    require_project_owner(project_id, authorization)
+    url, key = _configuration()
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(f'{url}/rest/v1/projects',
+                params={'select':'data', 'id':f'eq.{project_id}'},
+                headers={'apikey':key, 'Authorization':authorization})
+        if response.status_code != 200:
+            raise HTTPException(503, 'Unable to retrieve project')
+        records = response.json()
+    except httpx.RequestError:
+        raise HTTPException(503, 'Project storage temporarily unavailable')
+    if not records: raise HTTPException(404, 'Project not found')
+    project = records[0].get('data') or {}
     with db() as c:
-        row=c.execute('SELECT data FROM projects WHERE id=?',(project_id,)).fetchone()
-        if not row:raise HTTPException(404,'Project not found')
-        project=json.loads(row['data'])
         papers={str(p['id']) for p in project.get('papers',[]) if p.get('id')}
         candidates={}
         if papers:
