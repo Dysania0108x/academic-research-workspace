@@ -956,14 +956,6 @@ def suggest_themes(req:ThemeRequest):
     if not themes:
         raise HTTPException(502,'The AI returned no usable research themes after two attempts. Please retry or enter themes manually.')
     return {'themes':themes}
-,
-    allow_methods=['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allow_headers=['Authorization','Content-Type'],
-)
-
-class ProjectPayload(BaseModel):
-    id: str
-    data: dict
 
 @app.get('/api/projects')
 def list_projects():
